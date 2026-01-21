@@ -1,6 +1,5 @@
 from flask import Flask
-
-from board import pages
+import pages
 
 def create_app():
     app = Flask(__name__)
