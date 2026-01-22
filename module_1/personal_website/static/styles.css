@@ -18,6 +18,8 @@ a:hover {
   color: #0056b3;
 }
 
+
+
 nav {
     display: flex;
     justify-content: end;
@@ -31,6 +33,11 @@ nav ul {
 nav ul li {
   display: inline;
   margin: 0 5px;
+}
+
+nav ul li.active {
+    background-color: #4CAF50;
+    color: white;
 }
 
 main {

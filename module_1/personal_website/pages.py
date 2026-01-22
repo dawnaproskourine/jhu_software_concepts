@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 
 #create an instance of blueprint and name it bp. The first argument is the name of the blueprint.
 #Use this name to identify this particular plueprint in the flask project

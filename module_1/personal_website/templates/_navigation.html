@@ -1,7 +1,7 @@
 <nav>
   <ul>
-    <li><a href="{{ url_for('pages.home') }}">Home</a></li>
-    <li><a href="{{ url_for('pages.contact') }}">Contact Info</a></li>
-    <li><a href="{{ url_for('pages.projects') }}">Projects</a></li>
+    <li {% if request.path == '/' %} class="active" {% endif %} ><a href="{{ url_for('pages.home') }}">Home</a></li>
+    <li {% if request.path == '/contact' %} class="active" {% endif %} ><a href="{{ url_for('pages.contact') }}">Contact Info</a></li>
+    <li {% if request.path == '/projects' %} class="active" {% endif %} ><a href="{{ url_for('pages.projects') }}">Projects</a></li>
   </ul>
 </nav>
