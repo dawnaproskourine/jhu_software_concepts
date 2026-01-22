@@ -53,3 +53,6 @@ python3 run.py
 
 # References
  * https://realpython.com/flask-project/
+ * https://stackoverflow.com/questions/11287150/css-making-text-align-left-and-justify-at-same-time
+ * https://www.geeksforgeeks.org/html/html-img-align-attribute/
+ * https://realpython.com/readme-python-project/

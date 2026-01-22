@@ -1,5 +1,7 @@
 * {
   box-sizing: border-box;
+  margin: 0
+  padding: 0
 }
 
 body {
@@ -43,5 +45,5 @@ nav ul li.active {
 
 main {
   width: 80%;
-  margin: 0 auto;
+  margin: 0 auto
 }
