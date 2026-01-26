@@ -33,7 +33,19 @@ def parse_header(header):
         break
     return parsed_header
 
+
+def extract_text(elem):
+    return elem.text.strip() if hasattr(elem, "text") else ''
+
 def parse_body(header, body):
+    parsed_body = []
+    fields = []
+    for row in body:
+        texts = [extract_text(child) for child in row]
+        for text in texts:
+            if text:
+                fields.append(text)
+        print(texts)
     print(body)
 
 
