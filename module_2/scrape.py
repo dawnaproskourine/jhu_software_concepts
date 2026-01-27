@@ -119,6 +119,16 @@ def parse_detail_row(cell, result):
         elif part_lower.startswith("gpa"):
             result["GPA"] = part
 
+        # check for GRE
+        elif part_lower.startswith("gre v"):
+            result["GRE V"] = part
+
+        elif part_lower.startswith("gre aw"):
+            result["GRE AW"] = part
+
+        elif part_lower.startswith("gre"):
+            result["GRE"] = part
+
         # check for status if not already set of if this is more detailed
         elif any(x in part_lower for x in ["accepted", "rejected", "interview", "wait"]):
             # only update if this looks like a status and we don't have one
@@ -132,7 +142,21 @@ def parse_detail_row(cell, result):
             else:
                 result["comments"] = part
 
+def get_max_pages(html):
+    """Extract max pages from html"""
+    soup = BeautifulSoup(html, "html.parser")
+    max_page = 1
 
+    # find pagination links
+    page_links = soup.find_all("a", href=re.compile(r"\?page=\d+"))
+    for link in page_links:
+        href = link.get("href", "")
+        match = re.search(r"\?page=(\d+)", href)
+        if match:
+            page_num = int(match.group(1))
+            max_page = max(max_page, page_num)
+
+    return max_page
 
 def scrape_gradcafe(
         base_url="https://www.thegradcafe.com/survey/",

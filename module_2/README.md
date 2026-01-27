@@ -17,7 +17,7 @@ pip install -r requirements.txt
 # Execution and usage
 
 ```
-python3 run.py
+python3 scrape.py --pages 2 --output applicant_data.json
 ```
 
 # Used technology
