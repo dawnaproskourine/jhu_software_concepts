@@ -8,10 +8,6 @@ import argparse
 import re
 import json
 
-from module_2.scrape_ai import scrape_gradcafe, get_max_pages
-from module_2.tutorial.scraper import results
-
-
 def fetch_page(url, user_agent = RobotsChecker.DEFAULT_USER_AGENT):
     """Fetch a page and parse its content"""
     headers = {'User-Agent': user_agent}
@@ -213,13 +209,53 @@ def main():
     parser = argparse.ArgumentParser(
         description="Scrape the survey page and parse its content. Return output as JSON"
     )
+    parser.add_argument(
+        "--pages",
+        "-p",
+        type=int,
+        default=5,
+        help="number of pages to scrape (default: 5, use 0 for all pages)"
+    )
+    parser.add_argument(
+        "--delay", "-d",
+        type=float,
+        default=0.5,
+        help="delay between pages in seconds (default: 0.5)"
+    )
+    parser.add_argument(
+        "--output", "-o",
+        type=str,
+        help="output JSON file (default: stdout)"
+    )
+    parser.add_argument(
+        "--user_agent", "-u",
+        type=str,
+        default=RobotsChecker.DEFAULT_USER_AGENT,
+        help=f"User agent string to use for requests (default: {RobotsChecker.DEFAULT_USER_AGENT})"
+    )
+    parser.add_argument(
+        "--ignore_robots",
+        action="store_true",
+        help="ignore robots.txt check (not recommended) (default: False)"
+    )
     args = parser.parse_args()
+    max_pages = args.pages if args.pages > 0 else None
     results = scrape_gradcafe(
         max_pages=max_pages,
         delay=args.delay,
         user_agent=args.user_agent,
         ignore_robots=args.ignore_robots
     )
+
+    # output as formatted JSON
+    json_output = json.dumps(results, indent=2, ensure_ascii=False)
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(json_output)
+        print(f"Results saved to {args.output}", file=sys.stderr)
+    else:
+        print(json_output)
+
     return results
 
 
