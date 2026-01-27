@@ -100,6 +100,40 @@ def parse_main_row(cells):
 
 def parse_detail_row(cell, result):
     """Parse the detail table row and return a dict of survey data"""
+    text = cell.get_text(separator=" | ", strip=True)
+    parts = [p.strip() for p in text.split(" | ")]
+
+    for part in parts:
+        part_lower = part.lower()
+
+        # check for term (eg "Fall 2024")
+        if re.match(r'^(fall|spring|summer|winter)\s+\d{4}$', part_lower):
+            result['term'] = part
+
+        # Check for US/International
+        elif part_lower == "international":
+            result["US/International"] = "International"
+        elif part_lower == "american":
+            result["US/International"] = "American"
+
+        # check for GPA
+        elif part_lower.startswith("gpa"):
+            result["GPA"] = part
+
+        # check for status if not already set of if this is more detailed
+        elif any(x in part_lower for x in ["accepted", "rejected", "interview", "wait"]):
+            # only update if this looks like a status and we don't have one
+            if "status" not in result or not result["status"]:
+                result["status"] = part
+
+        # otherwise treat as comment
+        else:
+            if result["comments"]:
+                result["comments"] += " " + part
+            else:
+                result["comments"] = part
+
+
 
 def scrape_gradcafe(
         base_url="https://www.thegradcafe.com/survey/",
@@ -139,4 +173,4 @@ def main():
 
 
 if __name__ == "__main__":
-
+    main()
