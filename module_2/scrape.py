@@ -1,8 +1,13 @@
 from bs4 import BeautifulSoup
 from urllib.request import urlopen, Request
 import RobotsChecker
+import argparse
 import re
 import json
+
+from module_2.scrape_ai import scrape_gradcafe
+from module_2.tutorial.scraper import results
+
 
 def fetch_page(url, user_agent = RobotsChecker.DEFAULT_USER_AGENT):
     """Fetch a page and parse its content"""
@@ -51,58 +56,87 @@ def parse_survey(html):
 def parse_main_row(cells):
     """Parse the main table row and return a dict of survey data"""
     result = {}
+
+    # cell 0: university name
+    school = cells[0].get_text(strip=True)
+
+    # cell 1: program and degree (eg, "Physics | PhD")
+    program_cell = cells[1].get_text(separator=" | ", strip=True)
+    program_parts = program_cell.split(" | ")
+    program_name = program_parts[0] if program_parts else ""
+
+    # combine school and program
+    result["program"] = f"{program_name}, {school}"
+
+    # extract degree from program cell
+    if len(program_parts) > 1:
+        degree = program_parts[1].strip()
+        if "phd" in degree.lower():
+            result["Degree"] = "PhD"
+        elif "master" in degree.lower() or degree in ["MS", "MA", "MFA", "MBA", "MEng"]:
+            result["Degree"] = "Masters"
+        else:
+            result["Degree"] = degree
+
+    # cell 2: date added
+    date_text = cells[2].get_text(strip=True)
+    result["date_added"] = f"Added on {date_text}"
+
+    # cell 3: decision/status
+    result["status"] = cells[3].get_text(strip=True)
+
+    # cell 4: links - extract URL
+    link = cells[4].find("a", href=re.compile(r"/result/"))
+    if link:
+        href = link.get("href", "")
+        if href.startswith("/"):
+            result["url"] = f"https://www.thegradcafe.com{href}"
+        else:
+            result["url"] = href
+
+    # initialize comments
+    result["comments"] = ""
     return result
 
 def parse_detail_row(cell, result):
     """Parse the detail table row and return a dict of survey data"""
 
-def parse():
-    url = "https://www.thegradcafe.com/survey/"
+def scrape_gradcafe(
+        base_url="https://www.thegradcafe.com/survey/",
+        max_pages=None, delay=0.5,
+        user_agent = RobotsChecker.DEFAULT_USER_AGENT,
+        ignore_robots=False):
+    """
+    Scrape the gradcafe page and parse its content across multiple pages
 
-    page = urlopen(url)
-    html = page.read().decode("utf-8")
-    soup = BeautifulSoup(html, "html.parser")
+    Args:
+        base_url: base url for gradcafe survey pages
+        max_pages: maximum number of pages to scrape (None to scrape all)
+        delay: delay between pages in seconds - to be respectful to the server
+        user_agent: user agent to use for requests
+        ignore_robots: ignore robots when scraping. if true skip robots.txt check - not recommended
 
-    tables = soup.find_all("table")
-    header = None
-    body = None
-    for table in tables:
-        for table_elem in table:
-            if table_elem.name == "thead":
-                header = parse_header(table_elem)
-                continue
-            if table_elem.name == "tbody":
-                body = parse_body(header, table_elem)
-                continue
-            print(table_elem)
-    return header, body
+    Returns:
+        List of dictionaries containing survey data
+    """
+    all_results = []
 
-def parse_header(header):
-    parsed_header = []
-    for row in header:
-        if row.name != "tr":
-            continue
-        for cell in row:
-            if cell.name != "th":
-                continue
-            cell = cell.text.strip()
-            parsed_header.append(cell)
-        break
-    return parsed_header
+    return all_results
 
-
-def extract_text(elem):
-    return elem.text.strip() if hasattr(elem, "text") else ''
-
-def parse_body(header, body):
-    fields = []
-    for row in body:
-        texts = [extract_text(child) for child in row]
-        for text in texts:
-             if text:
-                fields.append(text)
-    return fields
+def main():
+    """Main function. Scrape the survey page and parse its content. Output JSON file"""
+    parser = argparse.ArgumentParser(
+        description="Scrape the survey page and parse its content. Return output as JSON"
+    )
+    args = parser.parse_args()
+    results = scrape_gradcafe(
+        max_pages=max_pages,
+        delay=args.delay,
+        user_agent=args.user_agent,
+        ignore_robots=args.ignore_robots
+    )
+    return results
 
 
 if __name__ == "__main__":
-    parse()
+
