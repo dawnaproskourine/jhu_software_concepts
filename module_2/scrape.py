@@ -1,3 +1,6 @@
+import sys
+import time
+
 from bs4 import BeautifulSoup
 from urllib.request import urlopen, Request
 import RobotsChecker
@@ -5,7 +8,7 @@ import argparse
 import re
 import json
 
-from module_2.scrape_ai import scrape_gradcafe
+from module_2.scrape_ai import scrape_gradcafe, get_max_pages
 from module_2.tutorial.scraper import results
 
 
@@ -155,6 +158,54 @@ def scrape_gradcafe(
     """
     all_results = []
 
+    # check robots.txt
+    if not ignore_robots:
+        print(f"Checking robots.txt for user-agent: {user_agent}", file=sys.stderr)
+        robots = RobotsChecker.RobotsChecker(base_url, user_agent)
+
+        if not robots.can_fetch(base_url):
+            print(f"Error: robots.txt disallows access to {base_url} for {user_agent}", file=sys.stderr)
+            print("Use --ignore_robots option to ignore robots.txt check (not recommended)", file=sys.stderr)
+            return all_results
+
+         # use crawl-delay from robots.txt if specified, otherwise use provided delay
+        robots_delay = robots.get_crawl_delay(delay)
+        if robots_delay != delay:
+            print(f"Using crawl delay from robots.txt: {robots_delay}s", file=sys.stderr)
+            delay = robots_delay
+
+    # fetch first page to determine total pages
+    html = fetch_page(base_url, user_agent)
+    results = parse_survey(html)
+    all_results.extend(results)
+
+    total_pages = get_max_pages(html)
+    pages_to_fetch = min(total_pages, max_pages) if max_pages else total_pages
+
+    print(f"Found {total_pages} total pages. Fetching {pages_to_fetch} pages...", file=sys.stderr)
+    print(f"Page 1/{pages_to_fetch} - {len(results)} results", file=sys.stderr)
+
+    # fetch remaining pages
+    for page_num in range(2, pages_to_fetch + 1):
+        time.sleep(delay) # being respectful to the server
+
+        page_url = f"{base_url}?page={page_num}"
+
+        # check robots.txt for each page URL
+        if not ignore_robots and not robots.can_fetch(page_url):
+            print(f"Skipping page {page_num}: disallowed by robots.txt", file=sys.stderr)
+            continue
+
+        try:
+            html = fetch_page(page_url, user_agent)
+            results = parse_survey(html)
+            all_results.extend(results)
+            print(f"Page {page_num}/{pages_to_fetch} - {len(results)} results", file=sys.stderr)
+        except Exception as e:
+            print(f"Error fetching page {page_num}: {e}", file=sys.stderr)
+            continue
+
+    print(f"Total results: {len(all_results)}", file=sys.stderr)
     return all_results
 
 def main():
