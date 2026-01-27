@@ -12,6 +12,50 @@ def fetch_page(url, user_agent = RobotsChecker.DEFAULT_USER_AGENT):
     html = page.read().decode("utf-8")
     return html
 
+def parse_survey(html):
+    """Parse the survey page and return a dict of survey data"""
+    soup = BeautifulSoup(html, "html.parser")
+    results = []
+
+    # find the main results table
+    table = soup.find("table")
+    if not table:
+        return results
+
+    # data is stored in tbody
+    tbody = table.find("tbody")
+    if not tbody:
+        return results
+
+    rows = tbody.find_all("tr")
+
+    current_result = None
+    for row in rows:
+        cells = row.find_all("td")
+
+        if len(cells) == 5:
+            # main data row - save previous result and start new one
+            if current_result:
+                results.append(current_result)
+            current_result = parse_main_row(cells)
+        elif len(cells) == 1 and current_result:
+            parse_detail_row(cells[0], current_result)
+
+    # Remember the last result
+    if current_result:
+        results.append(current_result)
+
+    return results
+
+
+def parse_main_row(cells):
+    """Parse the main table row and return a dict of survey data"""
+    result = {}
+    return result
+
+def parse_detail_row(cell, result):
+    """Parse the detail table row and return a dict of survey data"""
+
 def parse():
     url = "https://www.thegradcafe.com/survey/"
 
