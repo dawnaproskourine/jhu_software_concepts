@@ -22,11 +22,7 @@ The scraper handles three types of rows
 - custom user agent support
 - captures user comments from multiple rows
 
-
-
-
 # Installation
-
 ```
 pip install -r requirements.txt
 ```
@@ -76,3 +72,7 @@ The scraper outputs JSON with the following structure:
 # References
 * https://realpython.com/python-web-scraping-practical-introduction/
 * https://realpython.com/beautiful-soup-web-scraper-python/
+* https://docs.python.org/3/tutorial/inputoutput.html
+* https://scrapfly.io/blog/posts/python-requests-headers-guide
+* https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+* https://docs.python.org/3/library/argparse.html
