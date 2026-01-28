@@ -53,7 +53,8 @@ ABBREV_UNI: Dict[str, str] = {
     r"(?i)^mcg(\.|ill)?$": "McGill University",
     r"(?i)^(ubc|u\.?b\.?c\.?)$": "University of British Columbia",
     r"(?i)^uoft$": "University of Toronto",
-    r"(?i)^cuny$": "The City University of New York"
+    r"(?i)^cuny$": "The City University of New York",
+    r"(?i)^duke$": "Duke University"
 }
 
 COMMON_UNI_FIXES: Dict[str, str] = {
@@ -61,6 +62,8 @@ COMMON_UNI_FIXES: Dict[str, str] = {
     "Mcgill University": "McGill University",
     # Normalize 'Of' → 'of'
     "University Of British Columbia": "University of British Columbia",
+    "Massachusetts Institute of Technology (MIT)": "Massachusetts Institute of Technology",
+    "University of Alabama At Birmingham": "University of Alabama at Birmingham",
 }
 
 COMMON_PROG_FIXES: Dict[str, str] = {
@@ -194,6 +197,9 @@ def _post_normalize_university(uni: str) -> str:
 
     # Common spelling fixes
     u = COMMON_UNI_FIXES.get(u, u)
+
+    # Strip trailing parenthetical abbreviations, e.g. "(Ucla)", "(Ucsd)"
+    u = re.sub(r"\s*\([A-Za-z]+\)\s*$", "", u).strip()
 
     # Normalize 'Of' → 'of'
     if u:

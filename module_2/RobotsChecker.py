@@ -3,7 +3,7 @@ from urllib import parse, robotparser
 from urllib.parse import urlparse
 
 # Default user agent for the scraper
-DEFAULT_USER_AGENT = "GradCafeScraper/1.0"
+DEFAULT_USER_AGENT = "DawnaGradCafeScraper/1.0"
 base_url = "https://www.thegradcafe.com/"
 
 class RobotsChecker:
