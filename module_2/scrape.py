@@ -43,6 +43,7 @@ def parse_survey(html):
                 results.append(current_result)
             current_result = parse_main_row(cells)
         elif len(cells) == 1 and current_result:
+            # This could be a detail row or a comment row
             parse_detail_row(cells[0], current_result)
 
     # Remember the last result
@@ -93,54 +94,90 @@ def parse_main_row(cells):
         else:
             result["url"] = href
 
-    # initialize comments
-    result["comments"] = ""
+    # initialize comments as empty list to collect multiple comment rows
+    result["comments"] = []
     return result
 
 def parse_detail_row(cell, result):
-    """Parse the detail table row and return a dict of survey data"""
+    """Parse the detail table row and return a dict of survey data
+    
+    This function handles two types of rows:
+    1. Detail rows containing structured data (GPA, GRE, status, etc.)
+    2. Comment rows containing free-form text
+    """
     text = cell.get_text(separator=" | ", strip=True)
+    
+    # Skip empty cells
+    if not text:
+        return
+    
     parts = [p.strip() for p in text.split(" | ")]
+    
+    # Track if we found any structured data
+    found_structured_data = False
+    
+    # Collect any parts that don't match structured patterns - these are comments
+    comment_parts = []
 
     for part in parts:
         part_lower = part.lower()
-
+        
         # check for term (eg "Fall 2024")
         if re.match(r'^(fall|spring|summer|winter)\s+\d{4}$', part_lower):
             result['term'] = part
+            found_structured_data = True
 
         # Check for US/International
         elif part_lower == "international":
             result["US/International"] = "International"
+            found_structured_data = True
         elif part_lower == "american":
             result["US/International"] = "American"
+            found_structured_data = True
 
         # check for GPA
         elif part_lower.startswith("gpa"):
             result["GPA"] = part
+            found_structured_data = True
 
         # check for GRE
         elif part_lower.startswith("gre v"):
             result["GRE V"] = part
+            found_structured_data = True
 
         elif part_lower.startswith("gre aw"):
             result["GRE AW"] = part
+            found_structured_data = True
+
+        elif part_lower.startswith("gre q"):
+            result["GRE Q"] = part
+            found_structured_data = True
 
         elif part_lower.startswith("gre"):
             result["GRE"] = part
+            found_structured_data = True
 
-        # check for status if not already set of if this is more detailed
-        elif any(x in part_lower for x in ["accepted", "rejected", "interview", "wait"]):
-            # only update if this looks like a status and we don't have one
+        # check for status if not already set or if this is more detailed
+        elif any(x in part_lower for x in ["accepted", "rejected", "interview", "wait"]) and len(part) < 50:
+            # only update if this looks like a status (short text) and we don't have one
             if "status" not in result or not result["status"]:
                 result["status"] = part
+                found_structured_data = True
 
-        # otherwise treat as comment
+        # This part doesn't match any structured pattern - it's likely a comment
         else:
-            if result["comments"]:
-                result["comments"] += " " + part
-            else:
-                result["comments"] = part
+            comment_parts.append(part)
+    
+    # If we have comment parts, add them to the comments list
+    if comment_parts:
+        comment_text = " ".join(comment_parts)
+        result["comments"].append(comment_text)
+    
+    # If this entire row had no structured data, it's probably a pure comment row
+    if not found_structured_data and text:
+        # Add the entire text as a comment if we haven't already
+        if text not in result["comments"]:
+            result["comments"].append(text)
 
 def get_max_pages(html):
     """Extract max pages from html"""
@@ -158,7 +195,7 @@ def get_max_pages(html):
 
     return max_page
 
-def scrape_gradcafe(
+def scrape_data(
         base_url="https://www.thegradcafe.com/survey/",
         max_pages=None, delay=0.5,
         user_agent = RobotsChecker.DEFAULT_USER_AGENT,
@@ -197,6 +234,12 @@ def scrape_gradcafe(
     # fetch first page to determine total pages
     html = fetch_page(base_url, user_agent)
     results = parse_survey(html)
+    
+    # Convert comment lists to strings before adding to results
+    for result in results:
+        if isinstance(result.get("comments"), list):
+            result["comments"] = " ".join(result["comments"]).strip()
+    
     all_results.extend(results)
 
     total_pages = get_max_pages(html)
@@ -219,6 +262,12 @@ def scrape_gradcafe(
         try:
             html = fetch_page(page_url, user_agent)
             results = parse_survey(html)
+            
+            # Convert comment lists to strings
+            for result in results:
+                if isinstance(result.get("comments"), list):
+                    result["comments"] = " ".join(result["comments"]).strip()
+            
             all_results.extend(results)
             print(f"Page {page_num}/{pages_to_fetch} - {len(results)} results", file=sys.stderr)
         except Exception as e:
@@ -264,7 +313,7 @@ def main():
     )
     args = parser.parse_args()
     max_pages = args.pages if args.pages > 0 else None
-    results = scrape_gradcafe(
+    results = scrape_data(
         max_pages=max_pages,
         delay=args.delay,
         user_agent=args.user_agent,

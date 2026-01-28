@@ -1,5 +1,156 @@
 [
   {
+    "program": "Engineering, Mar-a-Lago University",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 27 Jan",
+    "url": "https://www.thegradcafe.com/result/992515",
+    "comments": "Jeffrey E. Epstein Scholarship Track",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 4.1"
+  },
+  {
+    "program": "Physics, University of Chicago",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Rejected on 26 Jan",
+    "url": "https://www.thegradcafe.com/result/992514",
+    "comments": "AMO-ex. No GRE. No interview. 3 research internships and undergraduate thesis. Received notification on application portal. No email received or other means of notification.",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 3.7"
+  },
+  {
+    "program": "Physics, Washington State University",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 27 Jan",
+    "url": "https://www.thegradcafe.com/result/992513",
+    "comments": "AMO-ex. No interview, No GRE. Received email with offer from physics and astronomy department administrator.",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 3.7"
+  },
+  {
+    "program": "Physics, University of Minnesota",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 27 Jan",
+    "url": "https://www.thegradcafe.com/result/992512",
+    "comments": "",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 3.75"
+  },
+  {
+    "program": "Chemistry, The Scripps Research Institute",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Rejected on 21 Jan",
+    "url": "https://www.thegradcafe.com/result/992511",
+    "comments": "",
+    "term": "Fall 2026",
+    "US/International": "International",
+    "GPA": "GPA 4.00"
+  },
+  {
+    "program": "Clinical Psychology, Syracuse University",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Interview on 24 Jan",
+    "url": "https://www.thegradcafe.com/result/992510",
+    "comments": "Invited via email to official interview day by PI (AP)",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 3.95"
+  },
+  {
+    "program": "English, The Ohio State University",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 27 Jan",
+    "url": "https://www.thegradcafe.com/result/992509",
+    "comments": "I saw the admission in the portal first and received an official email several hours later",
+    "term": "Fall 2026",
+    "US/International": "American"
+  },
+  {
+    "program": "Political Science, University of South Carolina",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 20 Jan",
+    "url": "https://www.thegradcafe.com/result/992508",
+    "comments": "",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 4.0"
+  },
+  {
+    "program": "Physics, University of Wisconsin - Madison",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 22 Jan",
+    "url": "https://www.thegradcafe.com/result/992507",
+    "comments": "",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 3.92"
+  },
+  {
+    "program": "Physics, University of Washington",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 22 Jan",
+    "url": "https://www.thegradcafe.com/result/992506",
+    "comments": "",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 3.92"
+  },
+  {
+    "program": "Mechanical Engineering, Johns Hopkins University",
+    "Degree": "Masters",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 27 Jan",
+    "url": "https://www.thegradcafe.com/result/992505",
+    "comments": "Got a notice status changed through email",
+    "term": "Fall 2026",
+    "US/International": "International",
+    "GPA": "GPA 3.85"
+  },
+  {
+    "program": "History, College of William and Mary",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Accepted on 24 Jan",
+    "url": "https://www.thegradcafe.com/result/992504",
+    "comments": "",
+    "term": "Fall 2026",
+    "US/International": "American",
+    "GPA": "GPA 3.8"
+  },
+  {
+    "program": "Chemical Engineering, University of Minnesota",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Rejected on 27 Jan",
+    "url": "https://www.thegradcafe.com/result/992503",
+    "comments": "",
+    "term": "Fall 2026",
+    "US/International": "International"
+  },
+  {
+    "program": "History, Boston College",
+    "Degree": "PhD",
+    "date_added": "Added on January 27, 2026",
+    "status": "Rejected on 25 Jan",
+    "url": "https://www.thegradcafe.com/result/992502",
+    "comments": "",
+    "term": "Fall 2026",
+    "US/International": "American"
+  },
+  {
     "program": "East Asian Languages and Cultures, Stanford University",
     "Degree": "Masters",
     "date_added": "Added on January 27, 2026",
@@ -60,161 +211,6 @@
     "comments": "",
     "term": "Fall 2026",
     "US/International": "International",
-    "GPA": "GPA 3.8"
-  },
-  {
-    "program": "Clinical Psychology, Kean College",
-    "Degree": "PsyD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Wait listed on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992495",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "American",
-    "GPA": "GPA 3.96"
-  },
-  {
-    "program": "Physics, University of Chicago",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Rejected on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992494",
-    "comments": "Hep-th.\r\nهما الخسرانين",
-    "term": "Fall 2026",
-    "US/International": "International",
-    "GPA": "GPA 3.83"
-  },
-  {
-    "program": "Chemistry, University of Texas at Dallas",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Accepted on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992493",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "International",
-    "GPA": "GPA 3.54"
-  },
-  {
-    "program": "Mechanical Engineering, Rikers Island Institute of Technology (RIIT)",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Rejected on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992492",
-    "comments": "0 murders, 0 armed robberies. Can’t say I’m surprised. No one to blame but myself.  ",
-    "term": "Fall 2026",
-    "US/International": "American",
-    "GPA": "GPA 3.9"
-  },
-  {
-    "program": "Social Work, Arizona State University",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Interview on 14 Jan",
-    "url": "https://www.thegradcafe.com/result/992491",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "American",
-    "GPA": "GPA 4.0"
-  },
-  {
-    "program": "Teaching of Social Studies, Teachers College at Columbia University",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Accepted on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992490",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "American"
-  },
-  {
-    "program": "Mechanical Engineering, Johns Hopkins University",
-    "Degree": "Masters",
-    "date_added": "Added on January 27, 2026",
-    "status": "Accepted on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992489",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "International",
-    "GPA": "GPA 4.0"
-  },
-  {
-    "program": "Painting and Drawing, University of Georgia",
-    "Degree": "Masters",
-    "date_added": "Added on January 27, 2026",
-    "status": "Rejected on 22 Jan",
-    "url": "https://www.thegradcafe.com/result/992488",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "American",
-    "GPA": "GPA 3.8"
-  },
-  {
-    "program": "Mechanical Engineering, Johns Hopkins University",
-    "Degree": "Masters",
-    "date_added": "Added on January 27, 2026",
-    "status": "Accepted on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992487",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "International",
-    "GPA": "GPA 3.88"
-  },
-  {
-    "program": "Human Factors, Old Dominion University",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Interview on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992486",
-    "comments": "Got an invite to the in person meet and greet",
-    "term": "Fall 2026",
-    "US/International": "American",
-    "GRE": "GRE 511",
-    "GRE V": "GRE V 159",
-    "GRE AW": "GRE AW 152",
-    "GPA": "GPA 3.3"
-  },
-  {
-    "program": "Computer Science, University of Wisconsin - Madison",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Accepted on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992485",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "American",
-    "GPA": "GPA 3.05"
-  },
-  {
-    "program": "Classics and Near Eastern Studies, University of Minnesota - Twin Cities",
-    "Degree": "Masters",
-    "date_added": "Added on January 27, 2026",
-    "status": "Accepted on 27 Jan",
-    "url": "https://www.thegradcafe.com/result/992484",
-    "comments": "Got my acceptance today. Got such an early notification because I was also nominated for a diversity fellowship which pays even more money than a normal funding package.",
-    "term": "Fall 2026",
-    "US/International": "American",
-    "GPA": "GPA 3.89"
-  },
-  {
-    "program": "Ethnomusicology, University of Pennsylvania",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Accepted on 26 Jan",
-    "url": "https://www.thegradcafe.com/result/992483",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "American"
-  },
-  {
-    "program": "Political Science, University of Maryland",
-    "Degree": "PhD",
-    "date_added": "Added on January 27, 2026",
-    "status": "Accepted on 26 Jan",
-    "url": "https://www.thegradcafe.com/result/992482",
-    "comments": "",
-    "term": "Fall 2026",
-    "US/International": "American",
     "GPA": "GPA 3.8"
   }
 ]
