@@ -134,8 +134,8 @@ def parse_detail_row(cell, result):
             result["US/International"] = "American"
             found_structured_data = True
 
-        # check for GPA
-        elif part_lower.startswith("gpa"):
+        # check for GPA (must match "GPA X.XX" pattern)
+        elif re.match(r'^gpa\s+\d+(\.\d+)?$', part_lower):
             result["GPA"] = part
             found_structured_data = True
 

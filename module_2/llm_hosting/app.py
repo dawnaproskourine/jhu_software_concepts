@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Flask + tiny local LLM standardizer with incremental JSONL CLI output."""
+"""Flask + tiny local LLM standardizer with JSON CLI output."""
 
 from __future__ import annotations
 
@@ -53,6 +53,7 @@ ABBREV_UNI: Dict[str, str] = {
     r"(?i)^mcg(\.|ill)?$": "McGill University",
     r"(?i)^(ubc|u\.?b\.?c\.?)$": "University of British Columbia",
     r"(?i)^uoft$": "University of Toronto",
+    r"(?i)^cuny$": "The City University of New York"
 }
 
 COMMON_UNI_FIXES: Dict[str, str] = {
@@ -286,34 +287,28 @@ def standardize() -> Any:
 def _cli_process_file(
     in_path: str,
     out_path: str | None,
-    append: bool,
     to_stdout: bool,
 ) -> None:
-    """Process a JSON file and write JSONL incrementally."""
+    """Process a JSON file and write a properly formatted JSON array."""
     with open(in_path, "r", encoding="utf-8") as f:
         rows = _normalize_input(json.load(f))
 
-    sink = sys.stdout if to_stdout else None
-    if not to_stdout:
-        out_path = out_path or (in_path + ".jsonl")
-        mode = "a" if append else "w"
-        sink = open(out_path, mode, encoding="utf-8")
+    out: List[Dict[str, Any]] = []
+    for row in rows:
+        program_text = (row or {}).get("program") or ""
+        result = _call_llm(program_text)
+        row["llm-generated-program"] = result["standardized_program"]
+        row["llm-generated-university"] = result["standardized_university"]
+        out.append(row)
 
-    assert sink is not None  # for type-checkers
+    formatted = json.dumps(out, indent=2, ensure_ascii=False)
 
-    try:
-        for row in rows:
-            program_text = (row or {}).get("program") or ""
-            result = _call_llm(program_text)
-            row["llm-generated-program"] = result["standardized_program"]
-            row["llm-generated-university"] = result["standardized_university"]
-
-            json.dump(row, sink, ensure_ascii=False)
-            sink.write("\n")
-            sink.flush()
-    finally:
-        if sink is not sys.stdout:
-            sink.close()
+    if to_stdout:
+        sys.stdout.write(formatted + "\n")
+    else:
+        out_path = out_path or (os.path.splitext(in_path)[0] + "_out.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(formatted + "\n")
 
 
 if __name__ == "__main__":
@@ -335,18 +330,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--out",
         default=None,
-        help="Output path for JSON Lines (ndjson). "
-        "Defaults to <input>.jsonl when --file is set.",
-    )
-    parser.add_argument(
-        "--append",
-        action="store_true",
-        help="Append to the output file instead of overwriting.",
+        help="Output path for JSON. "
+        "Defaults to <input>_out.json when --file is set.",
     )
     parser.add_argument(
         "--stdout",
         action="store_true",
-        help="Write JSON Lines to stdout instead of a file.",
+        help="Write JSON to stdout instead of a file.",
     )
     args = parser.parse_args()
 
@@ -357,6 +347,5 @@ if __name__ == "__main__":
         _cli_process_file(
             in_path=args.file,
             out_path=args.out,
-            append=bool(args.append),
             to_stdout=bool(args.stdout),
         )

@@ -27,7 +27,7 @@ degree program + university names. It appends two new fields to each row:
 ## CLI mode (no server)
 
 ```bash
-python app.py --file cleaned_applicant_data.json --stdout > full_out.jsonl
+python app.py --file applicant_data.json
 ```
 
 ## Config (env vars)

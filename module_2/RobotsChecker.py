@@ -20,7 +20,7 @@ class RobotsChecker:
         robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
 
         try:
-            self.parser.parse(robots_url)
+            self.parser.set_url(robots_url)
             self.parser.read()
 
             # check for crawl delay directive
