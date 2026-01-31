@@ -25,12 +25,12 @@ def parse_survey(html):
     soup = BeautifulSoup(html, "html.parser")
     results = []
 
-    # find the main results table
+    # Find the main results table
     table = soup.find("table")
     if not table:
         return results
 
-    # data is stored in tbody
+    # Data is stored in tbody
     tbody = table.find("tbody")
     if not tbody:
         return results
@@ -42,7 +42,7 @@ def parse_survey(html):
         cells = row.find_all("td")
 
         if len(cells) == 5:
-            # main data row - save previous result and start new one
+            # Main data row - save previous result and start new one
             if current_result:
                 results.append(current_result)
             current_result = parse_main_row(cells)
@@ -61,18 +61,18 @@ def parse_main_row(cells):
     """Parse the main table row and return a dict of survey data"""
     result = {}
 
-    # cell 0: university name
+    # Cell 0: university name
     school = cells[0].get_text(strip=True)
 
-    # cell 1: program and degree (eg, "Physics | PhD")
+    # Cell 1: program and degree (eg, "Physics | PhD")
     program_cell = cells[1].get_text(separator=" | ", strip=True)
     program_parts = program_cell.split(" | ")
     program_name = program_parts[0] if program_parts else ""
 
-    # combine school and program
+    # Combine school and program
     result["program"] = f"{program_name}, {school}"
 
-    # extract degree from program cell
+    # Extract degree from program cell
     if len(program_parts) > 1:
         degree = program_parts[1].strip()
         if "phd" in degree.lower():
@@ -82,14 +82,14 @@ def parse_main_row(cells):
         else:
             result["Degree"] = degree
 
-    # cell 2: date added
+    # Cell 2: date added
     date_text = cells[2].get_text(strip=True)
     result["date_added"] = f"Added on {date_text}"
 
-    # cell 3: decision/status
+    # Cell 3: decision/status
     result["status"] = cells[3].get_text(strip=True)
 
-    # cell 4: links - extract URL
+    # Cell 4: links - extract URL
     link = cells[4].find("a", href=re.compile(r"/result/"))
     if link:
         href = link.get("href", "")
@@ -98,14 +98,14 @@ def parse_main_row(cells):
         else:
             result["url"] = href
 
-    # default GPA/GRE fields so every row has them even when not on the page
+    # Default GPA/GRE fields so every row has them even when not on the page
     result["GPA"] = ""
     result["GRE V"] = ""
     result["GRE AW"] = ""
     result["GRE Q"] = ""
     result["GRE"] = ""
 
-    # initialize comments as empty list to collect multiple comment rows
+    # Initialize comments as empty list to collect multiple comment rows
     result["comments"] = []
     return result
 
@@ -133,7 +133,7 @@ def parse_detail_row(cell, result):
     for part in parts:
         part_lower = part.lower()
         
-        # check for term (eg "Fall 2024")
+        # Check for term (eg "Fall 2024")
         if re.match(r'^(fall|spring|summer|winter)\s+\d{4}$', part_lower):
             result['term'] = part
             found_structured_data = True
@@ -146,12 +146,12 @@ def parse_detail_row(cell, result):
             result["US/International"] = "American"
             found_structured_data = True
 
-        # check for GPA (must match "GPA X.XX" pattern)
+        # Check for GPA (must match "GPA X.XX" pattern)
         elif re.match(r'^gpa\s+\d+(\.\d+)?$', part_lower):
             result["GPA"] = part
             found_structured_data = True
 
-        # check for GRE
+        # Check for GRE
         elif part_lower.startswith("gre v"):
             result["GRE V"] = part
             found_structured_data = True
@@ -168,7 +168,7 @@ def parse_detail_row(cell, result):
             result["GRE"] = part
             found_structured_data = True
 
-        # check for status if not already set or if this is more detailed
+        # Check for status if not already set or if this is more detailed
         elif any(x in part_lower for x in ["accepted", "rejected", "interview", "wait"]) and len(part) < 50:
             # only update if this looks like a status (short text) and we don't have one
             if "status" not in result or not result["status"]:
@@ -195,7 +195,7 @@ def get_max_pages(html):
     soup = BeautifulSoup(html, "html.parser")
     max_page = 1
 
-    # find pagination links
+    # Find pagination links
     page_links = soup.find_all("a", href=re.compile(r"\?page=\d+"))
     for link in page_links:
         href = link.get("href", "")
@@ -226,7 +226,7 @@ def scrape_data(
     """
     all_results = []
 
-    # check robots.txt
+    # Check robots.txt
     if not ignore_robots:
         print(f"Checking robots.txt for user-agent: {user_agent}", file=sys.stderr)
         robots = RobotsChecker.RobotsChecker(base_url, user_agent)
@@ -236,13 +236,13 @@ def scrape_data(
             print("Use --ignore_robots option to ignore robots.txt check (not recommended)", file=sys.stderr)
             return all_results
 
-         # use crawl-delay from robots.txt if specified, otherwise use provided delay
+         # Use crawl-delay from robots.txt if specified, otherwise use provided delay
         robots_delay = robots.get_crawl_delay(delay)
         if robots_delay != delay:
             print(f"Using crawl delay from robots.txt: {robots_delay}s", file=sys.stderr)
             delay = robots_delay
 
-    # fetch first page to determine total pages
+    # Fetch first page to determine total pages
     html = fetch_page(base_url, user_agent)
     results = parse_survey(html)
     
@@ -259,13 +259,13 @@ def scrape_data(
     print(f"Found {total_pages} total pages. Fetching {pages_to_fetch} pages...", file=sys.stderr)
     print(f"Page 1/{pages_to_fetch} - {len(results)} results", file=sys.stderr)
 
-    # fetch remaining pages
+    # Fetch remaining pages
     for page_num in range(2, pages_to_fetch + 1):
         time.sleep(delay) # being respectful to the server
 
         page_url = f"{base_url}?page={page_num}"
 
-        # check robots.txt for each page URL
+        # Check robots.txt for each page URL
         if not ignore_robots and not robots.can_fetch(page_url):
             print(f"Skipping page {page_num}: disallowed by robots.txt", file=sys.stderr)
             continue
@@ -331,7 +331,7 @@ def main():
         ignore_robots=args.ignore_robots
     )
 
-    # output as formatted JSON
+    # Output as formatted JSON
     json_output = json.dumps(results, indent=2, ensure_ascii=False)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
