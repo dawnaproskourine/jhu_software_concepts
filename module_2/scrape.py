@@ -1,3 +1,8 @@
+"""
+Module 2
+Author: Dawna Jones Proskourine
+"""
+
 import sys
 import time
 from bs4 import BeautifulSoup
@@ -92,6 +97,13 @@ def parse_main_row(cells):
             result["url"] = f"https://www.thegradcafe.com{href}"
         else:
             result["url"] = href
+
+    # default GPA/GRE fields so every row has them even when not on the page
+    result["GPA"] = ""
+    result["GRE V"] = ""
+    result["GRE AW"] = ""
+    result["GRE Q"] = ""
+    result["GRE"] = ""
 
     # initialize comments as empty list to collect multiple comment rows
     result["comments"] = []

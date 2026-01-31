@@ -1,3 +1,7 @@
+"""
+Author: Dawna Jones Proskourine
+"""
+
 import sys
 from urllib import parse, robotparser
 from urllib.parse import urlparse
