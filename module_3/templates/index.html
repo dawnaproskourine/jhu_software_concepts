@@ -13,6 +13,12 @@
             line-height: 1.6;
             padding: 2rem;
         }
+        .top-controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
         h1 {
             text-align: center;
             font-size: 2rem;
@@ -22,7 +28,7 @@
         .subtitle {
             text-align: center;
             color: #666;
-            margin-bottom: 2rem;
+            margin-bottom: 0;
             font-size: 0.95rem;
         }
         .section-title {
@@ -117,12 +123,131 @@
             font-weight: 700;
             color: #0f3460;
         }
+        .pull-data-card {
+            width: 260px;
+            flex-shrink: 0;
+        }
+        .pull-data-card .card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .pull-data-info {
+            font-size: 0.82rem;
+            color: #555;
+        }
+        .pull-data-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .pull-data-controls label {
+            font-size: 0.82rem;
+            color: #555;
+        }
+        .pull-data-controls input[type="number"] {
+            width: 4rem;
+            padding: 0.35rem 0.4rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+        .btn-pull {
+            padding: 0.55rem 1rem;
+            background: #0f3460;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-pull:hover { background: #16213e; }
+        .btn-pull:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        .pull-data-status {
+            font-size: 0.82rem;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            display: none;
+        }
+        .pull-data-status.info { display: block; background: #e8edf3; color: #0f3460; }
+        .pull-data-status.success { display: block; background: #d4edda; color: #155724; }
+        .pull-data-status.error { display: block; background: #f8d7da; color: #721c24; }
+        .update-analysis {
+            width: 260px;
+            flex-shrink: 0;
+        }
+        .update-analysis .card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .update-analysis .ua-info {
+            font-size: 0.82rem;
+            color: #555;
+        }
+        .btn-update {
+            width: 100%;
+            padding: 0.55rem 1rem;
+            background: #1a6b3c;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-update:hover { background: #14532d; }
+        .ua-status {
+            font-size: 0.82rem;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            display: none;
+        }
+        .ua-status.warn { display: block; background: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
 
-<h1>Applicant Data Analysis</h1>
-<p class="subtitle">Graduate program application data &mdash; powered by PostgreSQL</p>
+<!-- ───────── Top Controls ───────── -->
+<div class="top-controls">
+    <div class="card pull-data-card">
+        <div class="card-header">Pull Data</div>
+        <div class="card-body">
+            <p class="pull-data-info">
+                Scrape the latest entries from
+                <strong>thegradcafe.com/survey</strong> and add them to the database.
+                Duplicates are skipped automatically.
+            </p>
+            <div class="pull-data-controls">
+                <label for="pages">Pages:</label>
+                <input type="number" id="pages" value="5" min="1" max="100">
+                <button class="btn-pull" id="pull-btn" onclick="pullData()">Pull Data</button>
+            </div>
+            <div class="pull-data-status" id="pull-status"></div>
+        </div>
+    </div>
+
+    <div style="text-align:center; flex:1; align-self:center;">
+        <h1>Applicant Data Analysis</h1>
+        <p class="subtitle">Graduate program application data &mdash; powered by PostgreSQL</p>
+    </div>
+
+    <div class="card update-analysis">
+        <div class="card-header">Update Analysis</div>
+        <div class="card-body">
+            <p class="ua-info">
+                Refresh all analysis results using the current database contents.
+                Disabled while a Pull Data request is in progress.
+            </p>
+            <button class="btn-update" id="update-btn" onclick="updateAnalysis()">Update Analysis</button>
+            <div class="ua-status" id="ua-status"></div>
+        </div>
+    </div>
+</div>
 
 <!-- ───────── Overview Stats ───────── -->
 <div class="section-title">Overview Stats</div>
@@ -293,5 +418,57 @@
 
 </div>
 
+<script>
+var isPulling = false;
+
+function pullData() {
+    var btn = document.getElementById("pull-btn");
+    var status = document.getElementById("pull-status");
+    var pages = parseInt(document.getElementById("pages").value) || 5;
+
+    isPulling = true;
+    btn.disabled = true;
+    btn.textContent = "Pulling\u2026";
+    status.className = "pull-data-status info";
+    status.style.display = "block";
+    status.textContent = "Scraping " + pages + " page(s) from thegradcafe.com\u2026 this may take a moment.";
+
+    fetch("/pull-data", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({pages: pages})
+    })
+    .then(function(res) { return res.json().then(function(data) { return {ok: res.ok, data: data}; }); })
+    .then(function(result) {
+        isPulling = false;
+        if (!result.ok) {
+            status.className = "pull-data-status error";
+            status.textContent = result.data.error || "Request failed.";
+        } else {
+            status.className = "pull-data-status success";
+            status.textContent = result.data.message;
+        }
+        btn.disabled = false;
+        btn.textContent = "Pull Data";
+    })
+    .catch(function(err) {
+        isPulling = false;
+        status.className = "pull-data-status error";
+        status.textContent = "Network error: " + err.message;
+        btn.disabled = false;
+        btn.textContent = "Pull Data";
+    });
+}
+
+function updateAnalysis() {
+    var uaStatus = document.getElementById("ua-status");
+    if (isPulling) {
+        uaStatus.className = "ua-status warn";
+        uaStatus.textContent = "A Pull Data request is still running. Please wait for it to finish.";
+        return;
+    }
+    location.reload();
+}
+</script>
 </body>
 </html>
