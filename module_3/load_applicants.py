@@ -22,7 +22,6 @@ def parse_float(value, prefix=""):
         return float(s) if s else None
     except ValueError:
         return None
-
 def create_connection(dbname, user):
     try:
         conn = psycopg.connect(dbname=dbname, user=user)
