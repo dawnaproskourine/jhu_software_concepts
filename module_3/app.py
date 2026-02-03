@@ -1,17 +1,28 @@
-"""Flask dashboard for applicant_data analysis."""
+"""
+Flask dashboard for applicant_data analysis.
+
+Serves a Q&A-style web page displaying analysis results from the
+applicant_data PostgreSQL database. Also provides an endpoint to
+scrape new data from thegradcafe.com and insert it into the database.
+"""
 
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
 import psycopg
 
+# clean_text strips NUL bytes; parse_float extracts numeric values from prefixed strings
 from load_data import clean_text, parse_float
+# run_queries returns all analysis results as a dict; DB_CONFIG holds connection params
 from query_data import run_queries, DB_CONFIG
 
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder="website/templates",
+            static_folder="website/static")
 
 
 @app.route("/")
 def index():
+    """Render the dashboard by running all analysis queries."""
     conn = psycopg.connect(**DB_CONFIG)
     data = run_queries(conn)
     conn.close()
@@ -20,9 +31,16 @@ def index():
 
 @app.route("/pull-data", methods=["POST"])
 def pull_data():
-    """Scrape new data from thegradcafe.com and insert into the database."""
+    """Scrape new data from thegradcafe.com and insert into the database.
+
+    Accepts JSON body with optional 'pages' field (default 5).
+    Returns JSON with scraped count, inserted count, and a message.
+    Duplicate URLs are skipped via ON CONFLICT.
+    """
+    # Lazy import so the scraper is only loaded when this route is called
     from scrape import scrape_data
 
+    # Number of survey pages to scrape (default 5)
     pages = request.json.get("pages", 5) if request.is_json else 5
 
     try:
@@ -40,12 +58,14 @@ def pull_data():
 
     inserted = 0
     for row in rows:
+        # Parse the "Added on January 15, 2026" date format
         date_str = clean_text(row.get("date_added", "")).replace("Added on ", "")
         try:
             date_val = datetime.strptime(date_str, "%B %d, %Y").date()
         except ValueError:
             date_val = None
 
+        # Insert row; ON CONFLICT (url) DO NOTHING skips duplicates
         cur.execute("""
             INSERT INTO applicants (
                 program, comments, date_added, url, status, term,

@@ -73,11 +73,12 @@ module_3/
 ├── load_data.py            # Database loader (JSON → PostgreSQL)
 ├── scrape.py               # GradCafe scraper (from module_2)
 ├── RobotsChecker.py        # robots.txt checker (from module_2)
-├── templates/
-│   └── index.html          # Jinja2 Q&A dashboard template
-├── static/
-│   ├── style.css           # Dashboard styles
-│   └── dashboard.js        # Pull Data / Update Analysis logic
+├── website/
+│   ├── templates/
+│   │   └── index.html      # Jinja2 Q&A dashboard template
+│   └── static/
+│       ├── style.css       # Dashboard styles
+│       └── dashboard.js    # Pull Data / Update Analysis logic
 └── README.md
 ```
 
