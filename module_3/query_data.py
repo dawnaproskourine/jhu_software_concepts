@@ -14,6 +14,10 @@ def run_queries(conn):
     cur = conn.cursor()
     results = {}
 
+    # 0. Total applicant count
+    cur.execute("SELECT COUNT(*) FROM applicants")
+    results["total_count"] = cur.fetchone()[0]
+
     # 1. Fall 2026 count
     cur.execute("SELECT COUNT(*) FROM applicants WHERE term = 'Fall 2026'")
     results["fall_2026_count"] = cur.fetchone()[0]
@@ -181,6 +185,7 @@ def main():
     results = run_queries(conn)
     conn.close()
 
+    print(f"Total applicants: {results['total_count']}")
     print(f"Fall 2026 applicants: {results['fall_2026_count']}")
     print(f"International student percentage: {results['international_pct']}%")
     print(f"Average GPA: {results['avg_gpa']}")

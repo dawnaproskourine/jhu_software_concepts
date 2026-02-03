@@ -35,24 +35,34 @@ Visit `http://localhost:8080` in a browser.
 
 | Route | Method | Description |
 |-------|--------|-------------|
-| `/` | GET | Renders the dashboard with all 12 analysis queries |
+| `/` | GET | Renders the dashboard with all 13 analysis queries |
 | `/pull-data` | POST | Scrapes new entries from thegradcafe.com and inserts them into the database |
 
-### Dashboard Sections
+### Analysis Queries
 
-- **Overview Stats** — Fall 2026 applicant count, international student percentage, acceptance percentage
-- **GPA & Test Scores** — Average GPA/GRE/GRE V/GRE AW, American student GPA, accepted applicant GPA
-- **Specific Queries** — JHU CS Masters applicants, PhD CS acceptances at select universities
-- **Top 10 Rankings** — Most popular programs and universities
-- **Acceptance Rates** — By degree type (PhD vs Masters) and by nationality (American vs International)
+The dashboard displays 13 questions with answers in a Q&A format:
+
+- Total applicant count
+- Fall 2026 applicant count
+- International student percentage
+- Fall 2026 acceptance percentage
+- Average GPA, GRE, GRE V, GRE AW
+- Average GPA of American students (Fall 2026)
+- Average GPA of accepted applicants (Fall 2026)
+- JHU Masters in Computer Science applicants
+- PhD CS acceptances at Georgetown, MIT, Stanford, CMU (program field vs LLM field)
+- Top 10 most popular programs
+- Top 10 most popular universities
+- Acceptance rate by degree type
+- Acceptance rate by nationality
 
 ### Controls
 
-- **Pull Data** (top left) — Scrapes a configurable number of pages from thegradcafe.com/survey and inserts new entries
-into the database. Duplicate URLs are skipped via `ON CONFLICT`.
+- **Pull Data** (bottom left) — Scrapes a configurable number of pages from thegradcafe.com/survey and inserts new
+entries into the database. Duplicate URLs are skipped via `ON CONFLICT`.
 
-- **Update Analysis** (top right) — Refreshes the page to re-run all queries against the current database. Disabled while 
-a Pull Data request is in progress.
+- **Update Analysis** (bottom right) — Refreshes the page to re-run all queries against the current database. Disabled
+while a Pull Data request is in progress.
 
 ### Project Structure
 

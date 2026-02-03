@@ -10,19 +10,13 @@ body {
     margin: 0 auto;
 }
 
-/* ── Top controls row ── */
+/* ── Bottom controls row ── */
 
-.top-controls {
+.bottom-controls {
     display: flex;
     justify-content: space-between;
     gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.top-title {
-    text-align: center;
-    flex: 1;
-    align-self: center;
+    margin-top: 2.5rem;
 }
 
 /* ── Control panels (Pull Data / Update Analysis) ── */
@@ -56,12 +50,28 @@ body {
     color: #555;
 }
 
+/* ── Page headers ── */
+
+.header-divider {
+    border: none;
+    border-top: 2px solid #16213e;
+    margin: 1.5rem 0 1rem;
+}
+
+.analysis-header {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #16213e;
+    margin-bottom: 0.5rem;
+}
+
 /* ── Typography ── */
 
-h1 {
+.page-title {
     font-size: 2rem;
-    margin-bottom: 0.25rem;
     color: #16213e;
+    margin-bottom: 1rem;
+    white-space: nowrap;
 }
 
 .subtitle {
@@ -96,26 +106,22 @@ h1 {
     margin-bottom: 0.5rem;
 }
 
-.question::before {
-    content: "Q: ";
-    color: #0f3460;
-    font-weight: 700;
-}
 
 .answer {
-    padding-left: 1.75rem;
+    padding-left: 3.75rem;
 }
 
 .answer::before {
-    content: "A: ";
+    content: "Answer: ";
     font-weight: 700;
     color: #1a6b3c;
-    margin-left: -1.75rem;
+    margin-left: -3.75rem;
 }
 
 .answer-value {
-    font-size: 1.8rem;
-    font-weight: 700;
+    font-size: 1.2rem;
+    font-style: italic;
+    font-weight: normal;
     color: #0f3460;
 }
 
