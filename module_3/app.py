@@ -4,6 +4,8 @@ Flask dashboard for applicant_data analysis.
 Serves a Q&A-style web page displaying analysis results from the
 applicant_data PostgreSQL database. Also provides an endpoint to
 scrape new data from thegradcafe.com and insert it into the database.
+LLM-based standardization populates llm_generated_program and
+llm_generated_university fields for newly pulled data.
 """
 
 from datetime import datetime
@@ -14,6 +16,8 @@ import psycopg
 from load_data import clean_text, parse_float
 # run_queries returns all analysis results as a dict; DB_CONFIG holds connection params
 from query_data import run_queries, DB_CONFIG
+# LLM standardization for program/university names
+from llm_standardizer import standardize as llm_standardize
 
 app = Flask(__name__,
             template_folder="website/templates",
@@ -65,19 +69,32 @@ def pull_data():
         except ValueError:
             date_val = None
 
+        # Run LLM standardization on the program field
+        program_text = clean_text(row.get("program", ""))
+        try:
+            llm_result = llm_standardize(program_text)
+            llm_program = llm_result.get("standardized_program", "")
+            llm_university = llm_result.get("standardized_university", "")
+        except Exception:
+            # If LLM fails, leave fields empty
+            llm_program = ""
+            llm_university = ""
+
         # Insert row; ON CONFLICT (url) DO NOTHING skips duplicates
         cur.execute("""
             INSERT INTO applicants (
                 program, comments, date_added, url, status, term,
-                us_or_international, gpa, gre, gre_v, gre_aw, degree
+                us_or_international, gpa, gre, gre_v, gre_aw, degree,
+                llm_generated_program, llm_generated_university
             ) VALUES (
                 %(program)s, %(comments)s, %(date_added)s, %(url)s,
                 %(status)s, %(term)s, %(us_or_international)s,
-                %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s, %(degree)s
+                %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s, %(degree)s,
+                %(llm_program)s, %(llm_university)s
             )
             ON CONFLICT (url) DO NOTHING
         """, {
-            "program": clean_text(row.get("program", "")),
+            "program": program_text,
             "comments": clean_text(row.get("comments", "")),
             "date_added": date_val,
             "url": clean_text(row.get("url", "")),
@@ -89,6 +106,8 @@ def pull_data():
             "gre_v": parse_float(row.get("GRE V", ""), "GRE V"),
             "gre_aw": parse_float(row.get("GRE AW", ""), "GRE AW"),
             "degree": clean_text(row.get("Degree", "")),
+            "llm_program": llm_program,
+            "llm_university": llm_university,
         })
         if cur.rowcount > 0:
             inserted += 1

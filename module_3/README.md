@@ -21,7 +21,7 @@ Q&A-style dashboard. Queries are defined in `query_data.py` and shared between t
 
 - Python 3
 - PostgreSQL running locally with the `applicant_data` database populated (via `load_data.py`)
-- `flask` and `psycopg` packages installed
+- `flask`, `psycopg`, `llama-cpp-python`, and `huggingface_hub` packages installed
 
 ### Running
 
@@ -59,10 +59,32 @@ The dashboard displays 13 questions with answers in a Q&A format:
 ### Controls
 
 - **Pull Data** (bottom left) — Scrapes a configurable number of pages from thegradcafe.com/survey and inserts new
-entries into the database. Duplicate URLs are skipped via `ON CONFLICT`.
+entries into the database. Each row is processed through the TinyLlama LLM to populate `llm_generated_program` and
+`llm_generated_university` fields. Duplicate URLs are skipped via `ON CONFLICT`.
 
 - **Update Analysis** (bottom right) — Refreshes the page to re-run all queries against the current database. Disabled
 while a Pull Data request is in progress.
+
+### LLM Standardization
+
+The `llm_standardizer.py` module uses TinyLlama (via llama_cpp) to parse and standardize program/university strings
+from GradCafe data. Features:
+
+- Few-shot prompting for consistent JSON output
+- Rule-based fallback parsing if LLM returns invalid JSON
+- Fuzzy matching against canonical program and university lists
+- Automatic abbreviation expansion (e.g., "MIT" → "Massachusetts Institute of Technology")
+
+## backfill_llm.py
+
+Backfills missing `llm_generated_program` and `llm_generated_university` fields for existing database rows. Finds all
+rows where these fields are NULL or empty, runs the LLM standardizer on each, and updates the database.
+
+```bash
+python3 backfill_llm.py
+```
+
+This script was run once to populate 211 rows that were missing LLM fields from the original data load.
 
 ### Project Structure
 
@@ -71,6 +93,10 @@ module_3/
 ├── app.py                  # Flask application
 ├── query_data.py           # Analysis queries (shared by app.py and CLI)
 ├── load_data.py            # Database loader (JSON → PostgreSQL)
+├── backfill_llm.py         # Backfill missing LLM fields in existing rows
+├── llm_standardizer.py     # LLM-based program/university standardization
+├── canon_programs.txt      # Canonical program names for fuzzy matching
+├── canon_universities.txt  # Canonical university names for fuzzy matching
 ├── scrape.py               # GradCafe scraper (from module_2)
 ├── RobotsChecker.py        # robots.txt checker (from module_2)
 ├── website/
