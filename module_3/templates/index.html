@@ -10,10 +10,10 @@
 
 <!-- ───────── Top Controls ───────── -->
 <div class="top-controls">
-    <div class="card pull-data-card">
-        <div class="card-header">Pull Data</div>
-        <div class="card-body">
-            <p class="pull-data-info">
+    <div class="control-panel pull-data-panel">
+        <div class="panel-header">Pull Data</div>
+        <div class="panel-body">
+            <p class="panel-info">
                 Scrape the latest entries from
                 <strong>thegradcafe.com/survey</strong> and add them to the database.
                 Duplicates are skipped automatically.
@@ -27,15 +27,15 @@
         </div>
     </div>
 
-    <div style="text-align:center; flex:1; align-self:center;">
+    <div class="top-title">
         <h1>Applicant Data Analysis</h1>
         <p class="subtitle">Graduate program application data &mdash; powered by PostgreSQL</p>
     </div>
 
-    <div class="card update-analysis">
-        <div class="card-header">Update Analysis</div>
-        <div class="card-body">
-            <p class="ua-info">
+    <div class="control-panel update-panel">
+        <div class="panel-header">Update Analysis</div>
+        <div class="panel-body">
+            <p class="panel-info">
                 Refresh all analysis results using the current database contents.
                 Disabled while a Pull Data request is in progress.
             </p>
@@ -47,171 +47,143 @@
 
 <!-- ───────── Overview Stats ───────── -->
 <div class="section-title">Overview Stats</div>
-<div class="card-grid">
 
-    <div class="card">
-        <div class="card-header">How many entries applied for Fall 2026?</div>
-        <div class="card-body">
-            <div class="big-number">{{ fall_2026_count }}</div>
-        </div>
-    </div>
+<div class="qa">
+    <div class="question">How many entries applied for Fall 2026?</div>
+    <div class="answer"><span class="answer-value">{{ fall_2026_count }}</span></div>
+</div>
 
-    <div class="card">
-        <div class="card-header">What percentage of entries are international?</div>
-        <div class="card-body">
-            <div class="big-number">{{ international_pct }}<span class="unit">%</span></div>
-        </div>
-    </div>
+<div class="qa">
+    <div class="question">What percentage of entries are international?</div>
+    <div class="answer"><span class="answer-value">{{ international_pct }}%</span></div>
+</div>
 
-    <div class="card">
-        <div class="card-header">What percentage of Fall 2026 entries are acceptances?</div>
-        <div class="card-body">
-            <div class="big-number">{{ acceptance_pct_fall2026 }}<span class="unit">%</span></div>
-        </div>
-    </div>
-
+<div class="qa">
+    <div class="question">What percentage of Fall 2026 entries are acceptances?</div>
+    <div class="answer"><span class="answer-value">{{ acceptance_pct_fall2026 }}%</span></div>
 </div>
 
 <!-- ───────── GPA & Test Scores ───────── -->
 <div class="section-title">GPA &amp; Test Scores</div>
-<div class="card-grid">
 
-    <div class="card">
-        <div class="card-header">Average GPA, GRE, GRE V, GRE AW</div>
-        <div class="card-body">
-            <table>
-                <thead>
-                    <tr><th>Metric</th><th>Average</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td>GPA</td><td>{{ avg_gpa }}</td></tr>
-                    <tr><td>GRE</td><td>{{ avg_gre }}</td></tr>
-                    <tr><td>GRE Verbal</td><td>{{ avg_gre_v }}</td></tr>
-                    <tr><td>GRE Analytical Writing</td><td>{{ avg_gre_aw }}</td></tr>
-                </tbody>
-            </table>
-        </div>
+<div class="qa">
+    <div class="question">What are the average GPA, GRE, GRE V, and GRE AW of applicants?</div>
+    <div class="answer">
+        <table>
+            <thead>
+                <tr><th>Metric</th><th>Average</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>GPA</td><td>{{ avg_gpa }}</td></tr>
+                <tr><td>GRE</td><td>{{ avg_gre }}</td></tr>
+                <tr><td>GRE Verbal</td><td>{{ avg_gre_v }}</td></tr>
+                <tr><td>GRE Analytical Writing</td><td>{{ avg_gre_aw }}</td></tr>
+            </tbody>
+        </table>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-header">Average GPA of American students (Fall 2026)</div>
-        <div class="card-body">
-            <div class="big-number">{{ american_gpa_fall2026 }}</div>
-        </div>
-    </div>
+<div class="qa">
+    <div class="question">What is the average GPA of American students in Fall 2026?</div>
+    <div class="answer"><span class="answer-value">{{ american_gpa_fall2026 }}</span></div>
+</div>
 
-    <div class="card">
-        <div class="card-header">Average GPA of accepted applicants (Fall 2026)</div>
-        <div class="card-body">
-            <div class="big-number">{{ accepted_gpa_fall2026 }}</div>
-        </div>
-    </div>
-
+<div class="qa">
+    <div class="question">What is the average GPA of accepted applicants in Fall 2026?</div>
+    <div class="answer"><span class="answer-value">{{ accepted_gpa_fall2026 }}</span></div>
 </div>
 
 <!-- ───────── Specific Queries ───────── -->
 <div class="section-title">Specific Queries</div>
-<div class="card-grid">
 
-    <div class="card">
-        <div class="card-header">JHU Masters in Computer Science applicants</div>
-        <div class="card-body">
-            <div class="big-number">{{ jhu_cs_masters }}</div>
-        </div>
+<div class="qa">
+    <div class="question">How many applied to JHU for a Masters in Computer Science?</div>
+    <div class="answer"><span class="answer-value">{{ jhu_cs_masters }}</span></div>
+</div>
+
+<div class="qa">
+    <div class="question">How many 2026 PhD CS acceptances at Georgetown, MIT, Stanford, or CMU?</div>
+    <div class="answer">
+        <table>
+            <thead>
+                <tr><th>Source</th><th>Count</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Program field</td><td>{{ phd_cs_program }}</td></tr>
+                <tr><td>LLM-generated field</td><td>{{ phd_cs_llm }}</td></tr>
+            </tbody>
+        </table>
     </div>
-
-    <div class="card">
-        <div class="card-header">2026 PhD CS acceptances at Georgetown, MIT, Stanford, CMU</div>
-        <div class="card-body">
-            <div class="compare">
-                <div class="compare-item">
-                    <div class="compare-label">Program field</div>
-                    <div class="compare-value">{{ phd_cs_program }}</div>
-                </div>
-                <div class="compare-item">
-                    <div class="compare-label">LLM field</div>
-                    <div class="compare-value">{{ phd_cs_llm }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 <!-- ───────── Top 10 Rankings ───────── -->
 <div class="section-title">Top 10 Rankings</div>
-<div class="card-grid">
 
-    <div class="card">
-        <div class="card-header">Top 10 Most Popular Programs</div>
-        <div class="card-body">
-            <ol>
-                {% for program, count in top_programs %}
-                <li>{{ program }} <span class="count-badge">{{ count }}</span></li>
-                {% endfor %}
-            </ol>
-        </div>
+<div class="qa">
+    <div class="question">What are the top 10 most popular programs?</div>
+    <div class="answer">
+        <ol>
+            {% for program, count in top_programs %}
+            <li>{{ program }} <span class="count-badge">{{ count }}</span></li>
+            {% endfor %}
+        </ol>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-header">Top 10 Most Popular Universities</div>
-        <div class="card-body">
-            <ol>
-                {% for university, count in top_universities %}
-                <li>{{ university }} <span class="count-badge">{{ count }}</span></li>
-                {% endfor %}
-            </ol>
-        </div>
+<div class="qa">
+    <div class="question">What are the top 10 most popular universities?</div>
+    <div class="answer">
+        <ol>
+            {% for university, count in top_universities %}
+            <li>{{ university }} <span class="count-badge">{{ count }}</span></li>
+            {% endfor %}
+        </ol>
     </div>
-
 </div>
 
 <!-- ───────── Acceptance Rates ───────── -->
 <div class="section-title">Acceptance Rates</div>
-<div class="card-grid">
 
-    <div class="card">
-        <div class="card-header">Acceptance rate by degree type</div>
-        <div class="card-body">
-            <table>
-                <thead>
-                    <tr><th>Degree</th><th>Accepted</th><th>Total</th><th>Rate</th></tr>
-                </thead>
-                <tbody>
-                    {% for degree, total, accepted, rate in rate_by_degree %}
-                    <tr>
-                        <td>{{ degree }}</td>
-                        <td>{{ accepted }}</td>
-                        <td>{{ total }}</td>
-                        <td>{{ rate }}%</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<div class="qa">
+    <div class="question">What is the acceptance rate by degree type?</div>
+    <div class="answer">
+        <table>
+            <thead>
+                <tr><th>Degree</th><th>Accepted</th><th>Total</th><th>Rate</th></tr>
+            </thead>
+            <tbody>
+                {% for degree, total, accepted, rate in rate_by_degree %}
+                <tr>
+                    <td>{{ degree }}</td>
+                    <td>{{ accepted }}</td>
+                    <td>{{ total }}</td>
+                    <td>{{ rate }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-header">Acceptance rate by nationality</div>
-        <div class="card-body">
-            <table>
-                <thead>
-                    <tr><th>Nationality</th><th>Accepted</th><th>Total</th><th>Rate</th></tr>
-                </thead>
-                <tbody>
-                    {% for nationality, total, accepted, rate in rate_by_nationality %}
-                    <tr>
-                        <td>{{ nationality }}</td>
-                        <td>{{ accepted }}</td>
-                        <td>{{ total }}</td>
-                        <td>{{ rate }}%</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<div class="qa">
+    <div class="question">What is the acceptance rate by nationality?</div>
+    <div class="answer">
+        <table>
+            <thead>
+                <tr><th>Nationality</th><th>Accepted</th><th>Total</th><th>Rate</th></tr>
+            </thead>
+            <tbody>
+                {% for nationality, total, accepted, rate in rate_by_nationality %}
+                <tr>
+                    <td>{{ nationality }}</td>
+                    <td>{{ accepted }}</td>
+                    <td>{{ total }}</td>
+                    <td>{{ rate }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-
 </div>
 
 <script src="{{ url_for('static', filename='dashboard.js') }}"></script>

@@ -6,6 +6,8 @@ body {
     color: #1a1a2e;
     line-height: 1.6;
     padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 /* ── Top controls row ── */
@@ -17,17 +19,52 @@ body {
     margin-bottom: 1.5rem;
 }
 
+.top-title {
+    text-align: center;
+    flex: 1;
+    align-self: center;
+}
+
+/* ── Control panels (Pull Data / Update Analysis) ── */
+
+.control-panel {
+    width: 260px;
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.panel-header {
+    background: #16213e;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.panel-body {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.panel-info {
+    font-size: 0.82rem;
+    color: #555;
+}
+
 /* ── Typography ── */
 
 h1 {
-    text-align: center;
     font-size: 2rem;
     margin-bottom: 0.25rem;
     color: #16213e;
 }
 
 .subtitle {
-    text-align: center;
     color: #666;
     margin-bottom: 0;
     font-size: 0.95rem;
@@ -37,50 +74,49 @@ h1 {
     font-size: 1.3rem;
     font-weight: 600;
     color: #0f3460;
-    margin: 2rem 0 1rem;
+    margin: 2.5rem 0 1rem;
     padding-bottom: 0.4rem;
     border-bottom: 2px solid #0f3460;
 }
 
-/* ── Card grid ── */
+/* ── Q&A layout ── */
 
-.card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.25rem;
-}
-
-.card {
+.qa {
     background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.card-header {
-    background: #16213e;
-    color: #fff;
-    padding: 0.75rem 1.25rem;
+.question {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1rem;
+    color: #16213e;
+    margin-bottom: 0.5rem;
 }
 
-.card-body {
-    padding: 1.25rem;
+.question::before {
+    content: "Q: ";
+    color: #0f3460;
+    font-weight: 700;
 }
 
-/* ── Big number stat ── */
+.answer {
+    padding-left: 1.75rem;
+}
 
-.big-number {
-    font-size: 2.5rem;
+.answer::before {
+    content: "A: ";
+    font-weight: 700;
+    color: #1a6b3c;
+    margin-left: -1.75rem;
+}
+
+.answer-value {
+    font-size: 1.8rem;
     font-weight: 700;
     color: #0f3460;
-}
-
-.big-number .unit {
-    font-size: 1.2rem;
-    font-weight: 400;
-    color: #666;
 }
 
 /* ── Tables ── */
@@ -88,11 +124,12 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse;
+    margin-top: 0.25rem;
 }
 
 th, td {
     text-align: left;
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.75rem;
     border-bottom: 1px solid #eee;
 }
 
@@ -110,10 +147,11 @@ tr:last-child td { border-bottom: none; }
 
 ol {
     padding-left: 1.5rem;
+    margin-top: 0.25rem;
 }
 
 ol li {
-    padding: 0.35rem 0;
+    padding: 0.3rem 0;
     border-bottom: 1px solid #f0f0f0;
 }
 
@@ -129,48 +167,7 @@ ol li:last-child { border-bottom: none; }
     font-weight: 600;
 }
 
-/* ── Compare layout ── */
-
-.compare {
-    display: flex;
-    gap: 1rem;
-    align-items: baseline;
-}
-
-.compare-item {
-    flex: 1;
-    text-align: center;
-}
-
-.compare-label {
-    font-size: 0.8rem;
-    color: #888;
-    text-transform: uppercase;
-}
-
-.compare-value {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #0f3460;
-}
-
-/* ── Pull Data card ── */
-
-.pull-data-card {
-    width: 260px;
-    flex-shrink: 0;
-}
-
-.pull-data-card .card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-}
-
-.pull-data-info {
-    font-size: 0.82rem;
-    color: #555;
-}
+/* ── Pull Data controls ── */
 
 .pull-data-controls {
     display: flex;
@@ -220,23 +217,7 @@ ol li:last-child { border-bottom: none; }
 .pull-data-status.success { display: block; background: #d4edda; color: #155724; }
 .pull-data-status.error   { display: block; background: #f8d7da; color: #721c24; }
 
-/* ── Update Analysis card ── */
-
-.update-analysis {
-    width: 260px;
-    flex-shrink: 0;
-}
-
-.update-analysis .card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-}
-
-.update-analysis .ua-info {
-    font-size: 0.82rem;
-    color: #555;
-}
+/* ── Update Analysis button ── */
 
 .btn-update {
     width: 100%;
