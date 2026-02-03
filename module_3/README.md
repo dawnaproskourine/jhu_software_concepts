@@ -86,6 +86,14 @@ python3 backfill_llm.py
 
 This script was run once to populate 211 rows that were missing LLM fields from the original data load.
 
+## cleanup_data.py
+
+Data quality cleanup script that fixes:
+
+1. **Invalid GRE AW scores** — Sets values > 6 to NULL (GRE AW is scored 0-6; 146 rows had incorrect values)
+2. **UC campus normalization** — Re-normalizes generic "University of California" entries to specific campuses
+   (e.g., UCLA, Berkeley, San Diego) by extracting campus info from the original program field (532 rows updated)
+
 ### Project Structure
 
 ```
@@ -94,6 +102,7 @@ module_3/
 ├── query_data.py           # Analysis queries (shared by app.py and CLI)
 ├── load_data.py            # Database loader (JSON → PostgreSQL)
 ├── backfill_llm.py         # Backfill missing LLM fields in existing rows
+├── cleanup_data.py         # Fix GRE AW scores and normalize UC campuses
 ├── llm_standardizer.py     # LLM-based program/university standardization
 ├── canon_programs.txt      # Canonical program names for fuzzy matching
 ├── canon_universities.txt  # Canonical university names for fuzzy matching

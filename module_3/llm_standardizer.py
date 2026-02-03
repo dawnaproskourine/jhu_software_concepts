@@ -65,6 +65,20 @@ COMMON_UNI_FIXES: Dict[str, str] = {
     "University of Alabama At Birmingham": "University of Alabama at Birmingham",
 }
 
+# UC campus normalization patterns (regex pattern -> canonical name)
+UC_CAMPUS_PATTERNS: List[Tuple[str, str]] = [
+    (r"(?i).*\b(ucla|los\s*angeles)\b.*", "University of California, Los Angeles"),
+    (r"(?i).*\b(ucb|uc\s*berkeley|berkeley)\b.*", "University of California, Berkeley"),
+    (r"(?i).*\b(ucsd|san\s*diego)\b.*", "University of California, San Diego"),
+    (r"(?i).*\b(ucsb|santa\s*barbara)\b.*", "University of California, Santa Barbara"),
+    (r"(?i).*\b(uci|irvine?n?e?)\b.*", "University of California, Irvine"),
+    (r"(?i).*\b(ucd|uc\s*davis|davis)\b.*", "University of California, Davis"),
+    (r"(?i).*\b(ucsc|santa\s*cruz)\b.*", "University of California, Santa Cruz"),
+    (r"(?i).*\b(ucr|riverside)\b.*", "University of California, Riverside"),
+    (r"(?i).*\b(ucm|merced)\b.*", "University of California, Merced"),
+    (r"(?i).*\b(ucsf|san\s*francisco)\b.*", "University of California, San Francisco"),
+]
+
 COMMON_PROG_FIXES: Dict[str, str] = {
     "Mathematic": "Mathematics",
     "Info Studies": "Information Studies",
@@ -203,6 +217,12 @@ def _post_normalize_university(uni: str) -> str:
     # Normalize 'Of' -> 'of'
     if u:
         u = re.sub(r"\bOf\b", "of", u.title())
+
+    # UC campus normalization - match specific campuses
+    if "california" in u.lower() or u.lower().startswith("uc"):
+        for pattern, canonical in UC_CAMPUS_PATTERNS:
+            if re.fullmatch(pattern, u):
+                return canonical
 
     # Canonical or fuzzy match
     if u in CANON_UNIS:
