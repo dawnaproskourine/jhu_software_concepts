@@ -3,11 +3,10 @@
 var isPulling = false;
 
 // Sends a POST request to /pull-data to scrape new entries from
-// thegradcafe.com and insert them into the database.
+// thegradcafe.com until caught up with database (no gaps).
 function pullData() {
     var btn = document.getElementById("pull-btn");
     var status = document.getElementById("pull-status");
-    var pages = parseInt(document.getElementById("pages").value) || 5;
 
     // Disable both buttons while scraping
     isPulling = true;
@@ -18,12 +17,12 @@ function pullData() {
     // Show in-progress status message
     status.className = "pull-data-status info";
     status.style.display = "block";
-    status.textContent = "Scraping " + pages + " page(s) from thegradcafe.com\u2026 this may take a moment.";
+    status.textContent = "Scraping thegradcafe.com until caught up\u2026 this may take a moment.";
 
     fetch("/pull-data", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({pages: pages})
+        body: JSON.stringify({max_pages: 100})  // safety limit
     })
     .then(function(res) { return res.json().then(function(data) { return {ok: res.ok, data: data}; }); })
     .then(function(result) {

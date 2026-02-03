@@ -150,13 +150,10 @@
         <div class="panel-header">Pull Data</div>
         <div class="panel-body">
             <p class="panel-info">
-                Scrape the latest entries from
-                <strong>https:/www.thegradcafe.com/survey</strong> and add them to the database.
-                Duplicates are skipped automatically.
+                Scrape <strong>thegradcafe.com/survey</strong> until caught up with the database.
+                Automatically stops when no new entries are found (no gaps).
             </p>
             <div class="pull-data-controls">
-                <label for="pages">Pages:</label>
-                <input type="number" id="pages" value="5" min="1" max="100">
                 <button class="btn-pull" id="pull-btn" onclick="pullData()">Pull Data</button>
             </div>
             <div class="pull-data-status" id="pull-status"></div>

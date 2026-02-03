@@ -58,9 +58,9 @@ The dashboard displays 13 questions with answers in a Q&A format:
 
 ### Controls
 
-- **Pull Data** (bottom left) — Scrapes a configurable number of pages from thegradcafe.com/survey and inserts new
-entries into the database. Each row is processed through the TinyLlama LLM to populate `llm_generated_program` and
-`llm_generated_university` fields. Duplicate URLs are skipped via `ON CONFLICT`.
+- **Pull Data** (bottom left) — Scrapes thegradcafe.com/survey page by page until caught up with existing database
+entries (stops when a page has all duplicates). This ensures no gaps in data. Each new row is processed through the
+TinyLlama LLM to populate `llm_generated_program` and `llm_generated_university` fields.
 
 - **Update Analysis** (bottom right) — Refreshes the page to re-run all queries against the current database. Disabled
 while a Pull Data request is in progress.
