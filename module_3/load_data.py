@@ -7,7 +7,7 @@ from psycopg import OperationalError
 
 DB_NAME = "applicant_data"
 DB_USER = "dawnaproskourine"
-JSON_PATH = "../module_2/llm_extended_applicant_data.json"
+JSON_PATH = "llm_extended_applicant_data.json"
 
 # --- helpers ---
 
