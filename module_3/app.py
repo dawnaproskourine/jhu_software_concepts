@@ -21,6 +21,7 @@ from psycopg.cursor import Cursor
 from load_data import clean_text, parse_float
 from query_data import run_queries, DB_CONFIG
 from llm_standardizer import standardize as llm_standardize
+from cleanup_data import fix_gre_aw, fix_uc_universities
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -180,18 +181,30 @@ def pull_data() -> tuple[Response, int] | Response:
         conn.close()
         return jsonify({"error": f"Database error: {e}"}), 500
 
+    # Run data cleanup if new entries were inserted
+    cleaned_gre = 0
+    cleaned_uc = 0
+    if total_inserted > 0:
+        logger.info("Running data cleanup on new entries...")
+        cleaned_gre = fix_gre_aw(conn)
+        cleaned_uc = fix_uc_universities(conn)
+
     conn.close()
 
     if total_inserted == 0:
         message = f"Already up to date. Checked {pages_fetched} page(s), no new entries found."
     else:
         message = f"Caught up! Scraped {pages_fetched} page(s), {total_scraped} entries checked, {total_inserted} new rows added."
+        if cleaned_gre > 0 or cleaned_uc > 0:
+            message += f" Cleaned: {cleaned_gre} GRE AW, {cleaned_uc} UC names."
 
     logger.info(message)
     return jsonify({
         "pages_fetched": pages_fetched,
         "scraped": total_scraped,
         "inserted": total_inserted,
+        "cleaned_gre_aw": cleaned_gre,
+        "cleaned_uc": cleaned_uc,
         "message": message,
     })
 

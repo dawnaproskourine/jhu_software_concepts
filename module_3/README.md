@@ -60,7 +60,8 @@ The dashboard displays 13 questions with answers in a Q&A format:
 
 - **Pull Data** (bottom left) — Scrapes thegradcafe.com/survey page by page until caught up with existing database
 entries (stops when a page has all duplicates). This ensures no gaps in data. Each new row is processed through the
-TinyLlama LLM to populate `llm_generated_program` and `llm_generated_university` fields.
+TinyLlama LLM to populate `llm_generated_program` and `llm_generated_university` fields. After inserting, data cleanup
+automatically runs to fix invalid GRE AW scores and normalize UC campus names.
 
 - **Update Analysis** (bottom right) — Refreshes the page to re-run all queries against the current database. Disabled
 while a Pull Data request is in progress.
@@ -93,6 +94,13 @@ Data quality cleanup script that fixes:
 1. **Invalid GRE AW scores** — Sets values > 6 to NULL (GRE AW is scored 0-6; 146 rows had incorrect values)
 2. **UC campus normalization** — Re-normalizes generic "University of California" entries to specific campuses
    (e.g., UCLA, Berkeley, San Diego) by extracting campus info from the original program field (532 rows updated)
+
+**Note:** These cleanup functions are now automatically called after Pull Data inserts new entries. The standalone
+script can still be run manually for one-time bulk cleanup:
+
+```bash
+python3 cleanup_data.py
+```
 
 ### Project Structure
 
