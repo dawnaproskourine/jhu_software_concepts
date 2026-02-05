@@ -79,10 +79,11 @@ def run_queries(conn):
     results["accepted_gpa_fall2026"] = cur.fetchone()[0]
 
     # 7. JHU Masters in Computer Science count
+    # Uses '%Hopkins%' to catch misspellings: John Hopkins, John'S Hopkins, Johnson Hopkins, etc.
     cur.execute("""
         SELECT COUNT(*)
         FROM applicants
-        WHERE llm_generated_university ILIKE '%%Johns Hopkins%%'
+        WHERE llm_generated_university ILIKE '%%Hopkins%%'
           AND llm_generated_program ILIKE '%%Computer Science%%'
           AND degree = 'Masters'
     """)
