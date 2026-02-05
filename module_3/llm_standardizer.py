@@ -7,6 +7,7 @@ parsing if LLM output is invalid.
 """
 
 import json
+import logging
 import os
 import re
 import difflib
@@ -14,6 +15,9 @@ from typing import Dict, List, Tuple
 
 from huggingface_hub import hf_hub_download
 from llama_cpp import Llama
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Model configuration
 MODEL_REPO = "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF"
@@ -143,8 +147,6 @@ def _load_llm() -> Llama:
         repo_id=MODEL_REPO,
         filename=MODEL_FILE,
         local_dir=os.path.join(_DIR, "models"),
-        local_dir_use_symlinks=False,
-        force_filename=MODEL_FILE,
     )
 
     _LLM = Llama(
@@ -266,8 +268,9 @@ def standardize(program_text: str) -> Dict[str, str]:
         obj = json.loads(match.group(0) if match else text)
         std_prog = str(obj.get("standardized_program", "")).strip()
         std_uni = str(obj.get("standardized_university", "")).strip()
-    except Exception:
+    except (json.JSONDecodeError, AttributeError, TypeError) as e:
         # Fall back to rule-based parsing
+        logger.debug(f"LLM output parsing failed, using fallback: {e}")
         std_prog, std_uni = _split_fallback(program_text)
 
     # Post-process with canonical mappings

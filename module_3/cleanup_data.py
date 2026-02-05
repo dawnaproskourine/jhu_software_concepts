@@ -6,23 +6,18 @@ Fixes:
 2. Re-normalizes UC university names to specific campuses
 """
 
+import logging
 import re
-import psycopg
-from query_data import DB_CONFIG
 
-# UC campus patterns for normalization
-UC_CAMPUS_PATTERNS = [
-    (r"(?i).*\b(ucla|los\s*angeles)\b.*", "University of California, Los Angeles"),
-    (r"(?i).*\b(ucb|uc\s*berkeley|berkeley)\b.*", "University of California, Berkeley"),
-    (r"(?i).*\b(ucsd|san\s*diego)\b.*", "University of California, San Diego"),
-    (r"(?i).*\b(ucsb|santa\s*barbara)\b.*", "University of California, Santa Barbara"),
-    (r"(?i).*\b(uci|irvine?n?e?)\b.*", "University of California, Irvine"),
-    (r"(?i).*\b(ucd|uc\s*davis|davis)\b.*", "University of California, Davis"),
-    (r"(?i).*\b(ucsc|santa\s*cruz)\b.*", "University of California, Santa Cruz"),
-    (r"(?i).*\b(ucr|riverside)\b.*", "University of California, Riverside"),
-    (r"(?i).*\b(ucm|merced)\b.*", "University of California, Merced"),
-    (r"(?i).*\b(ucsf|san\s*francisco)\b.*", "University of California, San Francisco"),
-]
+import psycopg
+from psycopg import Connection, OperationalError
+
+from query_data import DB_CONFIG
+from llm_standardizer import UC_CAMPUS_PATTERNS
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 
 def normalize_uc(name: str) -> str | None:
@@ -33,26 +28,31 @@ def normalize_uc(name: str) -> str | None:
     return None
 
 
-def fix_gre_aw(conn):
-    """Set invalid GRE AW scores (> 6) to NULL."""
+def fix_gre_aw(conn: Connection) -> int:
+    """Set invalid GRE AW scores (> 6) to NULL.
+
+    Returns the number of rows updated.
+    """
     cur = conn.cursor()
 
-    # Count invalid scores
     cur.execute("SELECT COUNT(*) FROM applicants WHERE gre_aw > 6")
     count = cur.fetchone()[0]
-    print(f"Found {count} rows with invalid GRE AW scores (> 6)")
+    logger.info(f"Found {count} rows with invalid GRE AW scores (> 6)")
 
     if count > 0:
         cur.execute("UPDATE applicants SET gre_aw = NULL WHERE gre_aw > 6")
-        print(f"Set {count} invalid GRE AW values to NULL")
+        logger.info(f"Set {count} invalid GRE AW values to NULL")
+
+    return count
 
 
-def fix_uc_universities(conn):
-    """Re-normalize UC university names using the original program field."""
+def fix_uc_universities(conn: Connection) -> int:
+    """Re-normalize UC university names using the original program field.
+
+    Returns the number of rows updated.
+    """
     cur = conn.cursor()
 
-    # Find rows where llm_generated_university is generic "University of California"
-    # or has typos, and try to extract campus from the original program field
     cur.execute("""
         SELECT p_id, program, llm_generated_university
         FROM applicants
@@ -61,18 +61,15 @@ def fix_uc_universities(conn):
            OR llm_generated_university ILIKE 'Uc %'
     """)
     rows = cur.fetchall()
-    print(f"Found {len(rows)} UC-related rows to check")
+    logger.info(f"Found {len(rows)} UC-related rows to check")
 
     updated = 0
     for p_id, program, current_uni in rows:
-        # Try to extract campus from original program field
         new_uni = normalize_uc(program or "")
 
-        # If couldn't get from program, try from current llm_generated_university
         if not new_uni:
             new_uni = normalize_uc(current_uni or "")
 
-        # Update if we found a specific campus and it's different
         if new_uni and new_uni != current_uni:
             cur.execute("""
                 UPDATE applicants
@@ -81,21 +78,27 @@ def fix_uc_universities(conn):
             """, (new_uni, p_id))
             updated += 1
 
-    print(f"Updated {updated} UC university names to specific campuses")
+    logger.info(f"Updated {updated} UC university names to specific campuses")
+    return updated
 
 
-def main():
-    conn = psycopg.connect(**DB_CONFIG)
-    conn.autocommit = True
+def main() -> None:
+    """Run all cleanup operations."""
+    try:
+        conn = psycopg.connect(**DB_CONFIG)
+        conn.autocommit = True
+    except OperationalError as e:
+        logger.error(f"Database connection failed: {e}")
+        return
 
-    print("=== Fixing GRE AW scores ===")
+    logger.info("=== Fixing GRE AW scores ===")
     fix_gre_aw(conn)
 
-    print("\n=== Fixing UC university names ===")
+    logger.info("\n=== Fixing UC university names ===")
     fix_uc_universities(conn)
 
     conn.close()
-    print("\nCleanup complete!")
+    logger.info("\nCleanup complete!")
 
 
 if __name__ == "__main__":

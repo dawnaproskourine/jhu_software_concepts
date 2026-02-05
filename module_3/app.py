@@ -8,16 +8,23 @@ LLM-based standardization populates llm_generated_program and
 llm_generated_university fields for newly pulled data.
 """
 
+import logging
+import time
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request
-import psycopg
+from typing import Any
 
-# clean_text strips NUL bytes; parse_float extracts numeric values from prefixed strings
+from flask import Flask, render_template, jsonify, request, Response
+import psycopg
+from psycopg import OperationalError
+from psycopg.cursor import Cursor
+
 from load_data import clean_text, parse_float
-# run_queries returns all analysis results as a dict; DB_CONFIG holds connection params
 from query_data import run_queries, DB_CONFIG
-# LLM standardization for program/university names
 from llm_standardizer import standardize as llm_standardize
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__,
             template_folder="website/templates",
@@ -25,15 +32,19 @@ app = Flask(__name__,
 
 
 @app.route("/")
-def index():
+def index() -> str:
     """Render the dashboard by running all analysis queries."""
-    conn = psycopg.connect(**DB_CONFIG)
-    data = run_queries(conn)
-    conn.close()
-    return render_template("index.html", **data)
+    try:
+        conn = psycopg.connect(**DB_CONFIG)
+        data = run_queries(conn)
+        conn.close()
+        return render_template("index.html", **data)
+    except OperationalError as e:
+        logger.error(f"Database connection failed: {e}")
+        return render_template("index.html", error="Database connection failed")
 
 
-def insert_row(cur, row):
+def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
     """Insert a single row into the database with LLM standardization.
 
     Returns True if the row was inserted, False if it was a duplicate.
@@ -51,8 +62,8 @@ def insert_row(cur, row):
         llm_result = llm_standardize(program_text)
         llm_program = llm_result.get("standardized_program", "")
         llm_university = llm_result.get("standardized_university", "")
-    except Exception:
-        # If LLM fails, leave fields empty
+    except (KeyError, TypeError, RuntimeError) as e:
+        logger.warning(f"LLM standardization failed for '{program_text}': {e}")
         llm_program = ""
         llm_university = ""
 
@@ -89,7 +100,7 @@ def insert_row(cur, row):
 
 
 @app.route("/pull-data", methods=["POST"])
-def pull_data():
+def pull_data() -> tuple[Response, int] | Response:
     """Scrape new data from thegradcafe.com until caught up with database.
 
     Scrapes pages one at a time, stopping when a page has all duplicates
@@ -100,15 +111,25 @@ def pull_data():
     """
     # Lazy imports
     from scrape import fetch_page, parse_survey, get_max_pages
-    import time
+    from urllib.error import URLError, HTTPError
 
-    # Safety limit on pages to prevent infinite scraping
-    max_pages = request.json.get("max_pages", 100) if request.is_json else 100
+    # Validate and get max_pages with bounds checking
+    raw_max_pages = request.json.get("max_pages", 100) if request.is_json else 100
+    try:
+        max_pages = max(1, min(int(raw_max_pages), 500))  # Clamp between 1 and 500
+    except (ValueError, TypeError):
+        max_pages = 100
+
     base_url = "https://www.thegradcafe.com/survey/"
     delay = 0.5  # seconds between page fetches
 
-    conn = psycopg.connect(**DB_CONFIG)
-    conn.autocommit = True
+    try:
+        conn = psycopg.connect(**DB_CONFIG)
+        conn.autocommit = True
+    except OperationalError as e:
+        logger.error(f"Database connection failed: {e}")
+        return jsonify({"error": "Database connection failed"}), 500
+
     cur = conn.cursor()
 
     total_scraped = 0
@@ -147,11 +168,17 @@ def pull_data():
 
             # If no new entries on this page, we've caught up
             if page_inserted == 0:
+                logger.info(f"Caught up after {pages_fetched} pages")
                 break
 
-    except Exception as e:
+    except (URLError, HTTPError) as e:
+        logger.error(f"Network error during scrape: {e}")
         conn.close()
-        return jsonify({"error": f"Scrape failed: {e}"}), 500
+        return jsonify({"error": f"Network error: {e}"}), 500
+    except psycopg.Error as e:
+        logger.error(f"Database error during scrape: {e}")
+        conn.close()
+        return jsonify({"error": f"Database error: {e}"}), 500
 
     conn.close()
 
@@ -160,6 +187,7 @@ def pull_data():
     else:
         message = f"Caught up! Scraped {pages_fetched} page(s), {total_scraped} entries checked, {total_inserted} new rows added."
 
+    logger.info(message)
     return jsonify({
         "pages_fetched": pages_fetched,
         "scraped": total_scraped,

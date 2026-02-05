@@ -1,18 +1,26 @@
 """Analysis queries on the applicant_data database."""
 
-import psycopg
+import logging
+from typing import Any
 
-DB_CONFIG = {
+import psycopg
+from psycopg import Connection, OperationalError
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
+
+DB_CONFIG: dict[str, str] = {
     "dbname": "applicant_data",
     "user": "dawnaproskourine",
     "host": "127.0.0.1",
 }
 
 
-def run_queries(conn):
-    """Run all 12 analysis queries and return results as a dict."""
+def run_queries(conn: Connection) -> dict[str, Any]:
+    """Run all 13 analysis queries and return results as a dict."""
     cur = conn.cursor()
-    results = {}
+    results: dict[str, Any] = {}
 
     # 0. Total applicant count
     cur.execute("SELECT COUNT(*) FROM applicants")
@@ -183,9 +191,14 @@ def run_queries(conn):
     return results
 
 
-def main():
+def main() -> None:
     """Print all analysis results to the console."""
-    conn = psycopg.connect(**DB_CONFIG)
+    try:
+        conn = psycopg.connect(**DB_CONFIG)
+    except OperationalError as e:
+        logger.error(f"Database connection failed: {e}")
+        return
+
     results = run_queries(conn)
     conn.close()
 

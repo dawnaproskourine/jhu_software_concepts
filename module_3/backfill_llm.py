@@ -5,14 +5,28 @@ Finds all rows where these fields are NULL or empty, runs the LLM standardizer,
 and updates the database.
 """
 
+import logging
+
 import psycopg
+from psycopg import OperationalError
+
 from llm_standardizer import standardize as llm_standardize
 from query_data import DB_CONFIG
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
-def main():
-    conn = psycopg.connect(**DB_CONFIG)
-    conn.autocommit = True
+
+def main() -> None:
+    """Backfill missing LLM fields in the database."""
+    try:
+        conn = psycopg.connect(**DB_CONFIG)
+        conn.autocommit = True
+    except OperationalError as e:
+        logger.error(f"Database connection failed: {e}")
+        return
+
     cur = conn.cursor()
 
     # Find rows with missing LLM fields
@@ -22,9 +36,10 @@ def main():
            OR llm_generated_university IS NULL OR llm_generated_university = ''
     """)
     rows = cur.fetchall()
-    print(f"Found {len(rows)} rows to backfill")
+    logger.info(f"Found {len(rows)} rows to backfill")
 
     updated = 0
+    errors = 0
     for p_id, program in rows:
         try:
             result = llm_standardize(program or "")
@@ -39,12 +54,16 @@ def main():
             updated += 1
 
             if updated % 10 == 0:
-                print(f"Processed {updated}/{len(rows)}...")
-        except Exception as e:
-            print(f"Error on p_id {p_id}: {e}")
+                logger.info(f"Processed {updated}/{len(rows)}...")
+        except (KeyError, TypeError) as e:
+            logger.warning(f"LLM parsing error on p_id {p_id}: {e}")
+            errors += 1
+        except psycopg.Error as e:
+            logger.warning(f"Database error on p_id {p_id}: {e}")
+            errors += 1
 
     conn.close()
-    print(f"Backfill complete. Updated {updated} rows.")
+    logger.info(f"Backfill complete. Updated {updated} rows, {errors} errors.")
 
 
 if __name__ == "__main__":

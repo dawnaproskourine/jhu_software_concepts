@@ -1,58 +1,88 @@
 """Load llm_extended_applicant_data.json into a PostgreSQL applicants table."""
 
 import json
+import logging
 from datetime import datetime
-import psycopg
-from psycopg import OperationalError
+from typing import Any
 
-DB_NAME = "applicant_data"
-DB_USER = "dawnaproskourine"
+import psycopg
+from psycopg import Connection, OperationalError
+
+from query_data import DB_CONFIG
+
 JSON_PATH = "llm_extended_applicant_data.json"
 
-# --- helpers ---
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
-def clean_text(value):
+
+def clean_text(value: Any) -> str:
     """Strip NUL bytes that PostgreSQL text fields reject."""
     return (value or "").replace("\x00", "")
 
-def parse_float(value, prefix=""):
+
+def parse_float(value: Any, prefix: str = "") -> float | None:
     """Strip a prefix like 'GPA ' or 'GRE V ' and return a float, or None."""
     s = (value or "").replace(prefix, "", 1).strip()
     try:
         return float(s) if s else None
     except ValueError:
         return None
-def create_connection(dbname, user):
+
+
+def parse_date(date_str: Any) -> datetime | None:
+    """Parse 'Added on January 15, 2026' date format, return None if invalid."""
+    date_str = clean_text(date_str or "").replace("Added on ", "")
     try:
-        conn = psycopg.connect(dbname=dbname, user=user)
-        conn.autocommit = True
-        print(f"Connected to {dbname}")
-        return conn
-    except OperationalError as e:
-        print(f"The error '{e}' occurred")
+        return datetime.strptime(date_str, "%B %d, %Y").date()
+    except ValueError:
         return None
 
 
-def main():
-    # --- setup database ---
+def create_connection(dbname: str, user: str, host: str | None = None) -> Connection | None:
+    """Create a database connection with autocommit enabled."""
+    try:
+        kwargs = {"dbname": dbname, "user": user}
+        if host:
+            kwargs["host"] = host
+        conn = psycopg.connect(**kwargs)
+        conn.autocommit = True
+        logger.info(f"Connected to {dbname}")
+        return conn
+    except OperationalError as e:
+        logger.error(f"Connection error: {e}")
+        return None
 
-    # connect to default db and create applicant_data if it doesn't exist
-    conn = create_connection("postgres", DB_USER)
+
+def main() -> None:
+    """Load JSON data into PostgreSQL database."""
+    db_name = DB_CONFIG["dbname"]
+    db_user = DB_CONFIG["user"]
+    db_host = DB_CONFIG.get("host")
+
+    # Connect to default db and create applicant_data if it doesn't exist
+    conn = create_connection("postgres", db_user, db_host)
+    if not conn:
+        return
+
     cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (DB_NAME,))
+    cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
     if not cursor.fetchone():
-        cursor.execute(f'CREATE DATABASE "{DB_NAME}"')
-        print(f"Database {DB_NAME} created")
+        cursor.execute(f'CREATE DATABASE "{db_name}"')
+        logger.info(f"Database {db_name} created")
     else:
-        print(f"Database {DB_NAME} already exists")
+        logger.info(f"Database {db_name} already exists")
     conn.close()
 
-    # reconnect to the new database
-    conn = create_connection(DB_NAME, DB_USER)
+    # Reconnect to the target database
+    conn = create_connection(db_name, db_user, db_host)
+    if not conn:
+        return
+
     cursor = conn.cursor()
 
-    # --- create table ---
-
+    # Create table
     cursor.execute("DROP TABLE IF EXISTS applicants")
     cursor.execute("""
         CREATE TABLE applicants (
@@ -73,12 +103,20 @@ def main():
             llm_generated_university TEXT
         )
     """)
-    print("Table 'applicants' ready")
+    logger.info("Table 'applicants' ready")
 
-    # --- load JSON ---
-
-    with open(JSON_PATH, "r", encoding="utf-8") as f:
-        rows = json.load(f)
+    # Load JSON
+    try:
+        with open(JSON_PATH, "r", encoding="utf-8") as f:
+            rows = json.load(f)
+    except FileNotFoundError:
+        logger.error(f"JSON file not found: {JSON_PATH}")
+        conn.close()
+        return
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON: {e}")
+        conn.close()
+        return
 
     cursor.executemany("""
         INSERT INTO applicants (
@@ -95,7 +133,7 @@ def main():
         {
             "program": clean_text(row.get("program", "")),
             "comments": clean_text(row.get("comments", "")),
-            "date_added": datetime.strptime(clean_text(row.get("date_added", "")).replace("Added on ", ""), "%B %d, %Y").date() if row.get("date_added") else None,
+            "date_added": parse_date(row.get("date_added", "")),
             "url": clean_text(row.get("url", "")),
             "status": clean_text(row.get("status", "")),
             "term": clean_text(row.get("term", "")),
@@ -111,11 +149,11 @@ def main():
         for row in rows
     ])
 
-    print(f"Inserted {len(rows)} rows")
+    logger.info(f"Inserted {len(rows)} rows")
 
-    # verify
+    # Verify
     cursor.execute("SELECT COUNT(*) FROM applicants")
-    print(f"Total rows in table: {cursor.fetchone()[0]}")
+    logger.info(f"Total rows in table: {cursor.fetchone()[0]}")
 
     conn.close()
 
