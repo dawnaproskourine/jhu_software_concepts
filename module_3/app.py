@@ -36,9 +36,8 @@ app = Flask(__name__,
 def index() -> str:
     """Render the dashboard by running all analysis queries."""
     try:
-        conn = psycopg.connect(**DB_CONFIG)
-        data = run_queries(conn)
-        conn.close()
+        with psycopg.connect(**DB_CONFIG) as conn:
+            data = run_queries(conn)
         return render_template("index.html", **data)
     except OperationalError as e:
         logger.error(f"Database connection failed: {e}")

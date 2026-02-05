@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any
 
 import psycopg
@@ -31,7 +31,7 @@ def parse_float(value: Any, prefix: str = "") -> float | None:
         return None
 
 
-def parse_date(date_str: Any) -> datetime | None:
+def parse_date(date_str: Any) -> date | None:
     """Parse 'Added on January 15, 2026' date format, return None if invalid."""
     date_str = clean_text(date_str or "").replace("Added on ", "")
     try:
