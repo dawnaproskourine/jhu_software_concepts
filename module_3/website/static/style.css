@@ -10,14 +10,15 @@ body {
     margin: 0 auto;
 }
 
-/* ── Bottom controls row ── */
+/* ── Top controls (Update Analysis) ── */
 
-.bottom-controls {
+.top-controls {
     display: flex;
     justify-content: space-between;
     gap: 1.5rem;
-    margin-top: 2.5rem;
+    margin-bottom: 1rem;
 }
+
 
 /* ── Control panels (Pull Data / Update Analysis) ── */
 

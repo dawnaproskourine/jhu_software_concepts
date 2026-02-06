@@ -2,7 +2,7 @@
 ### Name: Dawna Jones Proskourine
 ### Hopkins ID: 2356B8
 ### Course: EN.605.256.82.SP26
-### Module 3 - Databases & Analysis Dashboard
+### Module 3 - Database Queries Assignment Experiment
 
 # DESCRIPTION
 

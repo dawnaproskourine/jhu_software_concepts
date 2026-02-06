@@ -151,13 +151,10 @@ def run_queries(conn: Connection) -> dict[str, Any]:
     """)
     results["top_universities"] = cur.fetchall()
 
-    # 12a. Acceptance rate by degree type (Masters, PhD, Other)
+    # 12a. Acceptance rate by degree type (Masters, PhD, PsyD)
     cur.execute("""
         SELECT
-            CASE
-                WHEN degree IN ('PhD', 'Masters') THEN degree
-                ELSE 'Other'
-            END AS degree_type,
+            degree,
             COUNT(*) AS total,
             COUNT(*) FILTER (WHERE status ILIKE 'Accepted%%') AS accepted,
             ROUND(
@@ -165,9 +162,9 @@ def run_queries(conn: Connection) -> dict[str, Any]:
                 / COUNT(*), 2
             ) AS acceptance_rate
         FROM applicants
-        WHERE degree IS NOT NULL AND degree != ''
-        GROUP BY degree_type
-        ORDER BY degree_type
+        WHERE degree IN ('Masters', 'PhD', 'PsyD')
+        GROUP BY degree
+        ORDER BY degree
     """)
     results["rate_by_degree"] = cur.fetchall()
 
