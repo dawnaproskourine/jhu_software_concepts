@@ -1,0 +1,14 @@
+# Model files (large binary files)
+module_2/models/
+module_3/models/
+*.gguf
+
+# Archives
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store

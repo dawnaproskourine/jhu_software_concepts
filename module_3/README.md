@@ -57,17 +57,17 @@ The dashboard displays 13 questions with answers in a Q&A format:
 - PhD CS acceptances at Georgetown, MIT, Stanford, CMU (program field vs LLM field)
 - Top 10 most popular programs
 - Top 10 most popular universities
-- Acceptance rate by degree type (Masters, PhD, Other)
+- Acceptance rate by degree type (Masters, PhD, PsyD)
 - Acceptance rate by nationality
 
 ### Controls
 
-- **Pull Data** (bottom left) — Scrapes thegradcafe.com/survey page by page until caught up with existing database
+- **Pull Data** (top left) — Scrapes thegradcafe.com/survey page by page until caught up with existing database
 entries (stops when a page has all duplicates). This ensures no gaps in data. Each new row is processed through the
 TinyLlama LLM to populate `llm_generated_program` and `llm_generated_university` fields. After inserting, data cleanup
 automatically runs to fix invalid GRE AW scores and normalize UC campus names.
 
-- **Update Analysis** (bottom right) — Refreshes the page to re-run all queries against the current database. Disabled
+- **Update Analysis** (top right) — Refreshes the page to re-run all queries against the current database. Disabled
 while a Pull Data request is in progress.
 
 ## query_data.py
