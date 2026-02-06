@@ -129,29 +129,31 @@ def run_queries(conn: Connection) -> dict[str, Any]:
     """)
     results["phd_cs_llm"] = cur.fetchone()[0]
 
-    # 10. Top 10 programs
+    # 10. Top 10 programs for Fall 2026
     cur.execute("""
         SELECT llm_generated_program, COUNT(*) AS num_applicants
         FROM applicants
         WHERE llm_generated_program IS NOT NULL AND llm_generated_program != ''
+          AND term = 'Fall 2026'
         GROUP BY llm_generated_program
         ORDER BY num_applicants DESC
         LIMIT 10
     """)
     results["top_programs"] = cur.fetchall()
 
-    # 11. Top 10 universities
+    # 11. Top 10 universities for Fall 2026
     cur.execute("""
         SELECT llm_generated_university, COUNT(*) AS num_applicants
         FROM applicants
         WHERE llm_generated_university IS NOT NULL AND llm_generated_university != ''
+          AND term = 'Fall 2026'
         GROUP BY llm_generated_university
         ORDER BY num_applicants DESC
         LIMIT 10
     """)
     results["top_universities"] = cur.fetchall()
 
-    # 12a. Acceptance rate by degree type (Masters, PhD, PsyD)
+    # 12a. Acceptance rate by degree type (Masters, PhD, PsyD) for Fall 2026
     cur.execute("""
         SELECT
             degree,
@@ -163,12 +165,13 @@ def run_queries(conn: Connection) -> dict[str, Any]:
             ) AS acceptance_rate
         FROM applicants
         WHERE degree IN ('Masters', 'PhD', 'PsyD')
+          AND term = 'Fall 2026'
         GROUP BY degree
         ORDER BY degree
     """)
     results["rate_by_degree"] = cur.fetchall()
 
-    # 12b. Acceptance rate by nationality
+    # 12b. Acceptance rate by nationality for Fall 2026
     cur.execute("""
         SELECT
             us_or_international,
@@ -180,6 +183,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:
             ) AS acceptance_rate
         FROM applicants
         WHERE us_or_international IN ('American', 'International')
+          AND term = 'Fall 2026'
         GROUP BY us_or_international
         ORDER BY us_or_international
     """)

@@ -55,10 +55,10 @@ The dashboard displays 13 questions with answers in a Q&A format:
 - Average GPA of accepted applicants (Fall 2026)
 - JHU Masters in Computer Science applicants (handles misspellings like "John Hopkins")
 - PhD CS acceptances at Georgetown, MIT, Stanford, CMU (program field vs LLM field)
-- Top 10 most popular programs
-- Top 10 most popular universities
-- Acceptance rate by degree type (Masters, PhD, PsyD)
-- Acceptance rate by nationality
+- Top 10 most popular programs (Fall 2026)
+- Top 10 most popular universities (Fall 2026)
+- Acceptance rate by degree type (Masters, PhD, PsyD) (Fall 2026)
+- Acceptance rate by nationality (Fall 2026)
 
 ### Controls
 
