@@ -15,3 +15,6 @@ sphinx-rtd-theme>=2.0
 # LLM standardization
 llama_cpp_python>=0.2
 huggingface_hub>=0.20
+
+# Testing
+pytest>=7.0
