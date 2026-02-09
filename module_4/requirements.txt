@@ -18,3 +18,4 @@ huggingface_hub>=0.20
 
 # Testing
 pytest>=7.0
+pytest-cov>=4.0
