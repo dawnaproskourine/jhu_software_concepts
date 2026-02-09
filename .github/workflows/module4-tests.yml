@@ -35,6 +35,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Install C/C++ build tools for llama-cpp-python
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+
       - name: Install dependencies
         run: pip install -r module_4/requirements.txt
 
