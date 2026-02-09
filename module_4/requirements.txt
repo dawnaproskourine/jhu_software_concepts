@@ -8,6 +8,10 @@ psycopg>=3.0
 beautifulsoup4>=4.12
 requests>=2.31
 
+# Sphinx documentation
+sphinx>=7.0
+sphinx-rtd-theme>=2.0
+
 # LLM standardization
 llama_cpp_python>=0.2
 huggingface_hub>=0.20
