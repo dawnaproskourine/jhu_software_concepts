@@ -1,0 +1,13 @@
+# Flask web framework
+Flask>=3.0
+
+# PostgreSQL driver (psycopg v3)
+psycopg>=3.0
+
+# Web scraping
+beautifulsoup4>=4.12
+requests>=2.31
+
+# LLM standardization
+llama_cpp_python>=0.2
+huggingface_hub>=0.20

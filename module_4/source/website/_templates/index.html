@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applicant Data Analysis Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="top-controls">
+    <div class="control-panel pull-data-panel">
+        <div class="panel-header">Pull Data</div>
+        <div class="panel-body">
+            <p class="panel-info">
+                Scrape <strong>thegradcafe.com/survey</strong> page  until caught up with the database.
+                Automatically stops when no new entries are found.
+            </p>
+            <div class="pull-data-controls">
+                <button class="btn-pull" id="pull-btn" onclick="pullData()">Pull Data</button>
+            </div>
+            <div class="pull-data-status" id="pull-status"></div>
+        </div>
+    </div>
+
+    <div class="control-panel update-panel">
+        <div class="panel-header">Update Analysis</div>
+        <div class="panel-body">
+            <p class="panel-info">
+                Refresh all analysis results using the current database contents.
+                Disabled while a Pull Data request is in progress.
+            </p>
+            <button class="btn-update" id="update-btn" onclick="updateAnalysis()">Update Analysis</button>
+            <div class="ua-status" id="ua-status"></div>
+        </div>
+    </div>
+</div>
+
+<h1 class="page-title">Grad School Cafe Data Analysis</h1>
+<hr class="header-divider">
+
+<h2 class="analysis-header">Analysis</h2>
+
+<div class="qa">
+    <div class="question">How many total applicant entries are in the database?</div>
+    <div class="answer"><span class="answer-value">Applicant count: {{ total_count }}</span></div>
+</div>
+
+<div class="qa">
+    <div class="question">How many entries do you have in your database who have applied for Fall 2026?</div>
+    <div class="answer"><span class="answer-value">Fall 2026 Applicant count: {{ fall_2026_count }}</span></div>
+</div>
+
+<div class="qa">
+    <div class="question">What percentage of entries are from international students (not American or Other) (to two decimal places)?</div>
+    <div class="answer"><span class="answer-value">Percent International: {{ international_pct }}%</span></div>
+</div>
+
+<div class="qa">
+    <div class="question">What percentage of entries for Fall 2026 entries are acceptances (to two decimal places)?</div>
+    <div class="answer"><span class="answer-value">Percent Acceptances: {{ acceptance_pct_fall2026 }}%</span></div>
+</div>
+
+<div class="qa">
+    <div class="question">What are the average GPA, GRE, GRE V, and GRE AW of applicants who provide these metrics?</div>
+    <div class="answer">
+        <table>
+            <thead>
+                <tr><th>Metric</th><th>Average</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>GPA</td><td>{{ avg_gpa }}</td></tr>
+                <tr><td>GRE</td><td>{{ avg_gre }}</td></tr>
+                <tr><td>GRE Verbal</td><td>{{ avg_gre_v }}</td></tr>
+                <tr><td>GRE Analytical Writing</td><td>{{ avg_gre_aw }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="qa">
+    <div class="question">What is the average GPA of American students in Fall 2026?</div>
+    <div class="answer"><span class="answer-value">Average American GPA: {{ american_gpa_fall2026 }}</span></div>
+</div>
+
+<div class="qa">
+    <div class="question">What is the average GPA of accepted applicants in Fall 2026?</div>
+    <div class="answer"><span class="answer-value">Average GPA Acceptance: {{ accepted_gpa_fall2026 }}</span></div>
+</div>
+
+<div class="qa">
+    <div class="question">How many applied to JHU for a Masters in Computer Science?</div>
+    <div class="answer"><span class="answer-value">JHU CS Masters: {{ jhu_cs_masters }}</span></div>
+</div>
+
+<div class="qa">
+    <div class="question">How many 2026 PhD CS acceptances at Georgetown, MIT, Stanford, or CMU?</div>
+    <div class="answer">
+        <table>
+            <thead>
+                <tr><th>Source</th><th>Count</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Program field</td><td>{{ phd_cs_program }}</td></tr>
+                <tr><td>LLM-generated field</td><td>{{ phd_cs_llm }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="qa">
+    <div class="question">What are the top 10 most popular programs for Fall 2026?</div>
+    <div class="answer">
+        <ol>
+            {% for program, count in top_programs %}
+            <li>{{ program }} <span class="count-badge">{{ count }}</span></li>
+            {% endfor %}
+        </ol>
+    </div>
+</div>
+
+<div class="qa">
+    <div class="question">What are the top 10 most popular universities for Fall 2026?</div>
+    <div class="answer">
+        <ol>
+            {% for university, count in top_universities %}
+            <li>{{ university }} <span class="count-badge">{{ count }}</span></li>
+            {% endfor %}
+        </ol>
+    </div>
+</div>
+
+<div class="qa">
+    <div class="question">What is the acceptance rate by degree type for Fall 2026?</div>
+    <div class="answer">
+        <table>
+            <thead>
+                <tr><th>Degree</th><th>Accepted</th><th>Total</th><th>Rate</th></tr>
+            </thead>
+            <tbody>
+                {% for degree, total, accepted, rate in rate_by_degree %}
+                <tr>
+                    <td>{{ degree }}</td>
+                    <td>{{ accepted }}</td>
+                    <td>{{ total }}</td>
+                    <td>{{ rate }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="qa">
+    <div class="question">What is the acceptance rate by nationality for Fall 2026?</div>
+    <div class="answer">
+        <table>
+            <thead>
+                <tr><th>Nationality</th><th>Accepted</th><th>Total</th><th>Rate</th></tr>
+            </thead>
+            <tbody>
+                {% for nationality, total, accepted, rate in rate_by_nationality %}
+                <tr>
+                    <td>{{ nationality }}</td>
+                    <td>{{ accepted }}</td>
+                    <td>{{ total }}</td>
+                    <td>{{ rate }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
