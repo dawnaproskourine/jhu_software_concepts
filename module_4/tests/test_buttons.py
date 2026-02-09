@@ -18,6 +18,25 @@ class _FakeCursor:
         pass
 
 
+class _FakeInsertCursor:
+    """Cursor that reports rowcount=1 so insert_row considers the row new."""
+    rowcount = 1
+
+    def execute(self, *args, **kwargs):
+        pass
+
+
+class _FakeInsertConn:
+    """Connection that returns _FakeInsertCursor."""
+    autocommit = True
+
+    def cursor(self):
+        return _FakeInsertCursor()
+
+    def close(self):
+        pass
+
+
 class _FakePullConn:
     """Minimal stand-in for a psycopg connection inside pull_data()."""
     autocommit = True
@@ -68,6 +87,44 @@ def test_pull_data_no_new_data_message(client, monkeypatch):
     assert "Already up to date" in data["message"]
 
 
+def test_pull_data_triggers_loader_with_scraped_rows(client, monkeypatch):
+    import app as app_module
+    import scrape
+
+    fake_html = "<html><body><table><tbody></tbody></table></body></html>"
+    fake_row = {
+        "program": "Computer Science, MIT",
+        "comments": "Accepted!",
+        "date_added": "Added on January 15, 2026",
+        "url": "https://www.thegradcafe.com/result/12345",
+        "status": "Accepted",
+        "term": "Fall 2026",
+        "us_or_international": "American",
+        "gpa": "3.80",
+        "gre": "320",
+        "gre_v": "160",
+        "gre_aw": "4.5",
+        "degree": "PhD",
+    }
+
+    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {
+        "standardized_program": "Computer Science",
+        "standardized_university": "Massachusetts Institute of Technology",
+    })
+    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
+    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _FakeInsertConn())
+    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
+    monkeypatch.setattr(scrape, "parse_survey", lambda html: [fake_row])
+    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
+
+    resp = client.post("/pull-data", json={"max_pages": 1})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["scraped"] >= 1
+    assert data["inserted"] >= 1
+
+
 # ---- onclick wiring in HTML ----
 
 def test_pull_btn_references_pullData(client):
@@ -106,3 +163,8 @@ def test_dashboard_js_isPulling_guards_updateAnalysis():
 
 def test_dashboard_js_warning_message():
     assert "A Pull Data request is still running" in _read_js()
+
+
+def test_update_analysis_reloads_page():
+    js = _read_js()
+    assert "location.reload()" in js

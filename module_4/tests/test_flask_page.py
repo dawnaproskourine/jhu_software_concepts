@@ -1,7 +1,8 @@
 """Requirement (a): page rendering tests.
 
-Verifies that the dashboard loads, contains all 13 Q&A blocks,
-buttons, tables, and ordered lists.
+Verifies that a testable Flask app is created with the required routes,
+the dashboard loads, contains all 13 Q&A blocks, buttons, tables, and
+ordered lists.
 """
 
 from bs4 import BeautifulSoup
@@ -11,6 +12,39 @@ def _soup(client):
     """GET / and return a BeautifulSoup object."""
     resp = client.get("/")
     return BeautifulSoup(resp.data.decode(), "html.parser")
+
+
+# ---- Flask app setup ----
+
+def test_app_is_testing(client):
+    from app import app
+    assert app.config["TESTING"] is True
+
+
+def test_app_has_index_route(client):
+    from app import app
+    rules = [rule.rule for rule in app.url_map.iter_rules()]
+    assert "/" in rules
+
+
+def test_app_has_pull_data_route(client):
+    from app import app
+    rules = [rule.rule for rule in app.url_map.iter_rules()]
+    assert "/pull-data" in rules
+
+
+def test_pull_data_route_accepts_post(client):
+    from app import app
+    for rule in app.url_map.iter_rules():
+        if rule.rule == "/pull-data":
+            assert "POST" in rule.methods
+
+
+def test_index_route_accepts_get(client):
+    from app import app
+    for rule in app.url_map.iter_rules():
+        if rule.rule == "/":
+            assert "GET" in rule.methods
 
 
 # ---- basic status ----
