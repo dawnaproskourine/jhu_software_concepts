@@ -20,12 +20,26 @@ logger = logging.getLogger(__name__)
 
 
 def clean_text(value: Any) -> str:
-    """Strip NUL bytes that PostgreSQL text fields reject."""
+    """Strip NUL bytes that PostgreSQL text fields reject.
+
+    :param value: The input value to clean.
+    :type value: Any
+    :returns: The cleaned string with NUL bytes removed.
+    :rtype: str
+    """
     return (value or "").replace("\x00", "")
 
 
 def parse_float(value: Any, prefix: str = "") -> float | None:
-    """Strip a prefix like 'GPA ' or 'GRE V ' and return a float, or None."""
+    """Strip a prefix like 'GPA ' or 'GRE V ' and return a float, or None.
+
+    :param value: The raw value containing a numeric string.
+    :type value: Any
+    :param prefix: A prefix to strip before parsing (e.g., ``"GPA"``).
+    :type prefix: str
+    :returns: The parsed float value, or ``None`` if parsing fails.
+    :rtype: float or None
+    """
     s = (value or "").replace(prefix, "", 1).strip()
     try:
         return float(s) if s else None
@@ -34,7 +48,13 @@ def parse_float(value: Any, prefix: str = "") -> float | None:
 
 
 def parse_date(date_str: Any) -> date | None:
-    """Parse 'Added on January 15, 2026' date format, return None if invalid."""
+    """Parse 'Added on January 15, 2026' date format, return ``None`` if invalid.
+
+    :param date_str: The raw date string from GradCafe.
+    :type date_str: Any
+    :returns: The parsed date, or ``None`` if the format is invalid.
+    :rtype: datetime.date or None
+    """
     date_str = clean_text(date_str or "").replace("Added on ", "")
     try:
         return datetime.strptime(date_str, "%B %d, %Y").date()
@@ -43,7 +63,17 @@ def parse_date(date_str: Any) -> date | None:
 
 
 def create_connection(dbname: str, user: str, host: str | None = None) -> Connection | None:
-    """Create a database connection with autocommit enabled."""
+    """Create a database connection with autocommit enabled.
+
+    :param dbname: The name of the PostgreSQL database.
+    :type dbname: str
+    :param user: The database user.
+    :type user: str
+    :param host: The database host address, or ``None`` for local socket.
+    :type host: str or None
+    :returns: An open connection with autocommit, or ``None`` on failure.
+    :rtype: psycopg.Connection or None
+    """
     try:
         kwargs = {"dbname": dbname, "user": user}
         if host:
@@ -58,7 +88,12 @@ def create_connection(dbname: str, user: str, host: str | None = None) -> Connec
 
 
 def main() -> None:
-    """Load JSON data into PostgreSQL database."""
+    """Load JSON data into PostgreSQL database.
+
+    Creates the ``applicant_data`` database and ``applicants`` table if they
+    do not exist, then inserts all rows from the JSON file. Duplicates are
+    skipped via ``ON CONFLICT (url) DO NOTHING``.
+    """
     db_name = DB_CONFIG["dbname"]
     db_user = DB_CONFIG["user"]
     db_host = DB_CONFIG.get("host")

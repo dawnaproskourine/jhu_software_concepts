@@ -18,7 +18,13 @@ DB_CONFIG: dict[str, str] = {
 
 
 def run_queries(conn: Connection) -> dict[str, Any]:
-    """Run all 13 analysis queries and return results as a dict."""
+    """Run all 13 analysis queries and return results as a dict.
+
+    :param conn: An open PostgreSQL database connection.
+    :type conn: psycopg.Connection
+    :returns: A dictionary of query result keys and their values.
+    :rtype: dict[str, Any]
+    """
     cur = conn.cursor()
     results: dict[str, Any] = {}
 
@@ -193,7 +199,11 @@ def run_queries(conn: Connection) -> dict[str, Any]:
 
 
 def main() -> None:
-    """Print all analysis results to the console."""
+    """Print all analysis results to the console.
+
+    Connects to the database, runs all queries, and prints formatted
+    results to stdout.
+    """
     try:
         conn = psycopg.connect(**DB_CONFIG)
     except OperationalError as e:

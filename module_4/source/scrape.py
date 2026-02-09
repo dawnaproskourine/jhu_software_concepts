@@ -13,7 +13,15 @@ import re
 import json
 
 def fetch_page(url, user_agent = RobotsChecker.DEFAULT_USER_AGENT):
-    """Fetch a page and parse its content"""
+    """Fetch a web page and return its HTML content.
+
+    :param url: The URL to fetch.
+    :type url: str
+    :param user_agent: The User-Agent header string.
+    :type user_agent: str
+    :returns: The decoded HTML content of the page.
+    :rtype: str
+    """
     headers = {'User-Agent': user_agent}
     request = Request(url, headers=headers)
     page = urlopen(request)
@@ -21,7 +29,13 @@ def fetch_page(url, user_agent = RobotsChecker.DEFAULT_USER_AGENT):
     return html
 
 def parse_survey(html):
-    """Parse the survey page and return a dict of survey data"""
+    """Parse the GradCafe survey page and return a list of applicant data.
+
+    :param html: The raw HTML content of a survey page.
+    :type html: str
+    :returns: A list of dictionaries, each containing one applicant's data.
+    :rtype: list[dict]
+    """
     soup = BeautifulSoup(html, "html.parser")
     results = []
 
@@ -58,7 +72,13 @@ def parse_survey(html):
 
 
 def parse_main_row(cells):
-    """Parse the main table row and return a dict of survey data"""
+    """Parse a main table row and return a dict of applicant data.
+
+    :param cells: The list of ``<td>`` elements from a main data row.
+    :type cells: list[bs4.element.Tag]
+    :returns: A dictionary of parsed applicant fields.
+    :rtype: dict
+    """
     result = {}
 
     # Cell 0: university name
@@ -110,11 +130,17 @@ def parse_main_row(cells):
     return result
 
 def parse_detail_row(cell, result):
-    """Parse the detail table row and return a dict of survey data
-    
-    This function handles two types of rows:
+    """Parse a detail or comment row and update the result dict in place.
+
+    Handles two types of rows:
+
     1. Detail rows containing structured data (GPA, GRE, status, etc.)
-    2. Comment rows containing free-form text
+    2. Comment rows containing free-form text.
+
+    :param cell: The single ``<td>`` element from the detail row.
+    :type cell: bs4.element.Tag
+    :param result: The applicant data dict to update.
+    :type result: dict
     """
     text = cell.get_text(separator=" | ", strip=True)
     
@@ -191,7 +217,13 @@ def parse_detail_row(cell, result):
             result["comments"].append(text)
 
 def get_max_pages(html):
-    """Extract max pages from html"""
+    """Extract the maximum page number from pagination links.
+
+    :param html: The raw HTML content of a survey page.
+    :type html: str
+    :returns: The highest page number found, or 1 if no pagination exists.
+    :rtype: int
+    """
     soup = BeautifulSoup(html, "html.parser")
     max_page = 1
 
@@ -211,18 +243,20 @@ def scrape_data(
         max_pages=None, delay=0.5,
         user_agent = RobotsChecker.DEFAULT_USER_AGENT,
         ignore_robots=False):
-    """
-    Scrape the gradcafe page and parse its content across multiple pages
+    """Scrape the GradCafe survey across multiple pages.
 
-    Args:
-        base_url: base url for gradcafe survey pages
-        max_pages: maximum number of pages to scrape (None to scrape all)
-        delay: delay between pages in seconds - to be respectful to the server
-        user_agent: user agent to use for requests
-        ignore_robots: ignore robots when scraping. if true skip robots.txt check - not recommended
-
-    Returns:
-        List of dictionaries containing survey data
+    :param base_url: Base URL for GradCafe survey pages.
+    :type base_url: str
+    :param max_pages: Maximum number of pages to scrape, or ``None`` for all.
+    :type max_pages: int or None
+    :param delay: Delay between page fetches in seconds.
+    :type delay: float
+    :param user_agent: User-Agent header string for requests.
+    :type user_agent: str
+    :param ignore_robots: If ``True``, skip the robots.txt check (not recommended).
+    :type ignore_robots: bool
+    :returns: A list of dictionaries containing applicant survey data.
+    :rtype: list[dict]
     """
     all_results = []
 
@@ -289,7 +323,11 @@ def scrape_data(
     return all_results
 
 def main():
-    """Main function. Scrape the survey page and parse its content. Output JSON file"""
+    """Scrape the survey page and output results as JSON.
+
+    Parses CLI arguments for page count, delay, output file, user agent,
+    and robots.txt handling. Writes results to a file or stdout.
+    """
     parser = argparse.ArgumentParser(
         description="Scrape the survey page and parse its content. Return output as JSON"
     )

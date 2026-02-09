@@ -36,7 +36,13 @@ JSON_OBJ_RE = re.compile(r"\{.*?\}", re.DOTALL)
 
 
 def _read_lines(path: str) -> List[str]:
-    """Read non-empty, stripped lines from a file."""
+    """Read non-empty, stripped lines from a file.
+
+    :param path: Absolute path to the text file.
+    :type path: str
+    :returns: A list of non-empty, stripped lines.
+    :rtype: list[str]
+    """
     try:
         with open(path, "r", encoding="utf-8") as f:
             return [ln.strip() for ln in f if ln.strip()]
@@ -138,7 +144,11 @@ _LLM: Llama | None = None
 
 
 def _load_llm() -> Llama:
-    """Download (or reuse cached) GGUF model and initialize llama.cpp."""
+    """Download (or reuse cached) GGUF model and initialize llama.cpp.
+
+    :returns: The initialized Llama model instance.
+    :rtype: llama_cpp.Llama
+    """
     global _LLM
     if _LLM is not None:
         return _LLM
@@ -160,7 +170,13 @@ def _load_llm() -> Llama:
 
 
 def _split_fallback(text: str) -> Tuple[str, str]:
-    """Rule-based parser as fallback if LLM returns non-JSON."""
+    """Rule-based parser as fallback if LLM returns non-JSON.
+
+    :param text: The raw program/university string to parse.
+    :type text: str
+    :returns: A tuple of (program, university).
+    :rtype: tuple[str, str]
+    """
     s = re.sub(r"\s+", " ", (text or "")).strip().strip(",")
     parts = [p.strip() for p in re.split(r",| at | @ ", s) if p.strip()]
     prog = parts[0] if parts else ""
@@ -182,7 +198,17 @@ def _split_fallback(text: str) -> Tuple[str, str]:
 
 
 def _best_match(name: str, candidates: List[str], cutoff: float = 0.86) -> str | None:
-    """Fuzzy match using difflib."""
+    """Fuzzy match a name against a list of candidates using difflib.
+
+    :param name: The name to match.
+    :type name: str
+    :param candidates: The list of canonical names to match against.
+    :type candidates: list[str]
+    :param cutoff: Minimum similarity ratio to accept a match.
+    :type cutoff: float
+    :returns: The best matching candidate, or ``None`` if no match meets the cutoff.
+    :rtype: str or None
+    """
     if not name or not candidates:
         return None
     matches = difflib.get_close_matches(name, candidates, n=1, cutoff=cutoff)
@@ -190,7 +216,13 @@ def _best_match(name: str, candidates: List[str], cutoff: float = 0.86) -> str |
 
 
 def _post_normalize_program(prog: str) -> str:
-    """Apply fixes, title case, and canonical/fuzzy mapping to program."""
+    """Apply fixes, title case, and canonical/fuzzy mapping to a program name.
+
+    :param prog: The raw program name string.
+    :type prog: str
+    :returns: The normalized program name.
+    :rtype: str
+    """
     p = (prog or "").strip()
     p = COMMON_PROG_FIXES.get(p, p)
     p = p.title()
@@ -201,7 +233,13 @@ def _post_normalize_program(prog: str) -> str:
 
 
 def _post_normalize_university(uni: str) -> str:
-    """Expand abbreviations, apply fixes, and canonical mapping to university."""
+    """Expand abbreviations, apply fixes, and canonical mapping to a university name.
+
+    :param uni: The raw university name string.
+    :type uni: str
+    :returns: The normalized university name.
+    :rtype: str
+    """
     u = (uni or "").strip()
 
     # Check abbreviations
@@ -234,14 +272,16 @@ def _post_normalize_university(uni: str) -> str:
 
 
 def standardize(program_text: str) -> Dict[str, str]:
-    """
-    Standardize a program/university string using the LLM.
+    """Standardize a program/university string using the LLM.
 
-    Args:
-        program_text: Raw program string (e.g., "Computer Science, MIT")
+    Sends the input through TinyLlama with few-shot prompting, then
+    post-processes with canonical mappings and fuzzy matching. Falls
+    back to rule-based parsing if LLM output is invalid.
 
-    Returns:
-        Dict with 'standardized_program' and 'standardized_university' keys
+    :param program_text: Raw program string (e.g., ``"Computer Science, MIT"``).
+    :type program_text: str
+    :returns: A dict with ``standardized_program`` and ``standardized_university`` keys.
+    :rtype: dict[str, str]
     """
     llm = _load_llm()
 

@@ -21,7 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 def normalize_uc(name: str) -> str | None:
-    """Try to match a UC campus pattern and return canonical name."""
+    """Try to match a UC campus pattern and return the canonical name.
+
+    :param name: The university name string to check.
+    :type name: str
+    :returns: The canonical UC campus name, or ``None`` if no match.
+    :rtype: str or None
+    """
     for pattern, canonical in UC_CAMPUS_PATTERNS:
         if re.fullmatch(pattern, name):
             return canonical
@@ -31,7 +37,13 @@ def normalize_uc(name: str) -> str | None:
 def fix_gre_aw(conn: Connection) -> int:
     """Set invalid GRE AW scores (> 6) to NULL.
 
-    Returns the number of rows updated.
+    GRE Analytical Writing is scored on a 0--6 scale. Any value above 6
+    is treated as invalid and set to ``NULL``.
+
+    :param conn: An open PostgreSQL database connection.
+    :type conn: psycopg.Connection
+    :returns: The number of rows updated.
+    :rtype: int
     """
     cur = conn.cursor()
 
@@ -49,7 +61,13 @@ def fix_gre_aw(conn: Connection) -> int:
 def fix_uc_universities(conn: Connection) -> int:
     """Re-normalize UC university names using the original program field.
 
-    Returns the number of rows updated.
+    Finds rows with generic "University of California" names and attempts
+    to resolve them to specific campuses (e.g., UCLA, Berkeley).
+
+    :param conn: An open PostgreSQL database connection.
+    :type conn: psycopg.Connection
+    :returns: The number of rows updated.
+    :rtype: int
     """
     cur = conn.cursor()
 
@@ -83,7 +101,10 @@ def fix_uc_universities(conn: Connection) -> int:
 
 
 def main() -> None:
-    """Run all cleanup operations."""
+    """Run all cleanup operations.
+
+    Connects to the database and runs GRE AW and UC university fixes.
+    """
     try:
         conn = psycopg.connect(**DB_CONFIG)
         conn.autocommit = True

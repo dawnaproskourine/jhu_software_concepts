@@ -34,7 +34,11 @@ app = Flask(__name__,
 
 @app.route("/")
 def index() -> str:
-    """Render the dashboard by running all analysis queries."""
+    """Render the dashboard by running all analysis queries.
+
+    :returns: Rendered HTML of the dashboard page.
+    :rtype: str
+    """
     try:
         with psycopg.connect(**DB_CONFIG) as conn:
             data = run_queries(conn)
@@ -47,7 +51,16 @@ def index() -> str:
 def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
     """Insert a single row into the database with LLM standardization.
 
-    Returns True if the row was inserted, False if it was a duplicate.
+    Parses dates, runs LLM standardization on the program field, and
+    inserts into the ``applicants`` table. Duplicates are skipped via
+    ``ON CONFLICT (url) DO NOTHING``.
+
+    :param cur: An open database cursor.
+    :type cur: psycopg.cursor.Cursor
+    :param row: A dictionary of scraped applicant data.
+    :type row: dict[str, Any]
+    :returns: ``True`` if the row was inserted, ``False`` if it was a duplicate.
+    :rtype: bool
     """
     # Parse the "Added on January 15, 2026" date format
     date_str = clean_text(row.get("date_added", "")).replace("Added on ", "")
@@ -105,9 +118,12 @@ def pull_data() -> tuple[Response, int] | Response:
 
     Scrapes pages one at a time, stopping when a page has all duplicates
     (meaning we've caught up with existing data). No gaps are left.
+    Accepts a JSON body with an optional ``max_pages`` field (default 100)
+    as a safety limit.
 
-    Accepts JSON body with optional 'max_pages' field (default 100) as safety limit.
-    Returns JSON with pages scraped, entries processed, new rows inserted.
+    :returns: JSON response with pages scraped, entries processed, and new
+        rows inserted, or a tuple of (response, status_code) on error.
+    :rtype: flask.Response or tuple[flask.Response, int]
     """
     # Lazy imports
     from scrape import fetch_page, parse_survey, get_max_pages
