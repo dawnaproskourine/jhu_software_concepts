@@ -10,5 +10,8 @@ module_3/models/
 __pycache__/
 *.pyc
 
+# Claude Code
+.claude/
+
 # macOS
 .DS_Store
