@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from datetime import datetime, date
 from typing import Any
 
@@ -10,7 +11,8 @@ from psycopg import Connection, OperationalError
 
 from query_data import DB_CONFIG
 
-JSON_PATH = "llm_extended_applicant_data.json"
+_DIR = os.path.dirname(os.path.abspath(__file__))
+JSON_PATH = os.path.join(_DIR, "llm_extended_applicant_data.json")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")

@@ -7,7 +7,7 @@ import sys
 import time
 from bs4 import BeautifulSoup
 from urllib.request import urlopen, Request
-from module_4.src import RobotsChecker
+import RobotsChecker
 import argparse
 import re
 import json

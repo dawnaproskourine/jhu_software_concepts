@@ -28,8 +28,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__,
-            template_folder="website/templates",
-            static_folder="website/static")
+            template_folder="website/_templates",
+            static_folder="website/_static")
 
 
 @app.route("/")
