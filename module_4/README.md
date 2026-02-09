@@ -164,6 +164,42 @@ module_4/
 │           └── dashboard.js                # Pull Data / Update Analysis logic
 ```
 
+## Testing
+
+The `tests/` directory contains a pytest suite covering four areas:
+
+| File | Tests | What it covers |
+|------|-------|----------------|
+| `test_page_renders.py` | 14 | Page loads, 13 Q&A blocks, buttons, tables, ordered lists |
+| `test_buttons_and_pull.py` | 9 | POST `/pull-data` JSON response, onclick wiring, JS inclusion, isPulling guard |
+| `test_analysis_formatting.py` | 14 | Question labels, percentage formats (X.XX%), average values, all scalars rendered |
+| `test_db_inserts.py` | 23 | `clean_text`, `parse_float`, `insert_row`, duplicate handling, column values, GRE AW cleanup |
+
+### Running Tests
+
+```bash
+python3 -m pytest tests/ -v
+python3 -m pytest tests/ -v --cov=source --cov-report=term-missing   # with coverage
+```
+
+DB integration tests require a running PostgreSQL instance and skip automatically if unavailable.
+
+### Coverage Summary
+
+| File | Coverage | Notes |
+|------|----------|-------|
+| `app.py` | 61% | `index()`, `insert_row()`, partial `pull_data()` |
+| `cleanup_data.py` | 40% | `fix_gre_aw()` tested; `fix_uc_universities()` and `main()` not |
+| `RobotsChecker.py` | 39% | Not directly tested (out of scope) |
+| `llm_standardizer.py` | 36% | Intentionally mocked (668MB model) |
+| `load_data.py` | 31% | `clean_text()` and `parse_float()` tested; `main()` loader not |
+| `query_data.py` | 13% | Mocked in template tests; only `DB_CONFIG` import hit |
+| `scrape.py` | 9% | Mocked to avoid HTTP requests |
+| **TOTAL** | **29%** | |
+
+Heavy modules (`scrape.py`, `llm_standardizer.py`, `query_data.py`) are intentionally mocked to avoid
+network calls, loading a 668MB LLM model, and requiring live database queries during testing.
+
 ## Code Quality
 
 All Python files follow these practices:
