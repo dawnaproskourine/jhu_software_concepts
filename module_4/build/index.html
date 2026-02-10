@@ -166,7 +166,10 @@ reloads the page to re-run all queries against the current database.</p>
 <section id="web-layer">
 <h3>Web Layer<a class="headerlink" href="#web-layer" title="Link to this heading"></a></h3>
 <p>The web layer is a Flask application (<code class="docutils literal notranslate"><span class="pre">app.py</span></code>) that serves a single-page
-dashboard. It handles two routes:</p>
+dashboard. The <code class="docutils literal notranslate"><span class="pre">create_app()</span></code> factory accepts optional <code class="docutils literal notranslate"><span class="pre">fetch_page_fn</span></code>,
+<code class="docutils literal notranslate"><span class="pre">parse_survey_fn</span></code>, and <code class="docutils literal notranslate"><span class="pre">get_max_pages_fn</span></code> callables for dependency
+injection, allowing tests to supply fake scrapers without monkeypatching
+the <code class="docutils literal notranslate"><span class="pre">scrape</span></code> module. It handles two routes:</p>
 <ul class="simple">
 <li><p><strong>GET /</strong> renders the dashboard by calling <code class="docutils literal notranslate"><span class="pre">run_queries()</span></code> against
 PostgreSQL and passing the results to a Jinja2 template
@@ -410,9 +413,10 @@ connection error</p></td>
 singleton, <code class="docutils literal notranslate"><span class="pre">standardize</span></code> with mocked LLM</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test_query_main.py</span></code></p></td>
-<td><p>3</p></td>
+<td><p>4</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">query_data.main()</span></code> output, DB error,
-<code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code> config parsing</p></td>
+<code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code> config parsing,
+dependency-injected scraper test</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">test_load_main.py</span></code></p></td>
 <td><p>9</p></td>
@@ -570,11 +574,16 @@ LLM-based standardization populates llm_generated_program and
 llm_generated_university fields for newly pulled data.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="app.create_app">
-<span class="sig-prename descclassname"><span class="pre">app.</span></span><span class="sig-name descname"><span class="pre">create_app</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">testing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#app.create_app" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">app.</span></span><span class="sig-name descname"><span class="pre">create_app</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">testing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch_page_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_survey_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_max_pages_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#app.create_app" title="Link to this definition"></a></dt>
 <dd><p>Application factory for the Flask dashboard.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>testing</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, enables Flask’s TESTING config flag.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>testing</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, enables Flask’s TESTING config flag.</p></li>
+<li><p><strong>fetch_page_fn</strong> – Optional callable replacing <code class="docutils literal notranslate"><span class="pre">scrape.fetch_page</span></code>.</p></li>
+<li><p><strong>parse_survey_fn</strong> – Optional callable replacing <code class="docutils literal notranslate"><span class="pre">scrape.parse_survey</span></code>.</p></li>
+<li><p><strong>get_max_pages_fn</strong> – Optional callable replacing <code class="docutils literal notranslate"><span class="pre">scrape.get_max_pages</span></code>.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Configured Flask application with routes registered.</p>

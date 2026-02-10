@@ -41,6 +41,31 @@ def test_main_db_error(monkeypatch):
     query_data.main()
 
 
+@pytest.mark.buttons
+def test_pull_data_with_injected_scrapers(monkeypatch):
+    """Dependency-injected scrapers bypass the network without monkeypatching scrape."""
+    import app as app_module
+    from conftest import FakePullConn
+
+    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
+    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
+    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakePullConn())
+
+    fake_html = "<html><body><table><tbody></tbody></table></body></html>"
+    test_app = app_module.create_app(
+        testing=True,
+        fetch_page_fn=lambda url: fake_html,
+        parse_survey_fn=lambda html: [],
+        get_max_pages_fn=lambda html: 1,
+    )
+
+    with test_app.test_client() as c:
+        resp = c.post("/pull-data", json={"max_pages": 1})
+    assert resp.status_code == 200
+    assert "Already up to date" in resp.get_json()["message"]
+
+
 def test_build_db_config_uses_database_url(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql://myuser:secret@myhost:5433/mydb")
     config = query_data._build_db_config()

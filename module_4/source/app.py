@@ -91,11 +91,15 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
     return cur.rowcount > 0
 
 
-def create_app(testing=False):
+def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
+               get_max_pages_fn=None):
     """Application factory for the Flask dashboard.
 
     :param testing: If ``True``, enables Flask's TESTING config flag.
     :type testing: bool
+    :param fetch_page_fn: Optional callable replacing ``scrape.fetch_page``.
+    :param parse_survey_fn: Optional callable replacing ``scrape.parse_survey``.
+    :param get_max_pages_fn: Optional callable replacing ``scrape.get_max_pages``.
     :returns: Configured Flask application with routes registered.
     :rtype: Flask
     """
@@ -133,8 +137,13 @@ def create_app(testing=False):
             rows inserted, or a tuple of (response, status_code) on error.
         :rtype: flask.Response or tuple[flask.Response, int]
         """
-        # Lazy imports
-        from scrape import fetch_page, parse_survey, get_max_pages
+        # Dependency injection: use provided callables or lazy-import
+        if fetch_page_fn is not None:
+            fetch_page = fetch_page_fn
+            parse_survey = parse_survey_fn
+            get_max_pages = get_max_pages_fn
+        else:
+            from scrape import fetch_page, parse_survey, get_max_pages
         from urllib.error import URLError, HTTPError
 
         # Validate and get max_pages with bounds checking

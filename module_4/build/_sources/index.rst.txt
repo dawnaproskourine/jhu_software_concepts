@@ -32,7 +32,10 @@ Web Layer
 ~~~~~~~~~
 
 The web layer is a Flask application (``app.py``) that serves a single-page
-dashboard. It handles two routes:
+dashboard. The ``create_app()`` factory accepts optional ``fetch_page_fn``,
+``parse_survey_fn``, and ``get_max_pages_fn`` callables for dependency
+injection, allowing tests to supply fake scrapers without monkeypatching
+the ``scrape`` module. It handles two routes:
 
 - **GET /** renders the dashboard by calling ``run_queries()`` against
   PostgreSQL and passing the results to a Jinja2 template
@@ -239,8 +242,9 @@ File                                  Tests  What it covers
                                              ``_best_match``, ``_post_normalize_program``,
                                              ``_post_normalize_university``, ``_load_llm``
                                              singleton, ``standardize`` with mocked LLM
-``test_query_main.py``                3      ``query_data.main()`` output, DB error,
-                                             ``DATABASE_URL`` config parsing
+``test_query_main.py``                4      ``query_data.main()`` output, DB error,
+                                             ``DATABASE_URL`` config parsing,
+                                             dependency-injected scraper test
 ``test_load_main.py``                 9      ``create_connection`` success/failure,
                                              ``main()`` DB creation, JSON loading, and
                                              error paths (missing file, bad JSON)
