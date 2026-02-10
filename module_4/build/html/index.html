@@ -43,6 +43,28 @@
               <!-- Local TOC -->
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Module 4: Testing and Documentation</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#architecture">Architecture</a><ul>
+<li><a class="reference internal" href="#web-layer">Web Layer</a></li>
+<li><a class="reference internal" href="#etl-layer">ETL Layer</a></li>
+<li><a class="reference internal" href="#db-layer">DB Layer</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#setup">Setup</a><ul>
+<li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li><a class="reference internal" href="#database-configuration">Database Configuration</a></li>
+<li><a class="reference internal" href="#running-the-app">Running the App</a></li>
+<li><a class="reference internal" href="#routes">Routes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#running-tests">Running Tests</a><ul>
+<li><a class="reference internal" href="#running-all-tests">Running All Tests</a></li>
+<li><a class="reference internal" href="#running-with-coverage">Running with Coverage</a></li>
+<li><a class="reference internal" href="#running-by-marker">Running by Marker</a></li>
+<li><a class="reference internal" href="#test-files">Test Files</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#api-reference">API Reference</a><ul>
 <li><a class="reference internal" href="#module-app">app</a><ul>
 <li><a class="reference internal" href="#app.index"><code class="docutils literal notranslate"><span class="pre">index()</span></code></a></li>
 <li><a class="reference internal" href="#app.insert_row"><code class="docutils literal notranslate"><span class="pre">insert_row()</span></code></a></li>
@@ -94,6 +116,8 @@
 </ul>
 </li>
 </ul>
+</li>
+</ul>
 </div>
         </div>
       </div>
@@ -123,8 +147,152 @@
 <h1>Module 4: Testing and Documentation<a class="headerlink" href="#module-4-testing-and-documentation" title="Link to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>A single-page Flask web application that displays analysis results from a
+PostgreSQL database of grad school applicant data scraped from thegradcafe.com.
+The dashboard renders 13 Q&amp;A-style analysis queries covering applicant counts,
+GPA/GRE averages, acceptance rates, and top programs/universities.</p>
+<p>New data is pulled from thegradcafe.com via the <strong>Pull Data</strong> button, which
+scrapes survey pages, standardizes program and university names using a local
+TinyLlama LLM, and inserts rows into PostgreSQL. The <strong>Update Analysis</strong> button
+reloads the page to re-run all queries against the current database.</p>
+</section>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h2>
+<p>The application is organized into three layers: <strong>Web</strong>, <strong>ETL</strong>, and <strong>DB</strong>.</p>
+<section id="web-layer">
+<h3>Web Layer<a class="headerlink" href="#web-layer" title="Link to this heading"></a></h3>
+<p>The web layer is a Flask application (<code class="docutils literal notranslate"><span class="pre">app.py</span></code>) that serves a single-page
+dashboard. It handles two routes:</p>
+<ul class="simple">
+<li><p><strong>GET /</strong> renders the dashboard by calling <code class="docutils literal notranslate"><span class="pre">run_queries()</span></code> against
+PostgreSQL and passing the results to a Jinja2 template
+(<code class="docutils literal notranslate"><span class="pre">website/_templates/index.html</span></code>).</p></li>
+<li><p><strong>POST /pull-data</strong> triggers the ETL pipeline and returns a JSON summary
+of pages fetched, rows scraped, and rows inserted.</p></li>
+</ul>
+<p>Client-side behavior is handled by <code class="docutils literal notranslate"><span class="pre">website/_static/dashboard.js</span></code>, which
+wires the Pull Data and Update Analysis buttons, manages the <code class="docutils literal notranslate"><span class="pre">isPulling</span></code>
+guard to prevent concurrent operations, and reloads the page after analysis
+updates.</p>
+</section>
+<section id="etl-layer">
+<h3>ETL Layer<a class="headerlink" href="#etl-layer" title="Link to this heading"></a></h3>
+<p>The ETL (Extract, Transform, Load) layer handles data ingestion:</p>
+<ul class="simple">
+<li><p><strong>Extract</strong> – <code class="docutils literal notranslate"><span class="pre">scrape.py</span></code> fetches HTML pages from thegradcafe.com/survey
+and parses applicant rows from the survey tables. <code class="docutils literal notranslate"><span class="pre">RobotsChecker.py</span></code>
+enforces robots.txt compliance before fetching.</p></li>
+<li><p><strong>Transform</strong> – <code class="docutils literal notranslate"><span class="pre">llm_standardizer.py</span></code> sends raw program/university
+strings through a local TinyLlama LLM (via llama_cpp) with few-shot
+prompting to produce standardized names. It falls back to rule-based
+parsing if the LLM returns invalid output, and applies fuzzy matching
+against canonical name lists (290 programs, 1000+ universities).</p></li>
+<li><p><strong>Load</strong> – <code class="docutils literal notranslate"><span class="pre">app.insert_row()</span></code> parses dates, runs LLM standardization,
+and inserts into the <code class="docutils literal notranslate"><span class="pre">applicants</span></code> table using <code class="docutils literal notranslate"><span class="pre">ON</span> <span class="pre">CONFLICT</span> <span class="pre">(url)</span> <span class="pre">DO</span>
+<span class="pre">NOTHING</span></code> to skip duplicates. <code class="docutils literal notranslate"><span class="pre">cleanup_data.py</span></code> runs post-insert fixes
+for invalid GRE AW scores (values &gt; 6 set to NULL) and UC campus
+normalization.</p></li>
+</ul>
+<p>The initial dataset is loaded by <code class="docutils literal notranslate"><span class="pre">load_data.py</span></code>, which reads from
+<code class="docutils literal notranslate"><span class="pre">llm_extended_applicant_data.json</span></code> and bulk-inserts into PostgreSQL.</p>
+</section>
+<section id="db-layer">
+<h3>DB Layer<a class="headerlink" href="#db-layer" title="Link to this heading"></a></h3>
+<p>The database layer uses PostgreSQL (via psycopg v3) with a single
+<code class="docutils literal notranslate"><span class="pre">applicants</span></code> table containing 14 columns: <code class="docutils literal notranslate"><span class="pre">program</span></code>, <code class="docutils literal notranslate"><span class="pre">comments</span></code>,
+<code class="docutils literal notranslate"><span class="pre">date_added</span></code>, <code class="docutils literal notranslate"><span class="pre">url</span></code> (unique), <code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">term</span></code>,
+<code class="docutils literal notranslate"><span class="pre">us_or_international</span></code>, <code class="docutils literal notranslate"><span class="pre">gpa</span></code>, <code class="docutils literal notranslate"><span class="pre">gre</span></code>, <code class="docutils literal notranslate"><span class="pre">gre_v</span></code>, <code class="docutils literal notranslate"><span class="pre">gre_aw</span></code>,
+<code class="docutils literal notranslate"><span class="pre">degree</span></code>, <code class="docutils literal notranslate"><span class="pre">llm_generated_program</span></code>, and <code class="docutils literal notranslate"><span class="pre">llm_generated_university</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">query_data.py</span></code> defines <code class="docutils literal notranslate"><span class="pre">DB_CONFIG</span></code> (shared by all modules) and
+<code class="docutils literal notranslate"><span class="pre">run_queries()</span></code>, which executes 13 parameterized SQL queries and returns
+results as a dictionary. Queries include counts, averages, percentages,
+top-N rankings, and acceptance rates grouped by degree type and nationality.
+All queries use parameterized statements for SQL injection protection.</p>
+</section>
+</section>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading"></a></h2>
+<section id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Python 3.10+</p></li>
+<li><p>PostgreSQL running locally with the <code class="docutils literal notranslate"><span class="pre">applicant_data</span></code> database created</p></li>
+<li><p>Required Python packages (install from <code class="docutils literal notranslate"><span class="pre">module_4/</span></code>):</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</pre></div>
+</div>
+</section>
+<section id="database-configuration">
+<h3>Database Configuration<a class="headerlink" href="#database-configuration" title="Link to this heading"></a></h3>
+<p>The database connection is configured in <code class="docutils literal notranslate"><span class="pre">query_data.py</span></code> via the <code class="docutils literal notranslate"><span class="pre">DB_CONFIG</span></code>
+dictionary:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">DB_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;dbname&quot;</span><span class="p">:</span> <span class="s2">&quot;applicant_data&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;dawnaproskourine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Update <code class="docutils literal notranslate"><span class="pre">user</span></code> to match your local PostgreSQL user. All modules import
+<code class="docutils literal notranslate"><span class="pre">DB_CONFIG</span></code> from <code class="docutils literal notranslate"><span class="pre">query_data.py</span></code>.</p>
+<p>To populate the database with the initial dataset:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>source/load_data.py
+</pre></div>
+</div>
+</section>
+<section id="running-the-app">
+<h3>Running the App<a class="headerlink" href="#running-the-app" title="Link to this heading"></a></h3>
+<p>From the <code class="docutils literal notranslate"><span class="pre">module_4/</span></code> directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>source/app.py
+</pre></div>
+</div>
+<p>Visit <code class="docutils literal notranslate"><span class="pre">http://localhost:8080</span></code> in a browser.</p>
+</section>
+<section id="routes">
+<h3>Routes<a class="headerlink" href="#routes" title="Link to this heading"></a></h3>
+</section>
+</section>
+<section id="running-tests">
+<h2>Running Tests<a class="headerlink" href="#running-tests" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">tests/</span></code> directory contains a pytest suite organized into five files with
+pytest markers for selective execution.</p>
+<section id="running-all-tests">
+<h3>Running All Tests<a class="headerlink" href="#running-all-tests" title="Link to this heading"></a></h3>
+<p>From <code class="docutils literal notranslate"><span class="pre">module_4/</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-v
+</pre></div>
+</div>
+</section>
+<section id="running-with-coverage">
+<h3>Running with Coverage<a class="headerlink" href="#running-with-coverage" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-v<span class="w"> </span>--cov<span class="o">=</span><span class="nb">source</span><span class="w"> </span>--cov-report<span class="o">=</span>term-missing
+</pre></div>
+</div>
+</section>
+<section id="running-by-marker">
+<h3>Running by Marker<a class="headerlink" href="#running-by-marker" title="Link to this heading"></a></h3>
+<p>Each test is marked with one or more of the following markers (registered in
+<code class="docutils literal notranslate"><span class="pre">pytest.ini</span></code>):</p>
+<p>Run a specific marker:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-m<span class="w"> </span>web<span class="w"> </span>-v
+python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-m<span class="w"> </span>db<span class="w"> </span>-v
+python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-m<span class="w"> </span>integration<span class="w"> </span>-v
+</pre></div>
+</div>
+</section>
+<section id="test-files">
+<h3>Test Files<a class="headerlink" href="#test-files" title="Link to this heading"></a></h3>
+<p>Database tests require a running PostgreSQL instance and skip automatically if
+unavailable.</p>
+</section>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h2>
 <section id="module-app">
-<span id="app"></span><h2>app<a class="headerlink" href="#module-app" title="Link to this heading"></a></h2>
+<span id="app"></span><h3>app<a class="headerlink" href="#module-app" title="Link to this heading"></a></h3>
 <p>Flask dashboard for applicant_data analysis.</p>
 <p>Serves a Q&amp;A-style web page displaying analysis results from the
 applicant_data PostgreSQL database. Also provides an endpoint to
@@ -189,7 +357,7 @@ rows inserted, or a tuple of (response, status_code) on error.</p>
 
 </section>
 <section id="module-load_data">
-<span id="load-data"></span><h2>load_data<a class="headerlink" href="#module-load_data" title="Link to this heading"></a></h2>
+<span id="load-data"></span><h3>load_data<a class="headerlink" href="#module-load_data" title="Link to this heading"></a></h3>
 <p>Load llm_extended_applicant_data.json into a PostgreSQL applicants table.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="load_data.clean_text">
@@ -277,7 +445,7 @@ skipped via <code class="docutils literal notranslate"><span class="pre">ON</spa
 
 </section>
 <section id="module-query_data">
-<span id="query-data"></span><h2>query_data<a class="headerlink" href="#module-query_data" title="Link to this heading"></a></h2>
+<span id="query-data"></span><h3>query_data<a class="headerlink" href="#module-query_data" title="Link to this heading"></a></h3>
 <p>Analysis queries on the applicant_data database.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="query_data.main">
@@ -306,7 +474,7 @@ results to stdout.</p>
 
 </section>
 <section id="module-cleanup_data">
-<span id="cleanup-data"></span><h2>cleanup_data<a class="headerlink" href="#module-cleanup_data" title="Link to this heading"></a></h2>
+<span id="cleanup-data"></span><h3>cleanup_data<a class="headerlink" href="#module-cleanup_data" title="Link to this heading"></a></h3>
 <p>Data cleanup script for applicant_data database.</p>
 <p>Fixes:
 1. Invalid GRE AW scores (&gt; 6) - sets them to NULL
@@ -375,7 +543,7 @@ to resolve them to specific campuses (e.g., UCLA, Berkeley).</p>
 
 </section>
 <section id="module-scrape">
-<span id="scrape"></span><h2>scrape<a class="headerlink" href="#module-scrape" title="Link to this heading"></a></h2>
+<span id="scrape"></span><h3>scrape<a class="headerlink" href="#module-scrape" title="Link to this heading"></a></h3>
 <p>Module 2
 Author: Dawna Jones Proskourine</p>
 <dl class="py function">
@@ -501,7 +669,7 @@ and robots.txt handling. Writes results to a file or stdout.</p>
 
 </section>
 <section id="module-RobotsChecker">
-<span id="robotschecker"></span><h2>RobotsChecker<a class="headerlink" href="#module-RobotsChecker" title="Link to this heading"></a></h2>
+<span id="robotschecker"></span><h3>RobotsChecker<a class="headerlink" href="#module-RobotsChecker" title="Link to this heading"></a></h3>
 <p>Robots.txt compliance checker for web scraping.</p>
 <p>Fetches and parses a site’s robots.txt to determine whether a given
 URL may be crawled and what crawl delay to respect.</p>
@@ -549,7 +717,7 @@ to check crawl permissions and retrieve crawl delay directives.</p>
 
 </section>
 <section id="module-llm_standardizer">
-<span id="llm-standardizer"></span><h2>llm_standardizer<a class="headerlink" href="#module-llm_standardizer" title="Link to this heading"></a></h2>
+<span id="llm-standardizer"></span><h3>llm_standardizer<a class="headerlink" href="#module-llm_standardizer" title="Link to this heading"></a></h3>
 <p>LLM-based standardization for program and university names.</p>
 <p>Uses TinyLlama via llama_cpp to parse and standardize the combined
 program/university strings from GradCafe data. Falls back to rule-based
@@ -574,6 +742,7 @@ back to rule-based parsing if LLM output is invalid.</p>
 </dl>
 </dd></dl>
 
+</section>
 </section>
 </section>
 
