@@ -6,6 +6,8 @@ and the isPulling guard in dashboard.js.
 
 import os
 
+import pytest
+
 
 # ---------------------------------------------------------------------------
 # Lightweight stubs used by pull-data tests to replace psycopg objects
@@ -66,6 +68,7 @@ def _patch_pull_data(monkeypatch):
 
 # ---- POST /pull-data ----
 
+@pytest.mark.buttons
 def test_pull_data_returns_200_json(client, monkeypatch):
     _patch_pull_data(monkeypatch)
     resp = client.post("/pull-data", json={"max_pages": 1})
@@ -73,6 +76,7 @@ def test_pull_data_returns_200_json(client, monkeypatch):
     assert resp.content_type.startswith("application/json")
 
 
+@pytest.mark.buttons
 def test_pull_data_expected_keys_in_response(client, monkeypatch):
     _patch_pull_data(monkeypatch)
     data = client.post("/pull-data", json={"max_pages": 1}).get_json()
@@ -81,12 +85,14 @@ def test_pull_data_expected_keys_in_response(client, monkeypatch):
         assert key in data, f"Missing key: {key}"
 
 
+@pytest.mark.buttons
 def test_pull_data_no_new_data_message(client, monkeypatch):
     _patch_pull_data(monkeypatch)
     data = client.post("/pull-data", json={"max_pages": 1}).get_json()
     assert "Already up to date" in data["message"]
 
 
+@pytest.mark.buttons
 def test_pull_data_triggers_loader_with_scraped_rows(client, monkeypatch):
     import app as app_module
     import scrape
@@ -127,11 +133,13 @@ def test_pull_data_triggers_loader_with_scraped_rows(client, monkeypatch):
 
 # ---- onclick wiring in HTML ----
 
+@pytest.mark.buttons
 def test_pull_btn_references_pullData(client):
     html = client.get("/").data.decode()
     assert 'onclick="pullData()"' in html
 
 
+@pytest.mark.buttons
 def test_update_btn_references_updateAnalysis(client):
     html = client.get("/").data.decode()
     assert 'onclick="updateAnalysis()"' in html
@@ -139,6 +147,7 @@ def test_update_btn_references_updateAnalysis(client):
 
 # ---- dashboard.js inclusion and content ----
 
+@pytest.mark.buttons
 def test_dashboard_js_script_tag(client):
     html = client.get("/").data.decode()
     assert "dashboard.js" in html
@@ -153,18 +162,22 @@ def _read_js():
         return f.read()
 
 
+@pytest.mark.buttons
 def test_dashboard_js_contains_isPulling():
     assert "var isPulling" in _read_js()
 
 
+@pytest.mark.buttons
 def test_dashboard_js_isPulling_guards_updateAnalysis():
     assert "if (isPulling)" in _read_js()
 
 
+@pytest.mark.buttons
 def test_dashboard_js_warning_message():
     assert "A Pull Data request is still running" in _read_js()
 
 
+@pytest.mark.buttons
 def test_update_analysis_reloads_page():
     js = _read_js()
     assert "location.reload()" in js
