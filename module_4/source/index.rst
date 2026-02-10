@@ -253,7 +253,13 @@ Test Doubles
 
 Tests avoid loading the 668 MB TinyLlama model, making network requests,
 and requiring a live database (for non-DB tests) by using ``monkeypatch``
-with lightweight stub classes instead of ``unittest.mock``:
+with lightweight stub classes instead of ``unittest.mock``.
+
+Only ``llm_standardize`` (the LLM call) is mocked in all test suites.
+Scraper functions (``fetch_page``, ``parse_survey``, ``get_max_pages``)
+and cleanup functions (``fix_gre_aw``, ``fix_uc_universities``) run for
+real — network I/O is intercepted at the transport level by patching
+``scrape.urlopen`` with a ``_FakeResponse`` stub.
 
 ============================  =========================  ============================
 What is patched               Patch target               Replacement
@@ -263,17 +269,25 @@ LLM standardization           ``app.llm_standardize``    Lambda returning a dict
                                                          ``standardized_university``
 Database connection            ``app.psycopg.connect``    ``_FakeConn`` (context
                                                          manager stub) or
-                                                         ``_FakePullConn`` (direct
-                                                         usage stub)
-Scraper fetch                  ``scrape.fetch_page``      Lambda returning fake HTML
-Scraper parse                  ``scrape.parse_survey``    Lambda returning a list of
-                                                         row dicts (or empty list)
-Scraper pagination             ``scrape.get_max_pages``   Lambda returning ``1``
+                                                         ``_TestConn`` (direct
+                                                         usage wrapper)
+Network I/O (transport)        ``scrape.urlopen``         ``_FakeResponse`` stub
+                                                         returning crafted HTML
 Analysis queries               ``app.run_queries``        Lambda returning
                                                          ``MOCK_QUERY_DATA``
-GRE AW cleanup                 ``app.fix_gre_aw``         Lambda returning ``0``
-UC campus cleanup              ``app.fix_uc_universities`` Lambda returning ``0``
 ============================  =========================  ============================
+
+**No longer mocked** in integration and DB tests — these run for real:
+
+- ``scrape.fetch_page`` — builds ``Request``, calls ``urlopen``, decodes
+- ``scrape.parse_survey`` — parses HTML with BeautifulSoup
+- ``scrape.get_max_pages`` — extracts pagination from HTML
+- ``cleanup_data.fix_gre_aw`` — runs against SAVEPOINT-protected DB
+- ``cleanup_data.fix_uc_universities`` — runs against SAVEPOINT-protected DB
+
+Button behavior tests (``test_buttons.py``) still mock at the function level
+because they verify JSON response structure and button wiring, not scraping
+logic.
 
 Integration tests (``test_db_insert.py`` and ``test_integration_end_to_end.py``)
 use a ``_NoCloseConn`` / ``_TestConn`` wrapper that routes the app's

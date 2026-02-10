@@ -1,8 +1,14 @@
 """End-to-end integration test.
 
-Exercises the full pipeline: POST /pull-data inserts mocked scraper rows
-into a real PostgreSQL database, then GET / renders the dashboard with
-live query results from that data.  Everything rolls back via SAVEPOINT.
+Exercises the full pipeline: POST /pull-data inserts scraped rows into a
+real PostgreSQL database, then GET / renders the dashboard with live
+query results from that data.  Everything rolls back via SAVEPOINT.
+
+Only ``llm_standardize`` and ``psycopg.connect`` are mocked. The scraper
+functions (``fetch_page``, ``parse_survey``, ``get_max_pages``) run for
+real against crafted HTML fed through a transport-level ``urlopen`` stub.
+The cleanup functions (``fix_gre_aw``, ``fix_uc_universities``) run for
+real against the SAVEPOINT-protected database.
 """
 
 import uuid
@@ -42,6 +48,15 @@ class _TestConn:
         pass
 
 
+class _FakeResponse:
+    """Stub for urllib.request.urlopen return value."""
+    def __init__(self, html):
+        self._data = html.encode("utf-8")
+
+    def read(self):
+        return self._data
+
+
 _LLM_RESULT = {
     "standardized_program": "Computer Science",
     "standardized_university": "Stanford University",
@@ -49,12 +64,43 @@ _LLM_RESULT = {
 
 
 def _unique_url():
-    return f"https://test.example.com/e2e/{uuid.uuid4()}"
+    return f"/result/{uuid.uuid4()}"
+
+
+def _build_test_html(rows):
+    """Build a GradCafe-style HTML page from a list of row specifications.
+
+    Each row is a dict with: school, program, degree, date_text, status,
+    href, detail (detail text like "Fall 2026 | American | GPA 3.85 ...").
+    Pagination link is set to ``?page=1`` so ``get_max_pages`` returns 1.
+    """
+    tbody_rows = []
+    for r in rows:
+        # Main row (5 cells)
+        tbody_rows.append(f"""  <tr>
+    <td>{r['school']}</td>
+    <td>{r['program']} | {r['degree']}</td>
+    <td>{r['date_text']}</td>
+    <td>{r['status']}</td>
+    <td><a href="{r['href']}">View</a></td>
+  </tr>""")
+        # Detail row (1 cell)
+        tbody_rows.append(f"""  <tr>
+    <td>{r['detail']}</td>
+  </tr>""")
+
+    tbody = "\n".join(tbody_rows)
+    return f"""<html><body>
+<table><tbody>
+{tbody}
+</tbody></table>
+<a href="?page=1">1</a>
+</body></html>"""
 
 
 @pytest.mark.integration
 def test_pull_then_render(db_conn, monkeypatch):
-    """Full cycle: empty table → pull data → verify insert → render page."""
+    """Full cycle: empty table -> pull data -> verify insert -> render page."""
     conn, cur = db_conn
     import app as app_module
     import scrape
@@ -64,61 +110,46 @@ def test_pull_then_render(db_conn, monkeypatch):
     cur.execute("SELECT COUNT(*) FROM applicants")
     assert cur.fetchone()[0] == 0
 
-    # ---- Fake scraper rows ----
-    fake_html = "<html><body><table><tbody></tbody></table></body></html>"
-    fake_rows = [
+    # ---- Build test HTML with 3 applicant entries ----
+    url_a = _unique_url()
+    url_b = _unique_url()
+    url_c = _unique_url()
+
+    rows = [
         {
-            "program": "Computer Science, Stanford University",
-            "comments": "Accepted",
-            "date_added": "Added on January 15, 2026",
-            "url": _unique_url(),
+            "school": "Stanford University",
+            "program": "Computer Science",
+            "degree": "Masters",
+            "date_text": "January 15, 2026",
             "status": "Accepted",
-            "term": "Fall 2026",
-            "US/International": "American",
-            "GPA": "GPA 3.85",
-            "GRE": "GRE 320",
-            "GRE V": "GRE V 160",
-            "GRE AW": "GRE AW 4.5",
-            "Degree": "Masters",
+            "href": url_a,
+            "detail": "Fall 2026 | American | GPA 3.85 | GRE 320 | GRE V 160 | GRE AW 4.5",
         },
         {
-            "program": "Electrical Engineering, MIT",
-            "comments": "Rejected",
-            "date_added": "Added on February 1, 2026",
-            "url": _unique_url(),
+            "school": "MIT",
+            "program": "Electrical Engineering",
+            "degree": "PhD",
+            "date_text": "February 1, 2026",
             "status": "Rejected",
-            "term": "Fall 2026",
-            "US/International": "International",
-            "GPA": "GPA 3.60",
-            "GRE": "GRE 315",
-            "GRE V": "GRE V 155",
-            "GRE AW": "GRE AW 4.0",
-            "Degree": "PhD",
+            "href": url_b,
+            "detail": "Fall 2026 | International | GPA 3.60 | GRE 315 | GRE V 155 | GRE AW 4.0",
         },
         {
-            "program": "Data Science, Carnegie Mellon University",
-            "comments": "Wait listed",
-            "date_added": "Added on March 10, 2026",
-            "url": _unique_url(),
+            "school": "Carnegie Mellon University",
+            "program": "Data Science",
+            "degree": "Masters",
+            "date_text": "March 10, 2026",
             "status": "Wait Listed",
-            "term": "Fall 2026",
-            "US/International": "American",
-            "GPA": "GPA 3.92",
-            "GRE": "GRE 330",
-            "GRE V": "GRE V 165",
-            "GRE AW": "GRE AW 5.0",
-            "Degree": "Masters",
+            "href": url_c,
+            "detail": "Fall 2026 | American | GPA 3.92 | GRE 330 | GRE V 165 | GRE AW 5.0",
         },
     ]
+    html = _build_test_html(rows)
 
     wrapper = _TestConn(conn)
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT)
-    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
-    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
-    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: fake_rows)
-    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
+    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(html))
 
     app_module.app.config["TESTING"] = True
 
@@ -137,37 +168,37 @@ def test_pull_then_render(db_conn, monkeypatch):
         # ---- Phase 2: GET / renders dashboard from live query data ----
         page_resp = client.get("/")
         assert page_resp.status_code == 200
-        html = page_resp.data.decode()
+        html_out = page_resp.data.decode()
 
         # Page title
-        assert "Grad School Cafe Data Analysis" in html
+        assert "Grad School Cafe Data Analysis" in html_out
 
         # Data from inserted rows appears in rendered output
-        assert "Computer Science" in html
-        assert "Stanford University" in html
-        assert "Fall 2026" in html
-        assert "Accepted" in html
+        assert "Computer Science" in html_out
+        assert "Stanford University" in html_out
+        assert "Fall 2026" in html_out
+        assert "Accepted" in html_out
 
         # ---- Phase 3: verify correctly formatted values ----
         # Counts
-        assert "3" in html  # total_count and fall_2026_count
+        assert "3" in html_out  # total_count and fall_2026_count
 
         # Percentages formatted as X.XX%
-        assert "33.33%" in html  # international_pct and acceptance_pct
+        assert "33.33%" in html_out  # international_pct and acceptance_pct
 
         # Averages (from 3 rows: 3.85/3.60/3.92, 320/315/330, etc.)
-        assert "3.79" in html   # avg_gpa
-        assert "321.67" in html  # avg_gre
-        assert "160.00" in html  # avg_gre_v
-        assert "4.50" in html   # avg_gre_aw
+        assert "3.79" in html_out   # avg_gpa
+        assert "321.67" in html_out  # avg_gre
+        assert "160.00" in html_out  # avg_gre_v
+        assert "4.50" in html_out   # avg_gre_aw
 
         # Rate by degree — Masters: 1 accepted / 2 total, PhD: 0 / 1
-        assert "Masters" in html
-        assert "PhD" in html
+        assert "Masters" in html_out
+        assert "PhD" in html_out
 
         # Rate by nationality — American and International present
-        assert "American" in html
-        assert "International" in html
+        assert "American" in html_out
+        assert "International" in html_out
 
 
 @pytest.mark.integration
@@ -179,89 +210,74 @@ def test_duplicate_pull_preserves_uniqueness(db_conn, monkeypatch):
 
     cur.execute("DELETE FROM applicants")
 
-    fake_html = "<html><body><table><tbody></tbody></table></body></html>"
-
     # Shared URLs so the second pull overlaps with the first
     url_a = _unique_url()
     url_b = _unique_url()
     url_c = _unique_url()
 
-    batch_1 = [
+    batch_1_rows = [
         {
-            "program": "Computer Science, Stanford University",
-            "comments": "Accepted",
-            "date_added": "Added on January 15, 2026",
-            "url": url_a,
+            "school": "Stanford University",
+            "program": "Computer Science",
+            "degree": "Masters",
+            "date_text": "January 15, 2026",
             "status": "Accepted",
-            "term": "Fall 2026",
-            "US/International": "American",
-            "GPA": "GPA 3.85",
-            "GRE": "GRE 320",
-            "GRE V": "GRE V 160",
-            "GRE AW": "GRE AW 4.5",
-            "Degree": "Masters",
+            "href": url_a,
+            "detail": "Fall 2026 | American | GPA 3.85 | GRE 320 | GRE V 160 | GRE AW 4.5",
         },
         {
-            "program": "Electrical Engineering, MIT",
-            "comments": "Rejected",
-            "date_added": "Added on February 1, 2026",
-            "url": url_b,
+            "school": "MIT",
+            "program": "Electrical Engineering",
+            "degree": "PhD",
+            "date_text": "February 1, 2026",
             "status": "Rejected",
-            "term": "Fall 2026",
-            "US/International": "International",
-            "GPA": "GPA 3.60",
-            "GRE": "GRE 315",
-            "GRE V": "GRE V 155",
-            "GRE AW": "GRE AW 4.0",
-            "Degree": "PhD",
+            "href": url_b,
+            "detail": "Fall 2026 | International | GPA 3.60 | GRE 315 | GRE V 155 | GRE AW 4.0",
         },
     ]
 
-    # Second batch: url_b overlaps, url_c is new
-    batch_2 = [
+    batch_2_rows = [
         {
-            "program": "Electrical Engineering, MIT",
-            "comments": "Rejected",
-            "date_added": "Added on February 1, 2026",
-            "url": url_b,
+            "school": "MIT",
+            "program": "Electrical Engineering",
+            "degree": "PhD",
+            "date_text": "February 1, 2026",
             "status": "Rejected",
-            "term": "Fall 2026",
-            "US/International": "International",
-            "GPA": "GPA 3.60",
-            "GRE": "GRE 315",
-            "GRE V": "GRE V 155",
-            "GRE AW": "GRE AW 4.0",
-            "Degree": "PhD",
+            "href": url_b,  # duplicate
+            "detail": "Fall 2026 | International | GPA 3.60 | GRE 315 | GRE V 155 | GRE AW 4.0",
         },
         {
-            "program": "Data Science, Carnegie Mellon University",
-            "comments": "Wait listed",
-            "date_added": "Added on March 10, 2026",
-            "url": url_c,
+            "school": "Carnegie Mellon University",
+            "program": "Data Science",
+            "degree": "Masters",
+            "date_text": "March 10, 2026",
             "status": "Wait Listed",
-            "term": "Fall 2026",
-            "US/International": "American",
-            "GPA": "GPA 3.92",
-            "GRE": "GRE 330",
-            "GRE V": "GRE V 165",
-            "GRE AW": "GRE AW 5.0",
-            "Degree": "Masters",
+            "href": url_c,  # new
+            "detail": "Fall 2026 | American | GPA 3.92 | GRE 330 | GRE V 165 | GRE AW 5.0",
         },
     ]
+
+    html_1 = _build_test_html(batch_1_rows)
+    html_2 = _build_test_html(batch_2_rows)
+
+    call_count = {"n": 0}
+
+    def _urlopen_switch(req):
+        """Return batch_1 HTML on first pull, batch_2 on second."""
+        call_count["n"] += 1
+        if call_count["n"] <= 1:
+            return _FakeResponse(html_1)
+        return _FakeResponse(html_2)
 
     wrapper = _TestConn(conn)
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT)
-    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
-    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
-    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
+    monkeypatch.setattr(scrape, "urlopen", _urlopen_switch)
 
     app_module.app.config["TESTING"] = True
 
     with app_module.app.test_client() as client:
         # First pull: 2 new rows
-        monkeypatch.setattr(scrape, "parse_survey", lambda html: batch_1)
         resp1 = client.post("/pull-data", json={"max_pages": 1})
         assert resp1.status_code == 200
         assert resp1.get_json()["inserted"] == 2
@@ -270,7 +286,6 @@ def test_duplicate_pull_preserves_uniqueness(db_conn, monkeypatch):
         assert cur.fetchone()[0] == 2
 
         # Second pull: 1 duplicate (url_b) + 1 new (url_c)
-        monkeypatch.setattr(scrape, "parse_survey", lambda html: batch_2)
         resp2 = client.post("/pull-data", json={"max_pages": 1})
         assert resp2.status_code == 200
         data2 = resp2.get_json()
@@ -281,7 +296,8 @@ def test_duplicate_pull_preserves_uniqueness(db_conn, monkeypatch):
         cur.execute("SELECT COUNT(*) FROM applicants")
         assert cur.fetchone()[0] == 3
 
-        # Each URL appears exactly once
-        for url in (url_a, url_b, url_c):
-            cur.execute("SELECT COUNT(*) FROM applicants WHERE url = %s", (url,))
+        # Each URL appears exactly once (parse_main_row prepends domain)
+        for href in (url_a, url_b, url_c):
+            full_url = f"https://www.thegradcafe.com{href}"
+            cur.execute("SELECT COUNT(*) FROM applicants WHERE url = %s", (full_url,))
             assert cur.fetchone()[0] == 1

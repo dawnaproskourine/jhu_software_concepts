@@ -6,9 +6,10 @@ and cleanup routines (real PostgreSQL with SAVEPOINT rollback).
 """
 
 import uuid
+from datetime import date
 
 import pytest
-from load_data import clean_text, parse_float
+from load_data import clean_text, parse_float, parse_date
 
 
 # =====================================================================
@@ -68,6 +69,28 @@ class TestParseFloat:
 
     def test_whitespace_only(self):
         assert parse_float("   ") is None
+
+
+# =====================================================================
+# Unit tests – parse_date
+# =====================================================================
+
+@pytest.mark.db
+class TestParseDate:
+    def test_parse_date_valid_format(self):
+        assert parse_date("Added on January 15, 2026") == date(2026, 1, 15)
+
+    def test_parse_date_without_prefix(self):
+        assert parse_date("January 15, 2026") == date(2026, 1, 15)
+
+    def test_parse_date_invalid_string(self):
+        assert parse_date("bad date") is None
+
+    def test_parse_date_none_input(self):
+        assert parse_date(None) is None
+
+    def test_parse_date_empty_string(self):
+        assert parse_date("") is None
 
 
 # =====================================================================
@@ -305,6 +328,34 @@ class _NoCloseConn:
         pass  # suppress so SAVEPOINT rollback still works
 
 
+class _FakeResponse:
+    """Stub for urllib.request.urlopen return value."""
+    def __init__(self, html):
+        self._data = html.encode("utf-8")
+
+    def read(self):
+        return self._data
+
+
+def _build_pull_html(test_href):
+    """Build a GradCafe-style HTML page with one applicant row."""
+    return f"""<html><body>
+<table><tbody>
+  <tr>
+    <td>Stanford University</td>
+    <td>Computer Science | PhD</td>
+    <td>January 15, 2026</td>
+    <td>Accepted</td>
+    <td><a href="{test_href}">View</a></td>
+  </tr>
+  <tr>
+    <td>Fall 2026 | American | GPA 3.85 | GRE 320 | GRE V 160 | GRE AW 4.5</td>
+  </tr>
+</tbody></table>
+<a href="?page=1">1</a>
+</body></html>"""
+
+
 @pytest.mark.db
 @pytest.mark.integration
 def test_pull_data_inserts_into_empty_table(db_conn, monkeypatch):
@@ -317,32 +368,15 @@ def test_pull_data_inserts_into_empty_table(db_conn, monkeypatch):
     cur.execute("SELECT COUNT(*) FROM applicants")
     assert cur.fetchone()[0] == 0
 
-    fake_html = "<html><body><table><tbody></tbody></table></body></html>"
-    test_url = _unique_url()
-    fake_row = {
-        "program": "Computer Science, Stanford University",
-        "comments": "Accepted",
-        "date_added": "Added on January 15, 2026",
-        "url": test_url,
-        "status": "Accepted",
-        "term": "Fall 2026",
-        "us_or_international": "American",
-        "gpa": "3.85",
-        "gre": "320",
-        "gre_v": "160",
-        "gre_aw": "4.5",
-        "degree": "PhD",
-    }
+    test_href = f"/result/{uuid.uuid4()}"
+    test_url = f"https://www.thegradcafe.com{test_href}"
+    html = _build_pull_html(test_href)
 
     wrapper = _NoCloseConn(conn)
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT_FULL)
-    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
-    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _conn: {})
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
-    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [fake_row])
-    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
+    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(html))
 
     app_module.app.config["TESTING"] = True
     with app_module.app.test_client() as client:
@@ -354,15 +388,14 @@ def test_pull_data_inserts_into_empty_table(db_conn, monkeypatch):
 
     # Verify row exists with required non-null fields
     cur.execute("""
-        SELECT program, url, status, term, degree,
+        SELECT program, status, term, degree,
                llm_generated_program, llm_generated_university
         FROM applicants WHERE url = %s
     """, (test_url,))
     result = cur.fetchone()
     assert result is not None
-    program, url, status, term, degree, llm_prog, llm_uni = result
+    program, status, term, degree, llm_prog, llm_uni = result
     assert program is not None
-    assert url is not None
     assert status is not None
     assert term is not None
     assert degree is not None
