@@ -204,3 +204,68 @@ def test_main_json_decode_error(monkeypatch, tmp_path):
     monkeypatch.setattr(load_data, "JSON_PATH", str(bad_json))
 
     load_data.main()  # Should handle JSONDecodeError gracefully
+
+
+def test_main_executemany_error(monkeypatch, tmp_path):
+    sample_data = [
+        {
+            "program": "CS, MIT",
+            "comments": "Great",
+            "date_added": "Added on January 15, 2026",
+            "url": "https://example.com/1",
+            "status": "Accepted",
+            "term": "Fall 2026",
+            "US/International": "American",
+            "GPA": "GPA 3.85",
+            "GRE": "GRE 320",
+            "GRE V": "GRE V 160",
+            "GRE AW": "GRE AW 4.5",
+            "Degree": "Masters",
+            "llm-generated-program": "Computer Science",
+            "llm-generated-university": "MIT",
+        }
+    ]
+    json_file = tmp_path / "test_data.json"
+    json_file.write_text(json.dumps(sample_data))
+
+    class _ErrorCursor:
+        def __init__(self):
+            self.calls = []
+
+        def execute(self, sql, params=None):
+            self.calls.append(("execute", sql, params))
+
+        def executemany(self, sql, params_list):
+            raise psycopg.Error("disk full")
+
+        def fetchone(self):
+            return (None,)
+
+    class _ErrorConn:
+        def __init__(self):
+            self._cursor = _ErrorCursor()
+            self.autocommit = True
+            self.closed = False
+
+        def cursor(self):
+            return self._cursor
+
+        def close(self):
+            self.closed = True
+
+    first_conn = _FakeConn()
+    second_conn = _ErrorConn()
+    conns = [first_conn, second_conn]
+    call_idx = {"n": 0}
+
+    def _fake_create(*args, **kwargs):
+        idx = call_idx["n"]
+        call_idx["n"] += 1
+        return conns[idx] if idx < len(conns) else None
+
+    monkeypatch.setattr(load_data, "create_connection", _fake_create)
+    monkeypatch.setattr(load_data, "JSON_PATH", str(json_file))
+
+    load_data.main()  # Should not crash
+
+    assert second_conn.closed is True

@@ -471,7 +471,11 @@ def test_pull_data_insert_error_rolls_back(monkeypatch):
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _BombConn())
     monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
+    monkeypatch.setattr(scrape, "parse_survey", lambda html: [
+        {"url": "u1", "program": "p", "comments": "c"},
+        {"url": "u2", "program": "p", "comments": "c"},
+        {"url": "u3", "program": "p", "comments": "c"},
+    ])
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
 
     test_app = app_module.create_app(testing=True)

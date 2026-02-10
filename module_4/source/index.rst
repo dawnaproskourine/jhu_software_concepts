@@ -245,13 +245,16 @@ File                                  Tests  What it covers
 ``test_query_main.py``                4      ``query_data.main()`` output, DB error,
                                              ``DATABASE_URL`` config parsing,
                                              dependency-injected scraper test
-``test_load_main.py``                 9      ``create_connection`` success/failure,
+``test_load_main.py``                 10     ``create_connection`` success/failure,
                                              ``main()`` DB creation, JSON loading, and
-                                             error paths (missing file, bad JSON)
-``test_app_errors.py``                9      Index DB error, ``insert_row`` LLM exception,
+                                             error paths (missing file, bad JSON,
+                                             executemany failure)
+``test_app_errors.py``                12     Index DB error, ``insert_row`` LLM exception,
                                              invalid ``max_pages``, DB connect failure,
                                              network error, DB error during scrape,
-                                             caught-up break, cleanup message, multi-page
+                                             caught-up break, cleanup message, multi-page,
+                                             network error page 2 rollback, cleanup error,
+                                             insert error rollback
 ====================================  =====  =============================================
 
 Database tests require a running PostgreSQL instance and skip automatically if
