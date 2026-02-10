@@ -10,24 +10,14 @@ import sys
 
 import pytest
 
+from conftest import FakeResponse
+
 from scrape import (
     fetch_page, parse_survey, parse_main_row, parse_detail_row,
     get_max_pages, scrape_data, main,
 )
 from bs4 import BeautifulSoup
 import scrape
-
-
-# ---------------------------------------------------------------------------
-# Stub for urllib.request.urlopen
-# ---------------------------------------------------------------------------
-
-class _FakeResponse:
-    def __init__(self, html):
-        self._data = html.encode("utf-8")
-
-    def read(self):
-        return self._data
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +226,7 @@ def test_get_max_pages_no_pagination():
 @pytest.mark.web
 def test_fetch_page_calls_urlopen_and_decodes(monkeypatch):
     sample = "<html><body>Hello</body></html>"
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(sample))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(sample))
     result = fetch_page("https://example.com")
     assert result == sample
 
@@ -411,7 +401,7 @@ _TWO_PAGE_HTML_P2 = """<html><body>
 
 @pytest.mark.web
 def test_scrape_data_ignore_robots(monkeypatch):
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(_SIMPLE_HTML))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
     results = scrape_data(
         base_url="https://example.com/survey/",
         max_pages=1, delay=0, ignore_robots=True,
@@ -457,7 +447,7 @@ def test_scrape_data_crawl_delay_override(monkeypatch):
         RobotsChecker = _FakeRobots
 
     monkeypatch.setattr(scrape, "RobotsChecker", _FakeModule)
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(_SIMPLE_HTML))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
 
     delays = []
     monkeypatch.setattr(scrape.time, "sleep", lambda d: delays.append(d))
@@ -476,8 +466,8 @@ def test_scrape_data_multi_page(monkeypatch):
     def _urlopen(req):
         pages["n"] += 1
         if pages["n"] == 1:
-            return _FakeResponse(_TWO_PAGE_HTML_P1)
-        return _FakeResponse(_TWO_PAGE_HTML_P2)
+            return FakeResponse(_TWO_PAGE_HTML_P1)
+        return FakeResponse(_TWO_PAGE_HTML_P2)
 
     monkeypatch.setattr(scrape, "urlopen", _urlopen)
     monkeypatch.setattr(scrape.time, "sleep", lambda d: None)
@@ -496,7 +486,7 @@ def test_scrape_data_page_error_continues(monkeypatch):
     def _urlopen(req):
         pages["n"] += 1
         if pages["n"] == 1:
-            return _FakeResponse(_TWO_PAGE_HTML_P1)
+            return FakeResponse(_TWO_PAGE_HTML_P1)
         raise Exception("Network error on page 2")
 
     monkeypatch.setattr(scrape, "urlopen", _urlopen)
@@ -530,7 +520,7 @@ def test_scrape_data_per_page_robots_skip(monkeypatch):
         RobotsChecker = _FakeRobots
 
     monkeypatch.setattr(scrape, "RobotsChecker", _FakeModule)
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(_TWO_PAGE_HTML_P1))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_TWO_PAGE_HTML_P1))
     monkeypatch.setattr(scrape.time, "sleep", lambda d: None)
 
     results = scrape_data(
@@ -547,7 +537,7 @@ def test_scrape_data_per_page_robots_skip(monkeypatch):
 
 @pytest.mark.web
 def test_main_stdout_json(monkeypatch, capsys):
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(_SIMPLE_HTML))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
     monkeypatch.setattr(
         sys, "argv", ["scrape.py", "--pages", "1", "--ignore_robots"]
     )
@@ -561,7 +551,7 @@ def test_main_stdout_json(monkeypatch, capsys):
 
 @pytest.mark.web
 def test_main_file_output(monkeypatch, tmp_path):
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(_SIMPLE_HTML))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
     outfile = str(tmp_path / "out.json")
     monkeypatch.setattr(
         sys, "argv", ["scrape.py", "--pages", "1", "--ignore_robots", "-o", outfile]

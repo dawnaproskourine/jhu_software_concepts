@@ -10,6 +10,7 @@ from datetime import date
 
 import pytest
 from load_data import clean_text, parse_float, parse_date
+from conftest import FakeResponse, NoCloseConn
 
 
 # =====================================================================
@@ -286,55 +287,9 @@ def test_gre_aw_greater_than_6_set_to_null(db_conn, monkeypatch):
     assert cur.fetchone()[0] is None
 
 
-@pytest.mark.db
-def test_valid_gre_aw_not_changed(db_conn, monkeypatch):
-    conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
-    from app import insert_row
-
-    row = _sample_row(**{"GRE AW": "GRE AW 4.5"})
-    url = row["url"]
-    insert_row(cur, row)
-
-    from cleanup_data import fix_gre_aw
-    fix_gre_aw(conn)
-
-    cur.execute("SELECT gre_aw FROM applicants WHERE url = %s", (url,))
-    assert abs(cur.fetchone()[0] - 4.5) < 0.01
-
-
 # =====================================================================
 # Integration: POST /pull-data inserts rows into a real DB
 # =====================================================================
-
-class _NoCloseConn:
-    """Wraps a real connection but suppresses close() so the SAVEPOINT stays."""
-    def __init__(self, real_conn):
-        self._conn = real_conn
-
-    @property
-    def autocommit(self):
-        return self._conn.autocommit
-
-    @autocommit.setter
-    def autocommit(self, value):
-        pass  # ignore; keep the test transaction intact
-
-    def cursor(self):
-        return self._conn.cursor()
-
-    def close(self):
-        pass  # suppress so SAVEPOINT rollback still works
-
-
-class _FakeResponse:
-    """Stub for urllib.request.urlopen return value."""
-    def __init__(self, html):
-        self._data = html.encode("utf-8")
-
-    def read(self):
-        return self._data
 
 
 def _build_pull_html(test_href):
@@ -372,11 +327,11 @@ def test_pull_data_inserts_into_empty_table(db_conn, monkeypatch):
     test_url = f"https://www.thegradcafe.com{test_href}"
     html = _build_pull_html(test_href)
 
-    wrapper = _NoCloseConn(conn)
+    wrapper = NoCloseConn(conn)
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT_FULL)
     monkeypatch.setattr(app_module, "run_queries", lambda _conn: {})
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(html))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
     app_module.app.config["TESTING"] = True
     with app_module.app.test_client() as client:

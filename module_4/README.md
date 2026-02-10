@@ -140,8 +140,24 @@ module_4/
 ├── make.bat                                # Sphinx build commands (Windows)
 ├── README.md
 ├── requirements.txt
+├── pytest.ini                              # pytest configuration (markers, coverage)
+├── .coveragerc                             # Coverage exclusions (conf.py, __main__ guards)
 ├── build/                                  # Sphinx-generated documentation output
-├── tests/                                  # Test files
+├── tests/
+│   ├── conftest.py                         # Shared fixtures (client, db_conn)
+│   ├── test_flask_page.py                  # Page rendering tests
+│   ├── test_buttons.py                     # Button behavior tests
+│   ├── test_analysis_format.py             # Analysis output formatting tests
+│   ├── test_db_insert.py                   # DB insert, query, and cleanup tests
+│   ├── test_integration_end_to_end.py      # End-to-end integration tests
+│   ├── test_scrape.py                      # Scraper unit tests
+│   ├── test_cleanup.py                     # Cleanup function tests
+│   ├── test_cleanup_main.py                # cleanup_data.main() tests
+│   ├── test_robots_checker.py              # RobotsChecker tests
+│   ├── test_llm_standardizer.py            # LLM standardizer tests
+│   ├── test_query_main.py                  # query_data.main() tests
+│   ├── test_load_main.py                   # load_data.main() tests
+│   └── test_app_errors.py                  # App error handling tests
 ├── source/
 │   ├── conf.py                             # Sphinx configuration
 │   ├── index.rst                           # Sphinx documentation entry point
@@ -166,39 +182,54 @@ module_4/
 
 ## Testing
 
-The `tests/` directory contains a pytest suite covering four areas:
+The `tests/` directory contains 165 pytest tests across thirteen files with markers for selective execution.
 
-| File | Tests | What it covers |
-|------|-------|----------------|
-| `test_page_renders.py` | 14 | Page loads, 13 Q&A blocks, buttons, tables, ordered lists |
-| `test_buttons_and_pull.py` | 9 | POST `/pull-data` JSON response, onclick wiring, JS inclusion, isPulling guard |
-| `test_analysis_formatting.py` | 14 | Question labels, percentage formats (X.XX%), average values, all scalars rendered |
-| `test_db_inserts.py` | 23 | `clean_text`, `parse_float`, `insert_row`, duplicate handling, column values, GRE AW cleanup |
+| File | Tests | Marker | What it covers |
+|------|-------|--------|----------------|
+| `test_flask_page.py` | 19 | `web` | App setup, page loads, 13 Q&A blocks, buttons, tables, ordered lists |
+| `test_buttons.py` | 11 | `buttons` | POST `/pull-data` JSON response, onclick wiring, JS inclusion, isPulling guard |
+| `test_analysis_format.py` | 9 | `analysis` | Question labels, answer rendering, percentage formats, all scalar values rendered |
+| `test_db_insert.py` | 30 | `db` | `clean_text`, `parse_float`, `parse_date`, `insert_row`, duplicate handling, column values, GRE AW cleanup, `run_queries` keys |
+| `test_integration_end_to_end.py` | 2 | `integration` | Full pipeline: pull data, insert, render dashboard; duplicate pull uniqueness |
+| `test_scrape.py` | 34 | `web` | `parse_main_row`, `parse_detail_row`, `parse_survey`, `get_max_pages`, `fetch_page`, `scrape_data`, `main`; edge cases for absolute URLs, empty cells, pipe-separated comments, multi-page fetching |
+| `test_cleanup.py` | 8 | `db` | `normalize_uc` (pure), `fix_gre_aw` and `fix_uc_universities` (DB integration) |
+| `test_cleanup_main.py` | 2 | `db` | `cleanup_data.main()` happy path and DB connection error |
+| `test_robots_checker.py` | 5 | `web` | `RobotsChecker` init, exception handling, `can_fetch`, `get_crawl_delay` |
+| `test_llm_standardizer.py` | 25 | `web` | `_read_lines`, `_split_fallback`, `_best_match`, `_post_normalize_program`, `_post_normalize_university`, `_load_llm` singleton, `standardize` with mocked LLM |
+| `test_query_main.py` | 2 | `db` | `query_data.main()` output and DB error |
+| `test_load_main.py` | 9 | `db` | `create_connection` success/failure, `main()` DB creation, JSON loading, error paths |
+| `test_app_errors.py` | 9 | `buttons` | Index DB error, `insert_row` LLM exception, invalid `max_pages`, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page |
 
 ### Running Tests
 
 ```bash
 python3 -m pytest tests/ -v
 python3 -m pytest tests/ -v --cov=source --cov-report=term-missing   # with coverage
+python3 -m pytest tests/ -m web -v                                    # by marker
 ```
 
 DB integration tests require a running PostgreSQL instance and skip automatically if unavailable.
 
-### Coverage Summary
+### Coverage
 
-| File | Coverage | Notes |
-|------|----------|-------|
-| `app.py` | 61% | `index()`, `insert_row()`, partial `pull_data()` |
-| `cleanup_data.py` | 40% | `fix_gre_aw()` tested; `fix_uc_universities()` and `main()` not |
-| `RobotsChecker.py` | 39% | Not directly tested (out of scope) |
-| `llm_standardizer.py` | 36% | Intentionally mocked (668MB model) |
-| `load_data.py` | 31% | `clean_text()` and `parse_float()` tested; `main()` loader not |
-| `query_data.py` | 13% | Mocked in template tests; only `DB_CONFIG` import hit |
-| `scrape.py` | 9% | Mocked to avoid HTTP requests |
-| **TOTAL** | **29%** | |
+Coverage is configured in `pytest.ini` and `.coveragerc`. The suite enforces **100% statement coverage**
+(`--cov-fail-under=100`). Untestable lines (`if __name__ == "__main__"` guards) and `conf.py` are excluded.
 
-Heavy modules (`scrape.py`, `llm_standardizer.py`, `query_data.py`) are intentionally mocked to avoid
-network calls, loading a 668MB LLM model, and requiring live database queries during testing.
+| File | Coverage |
+|------|----------|
+| `app.py` | 100% |
+| `cleanup_data.py` | 100% |
+| `RobotsChecker.py` | 100% |
+| `llm_standardizer.py` | 100% |
+| `load_data.py` | 100% |
+| `query_data.py` | 100% |
+| `scrape.py` | 100% |
+| **TOTAL** | **100%** |
+
+Only `llm_standardize` (the LLM call) is mocked across all test suites. Scraper functions
+(`fetch_page`, `parse_survey`, `get_max_pages`) and cleanup functions (`fix_gre_aw`,
+`fix_uc_universities`) run for real — network I/O is intercepted at the transport level by
+patching `scrape.urlopen` with a `_FakeResponse` stub.
 
 ## Code Quality
 

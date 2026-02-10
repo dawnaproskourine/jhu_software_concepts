@@ -5,6 +5,8 @@ from conftest import MOCK_QUERY_DATA
 
 import query_data
 
+pytestmark = pytest.mark.db
+
 
 def test_main_prints_results(monkeypatch, capsys):
     class _FakeConn:

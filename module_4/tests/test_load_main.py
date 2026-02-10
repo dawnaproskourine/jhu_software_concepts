@@ -7,6 +7,8 @@ import psycopg
 
 import load_data
 
+pytestmark = pytest.mark.db
+
 
 # =====================================================================
 # create_connection

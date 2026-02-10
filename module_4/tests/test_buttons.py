@@ -8,46 +8,7 @@ import os
 
 import pytest
 
-
-# ---------------------------------------------------------------------------
-# Lightweight stubs used by pull-data tests to replace psycopg objects
-# ---------------------------------------------------------------------------
-class _FakeCursor:
-    """Minimal stand-in for a psycopg cursor inside pull_data()."""
-    rowcount = 0
-
-    def execute(self, *args, **kwargs):
-        pass
-
-
-class _FakeInsertCursor:
-    """Cursor that reports rowcount=1 so insert_row considers the row new."""
-    rowcount = 1
-
-    def execute(self, *args, **kwargs):
-        pass
-
-
-class _FakeInsertConn:
-    """Connection that returns _FakeInsertCursor."""
-    autocommit = True
-
-    def cursor(self):
-        return _FakeInsertCursor()
-
-    def close(self):
-        pass
-
-
-class _FakePullConn:
-    """Minimal stand-in for a psycopg connection inside pull_data()."""
-    autocommit = True
-
-    def cursor(self):
-        return _FakeCursor()
-
-    def close(self):
-        pass
+from conftest import FakePullConn, FakeInsertConn
 
 
 def _patch_pull_data(monkeypatch):
@@ -60,7 +21,7 @@ def _patch_pull_data(monkeypatch):
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
-    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _FakePullConn())
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakePullConn())
     monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
     monkeypatch.setattr(scrape, "parse_survey", lambda html: [])
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
@@ -119,7 +80,7 @@ def test_pull_data_triggers_loader_with_scraped_rows(client, monkeypatch):
     })
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
-    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _FakeInsertConn())
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakeInsertConn())
     monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
     monkeypatch.setattr(scrape, "parse_survey", lambda html: [fake_row])
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)

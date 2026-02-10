@@ -9,31 +9,7 @@ from psycopg import OperationalError
 
 import app as app_module
 import scrape
-
-
-class _FakeResponse:
-    def __init__(self, html):
-        self._data = html.encode("utf-8")
-
-    def read(self):
-        return self._data
-
-
-class _FakePullConn:
-    autocommit = True
-
-    def cursor(self):
-        return _FakeCursor()
-
-    def close(self):
-        pass
-
-
-class _FakeCursor:
-    rowcount = 0
-
-    def execute(self, *a, **kw):
-        pass
+from conftest import FakeResponse, FakePullConn, NoCloseConn
 
 
 # =====================================================================
@@ -103,7 +79,7 @@ def test_pull_data_invalid_max_pages_defaults(monkeypatch):
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
-    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _FakePullConn())
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakePullConn())
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
     monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
     monkeypatch.setattr(scrape, "parse_survey", lambda html: [])
@@ -141,7 +117,7 @@ def test_pull_data_db_connect_fails_500(monkeypatch):
 @pytest.mark.buttons
 def test_pull_data_network_error_500(monkeypatch):
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
-    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _FakePullConn())
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakePullConn())
     monkeypatch.setattr(
         scrape, "fetch_page",
         lambda url, *a, **kw: (_ for _ in ()).throw(URLError("timeout")),
@@ -208,37 +184,13 @@ def test_pull_data_cleanup_message_with_counts(db_conn, monkeypatch):
 <a href="?page=1">1</a>
 </body></html>"""
 
-    class _TestConn:
-        def __init__(self, real):
-            self._conn = real
-
-        @property
-        def autocommit(self):
-            return self._conn.autocommit
-
-        @autocommit.setter
-        def autocommit(self, v):
-            pass
-
-        def cursor(self):
-            return self._conn.cursor()
-
-        def close(self):
-            pass
-
-        def __enter__(self):
-            return self._conn
-
-        def __exit__(self, *a):
-            pass
-
-    wrapper = _TestConn(conn)
+    wrapper = NoCloseConn(conn)
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {
         "standardized_program": "Computer Science",
         "standardized_university": "MIT",
     })
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(html))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
     app_module.app.config["TESTING"] = True
     with app_module.app.test_client() as c:

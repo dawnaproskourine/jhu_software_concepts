@@ -5,6 +5,8 @@ import psycopg
 
 import cleanup_data
 
+pytestmark = pytest.mark.db
+
 
 class _FakeConn:
     autocommit = True

@@ -3,32 +3,35 @@ platform darwin -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0
 rootdir: /Users/dawnaproskourine/Desktop/jhu/jhu-python concepts/jhu_software_concepts/module_4
 configfile: pytest.ini
 plugins: anyio-4.12.1, cov-7.0.0
-collected 91 items
+collected 165 items
 
-tests/test_analysis_format.py .........                                  [  9%]
-tests/test_buttons.py ...........                                        [ 21%]
-tests/test_cleanup.py ........                                           [ 30%]
-tests/test_db_insert.py .........................                        [ 58%]
-tests/test_flask_page.py ...................                             [ 79%]
-tests/test_integration_end_to_end.py ..                                  [ 81%]
-tests/test_scrape.py .................
-ERROR: Coverage failure: total of 55 is less than fail-under=100
-                                                                         [100%]
+tests/test_analysis_format.py .........                                  [  5%]
+tests/test_app_errors.py .........                                       [ 10%]
+tests/test_buttons.py ...........                                        [ 17%]
+tests/test_cleanup.py ........                                           [ 22%]
+tests/test_cleanup_main.py ..                                            [ 23%]
+tests/test_db_insert.py ..............................                   [ 41%]
+tests/test_flask_page.py ...................                             [ 53%]
+tests/test_integration_end_to_end.py ..                                  [ 54%]
+tests/test_llm_standardizer.py .........................                 [ 69%]
+tests/test_load_main.py .........                                        [ 75%]
+tests/test_query_main.py ..                                              [ 76%]
+tests/test_robots_checker.py .....                                       [ 79%]
+tests/test_scrape.py ..................................                  [100%]
 
 ================================ tests coverage ================================
 _______________ coverage: platform darwin, python 3.14.2-final-0 _______________
 
 Name                         Stmts   Miss  Cover   Missing
 ----------------------------------------------------------
-source/RobotsChecker.py         23     14    39%   31-47, 57, 67
-source/app.py                  111     27    76%   46-48, 78-81, 136-137, 145-147, 163-165, 187-197, 214, 228
-source/cleanup_data.py          52     13    75%   108-122, 126
-source/conf.py                  12     12     0%   9-32
-source/llm_standardizer.py     104     67    36%   49-50, 153-169, 180-197, 212-215, 226-232, 243-271, 286-320
-source/load_data.py             77     53    31%   58-62, 77-87, 97-195, 199
-source/query_data.py            78     33    58%   207-244, 248
-source/scrape.py               182     68    63%   50, 103, 119, 149, 190-191, 200-202, 217, 261-323, 331-381, 385
+source/RobotsChecker.py         23      0   100%
+source/app.py                  109      0   100%
+source/cleanup_data.py          50      0   100%
+source/llm_standardizer.py     104      0   100%
+source/load_data.py             75      0   100%
+source/query_data.py            76      0   100%
+source/scrape.py               180      0   100%
 ----------------------------------------------------------
-TOTAL                          639    287    55%
-FAIL Required test coverage of 100% not reached. Total coverage: 55.09%
-============================== 91 passed in 1.01s ==============================
+TOTAL                          617      0   100%
+Required test coverage of 100% reached. Total coverage: 100.00%
+============================= 165 passed in 2.12s ==============================

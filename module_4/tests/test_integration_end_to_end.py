@@ -15,46 +15,7 @@ import uuid
 
 import pytest
 
-
-# ---------------------------------------------------------------------------
-# Connection wrapper that routes app DB calls through the test connection
-# ---------------------------------------------------------------------------
-class _TestConn:
-    """Wraps a real connection for both context-manager and direct usage.
-
-    Suppresses close() and autocommit changes so the SAVEPOINT stays intact.
-    """
-    def __init__(self, real_conn):
-        self._conn = real_conn
-
-    @property
-    def autocommit(self):
-        return self._conn.autocommit
-
-    @autocommit.setter
-    def autocommit(self, value):
-        pass
-
-    def cursor(self):
-        return self._conn.cursor()
-
-    def close(self):
-        pass
-
-    def __enter__(self):
-        return self._conn
-
-    def __exit__(self, *args):
-        pass
-
-
-class _FakeResponse:
-    """Stub for urllib.request.urlopen return value."""
-    def __init__(self, html):
-        self._data = html.encode("utf-8")
-
-    def read(self):
-        return self._data
+from conftest import FakeResponse, NoCloseConn
 
 
 _LLM_RESULT = {
@@ -146,10 +107,10 @@ def test_pull_then_render(db_conn, monkeypatch):
     ]
     html = _build_test_html(rows)
 
-    wrapper = _TestConn(conn)
+    wrapper = NoCloseConn(conn)
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
-    monkeypatch.setattr(scrape, "urlopen", lambda req: _FakeResponse(html))
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
     app_module.app.config["TESTING"] = True
 
@@ -266,10 +227,10 @@ def test_duplicate_pull_preserves_uniqueness(db_conn, monkeypatch):
         """Return batch_1 HTML on first pull, batch_2 on second."""
         call_count["n"] += 1
         if call_count["n"] <= 1:
-            return _FakeResponse(html_1)
-        return _FakeResponse(html_2)
+            return FakeResponse(html_1)
+        return FakeResponse(html_2)
 
-    wrapper = _TestConn(conn)
+    wrapper = NoCloseConn(conn)
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", _urlopen_switch)

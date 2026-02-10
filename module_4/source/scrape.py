@@ -1,7 +1,3 @@
-"""
-Module 2
-Author: Dawna Jones Proskourine
-"""
 
 import sys
 import time

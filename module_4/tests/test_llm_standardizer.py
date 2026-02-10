@@ -5,6 +5,8 @@ import json
 import pytest
 
 import llm_standardizer as llm
+
+pytestmark = pytest.mark.web
 from llm_standardizer import (
     _read_lines,
     _split_fallback,

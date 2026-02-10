@@ -70,6 +70,87 @@ MOCK_QUERY_DATA = {
 
 
 # ---------------------------------------------------------------------------
+# Shared stubs — imported by test files via ``from conftest import ...``
+# ---------------------------------------------------------------------------
+
+class FakeResponse:
+    """Stub for ``urllib.request.urlopen`` return value."""
+    def __init__(self, html):
+        self._data = html.encode("utf-8")
+
+    def read(self):
+        return self._data
+
+
+class NoCloseConn:
+    """Wraps a real connection for both context-manager and direct usage.
+
+    Suppresses ``close()`` and ``autocommit`` changes so the SAVEPOINT
+    stays intact during tests.
+    """
+    def __init__(self, real_conn):
+        self._conn = real_conn
+
+    @property
+    def autocommit(self):
+        return self._conn.autocommit
+
+    @autocommit.setter
+    def autocommit(self, value):
+        pass
+
+    def cursor(self):
+        return self._conn.cursor()
+
+    def close(self):
+        pass
+
+    def __enter__(self):
+        return self._conn
+
+    def __exit__(self, *args):
+        pass
+
+
+class FakeCursor:
+    """Cursor stub that reports ``rowcount=0`` (duplicate / no-op)."""
+    rowcount = 0
+
+    def execute(self, *args, **kwargs):
+        pass
+
+
+class FakeInsertCursor:
+    """Cursor stub that reports ``rowcount=1`` (successful insert)."""
+    rowcount = 1
+
+    def execute(self, *args, **kwargs):
+        pass
+
+
+class FakePullConn:
+    """Connection stub returning ``FakeCursor`` (rowcount=0)."""
+    autocommit = True
+
+    def cursor(self):
+        return FakeCursor()
+
+    def close(self):
+        pass
+
+
+class FakeInsertConn:
+    """Connection stub returning ``FakeInsertCursor`` (rowcount=1)."""
+    autocommit = True
+
+    def cursor(self):
+        return FakeInsertCursor()
+
+    def close(self):
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Lightweight stub used by the client fixture to satisfy psycopg.connect
 # in the index() route (which uses ``with psycopg.connect(...) as conn:``)
 # ---------------------------------------------------------------------------

@@ -30,16 +30,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Install C/C++ build tools for llama-cpp-python
-        run: sudo apt-get update && sudo apt-get install -y cmake g++
-
       - name: Install dependencies
-        run: pip install -r module_4/requirements.txt
+        run: |
+          sudo apt-get update && sudo apt-get install -y cmake g++
+          pip install -r module_4/requirements.txt
 
       - name: Create applicants table
         run: |
@@ -65,4 +63,4 @@ jobs:
 
       - name: Run tests
         working-directory: module_4
-        run: python -m pytest tests/ -v --cov=source --cov-report=term-missing
+        run: python -m pytest tests/ -v

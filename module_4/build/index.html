@@ -1,0 +1,1034 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Module 4: Testing and Documentation &mdash; Module 4: Testing and Documentation 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            Module 4: Testing and Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Module 4: Testing and Documentation</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#architecture">Architecture</a><ul>
+<li><a class="reference internal" href="#web-layer">Web Layer</a></li>
+<li><a class="reference internal" href="#etl-layer">ETL Layer</a></li>
+<li><a class="reference internal" href="#db-layer">DB Layer</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#setup">Setup</a><ul>
+<li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li><a class="reference internal" href="#database-configuration">Database Configuration</a></li>
+<li><a class="reference internal" href="#running-the-app">Running the App</a></li>
+<li><a class="reference internal" href="#routes">Routes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#running-tests">Running Tests</a><ul>
+<li><a class="reference internal" href="#running-all-tests">Running All Tests</a></li>
+<li><a class="reference internal" href="#running-with-coverage">Running with Coverage</a></li>
+<li><a class="reference internal" href="#running-by-marker">Running by Marker</a></li>
+<li><a class="reference internal" href="#test-files">Test Files</a></li>
+<li><a class="reference internal" href="#expected-html-selectors">Expected HTML Selectors</a></li>
+<li><a class="reference internal" href="#fixtures">Fixtures</a></li>
+<li><a class="reference internal" href="#test-doubles">Test Doubles</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li><a class="reference internal" href="#module-app">app</a><ul>
+<li><a class="reference internal" href="#app.index"><code class="docutils literal notranslate"><span class="pre">index()</span></code></a></li>
+<li><a class="reference internal" href="#app.insert_row"><code class="docutils literal notranslate"><span class="pre">insert_row()</span></code></a></li>
+<li><a class="reference internal" href="#app.pull_data"><code class="docutils literal notranslate"><span class="pre">pull_data()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-load_data">load_data</a><ul>
+<li><a class="reference internal" href="#load_data.clean_text"><code class="docutils literal notranslate"><span class="pre">clean_text()</span></code></a></li>
+<li><a class="reference internal" href="#load_data.create_connection"><code class="docutils literal notranslate"><span class="pre">create_connection()</span></code></a></li>
+<li><a class="reference internal" href="#load_data.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li><a class="reference internal" href="#load_data.parse_date"><code class="docutils literal notranslate"><span class="pre">parse_date()</span></code></a></li>
+<li><a class="reference internal" href="#load_data.parse_float"><code class="docutils literal notranslate"><span class="pre">parse_float()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-query_data">query_data</a><ul>
+<li><a class="reference internal" href="#query_data.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li><a class="reference internal" href="#query_data.run_queries"><code class="docutils literal notranslate"><span class="pre">run_queries()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-cleanup_data">cleanup_data</a><ul>
+<li><a class="reference internal" href="#cleanup_data.fix_gre_aw"><code class="docutils literal notranslate"><span class="pre">fix_gre_aw()</span></code></a></li>
+<li><a class="reference internal" href="#cleanup_data.fix_uc_universities"><code class="docutils literal notranslate"><span class="pre">fix_uc_universities()</span></code></a></li>
+<li><a class="reference internal" href="#cleanup_data.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li><a class="reference internal" href="#cleanup_data.normalize_uc"><code class="docutils literal notranslate"><span class="pre">normalize_uc()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-scrape">scrape</a><ul>
+<li><a class="reference internal" href="#scrape.fetch_page"><code class="docutils literal notranslate"><span class="pre">fetch_page()</span></code></a></li>
+<li><a class="reference internal" href="#scrape.get_max_pages"><code class="docutils literal notranslate"><span class="pre">get_max_pages()</span></code></a></li>
+<li><a class="reference internal" href="#scrape.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li><a class="reference internal" href="#scrape.parse_detail_row"><code class="docutils literal notranslate"><span class="pre">parse_detail_row()</span></code></a></li>
+<li><a class="reference internal" href="#scrape.parse_main_row"><code class="docutils literal notranslate"><span class="pre">parse_main_row()</span></code></a></li>
+<li><a class="reference internal" href="#scrape.parse_survey"><code class="docutils literal notranslate"><span class="pre">parse_survey()</span></code></a></li>
+<li><a class="reference internal" href="#scrape.scrape_data"><code class="docutils literal notranslate"><span class="pre">scrape_data()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-RobotsChecker">RobotsChecker</a><ul>
+<li><a class="reference internal" href="#RobotsChecker.RobotsChecker"><code class="docutils literal notranslate"><span class="pre">RobotsChecker</span></code></a><ul>
+<li><a class="reference internal" href="#RobotsChecker.RobotsChecker.can_fetch"><code class="docutils literal notranslate"><span class="pre">RobotsChecker.can_fetch()</span></code></a></li>
+<li><a class="reference internal" href="#RobotsChecker.RobotsChecker.get_crawl_delay"><code class="docutils literal notranslate"><span class="pre">RobotsChecker.get_crawl_delay()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-llm_standardizer">llm_standardizer</a><ul>
+<li><a class="reference internal" href="#llm_standardizer.standardize"><code class="docutils literal notranslate"><span class="pre">standardize()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Module 4: Testing and Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Module 4: Testing and Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-4-testing-and-documentation">
+<h1>Module 4: Testing and Documentation<a class="headerlink" href="#module-4-testing-and-documentation" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>A single-page Flask web application that displays analysis results from a
+PostgreSQL database of grad school applicant data scraped from thegradcafe.com.
+The dashboard renders 13 Q&amp;A-style analysis queries covering applicant counts,
+GPA/GRE averages, acceptance rates, and top programs/universities.</p>
+<p>New data is pulled from thegradcafe.com via the <strong>Pull Data</strong> button, which
+scrapes survey pages, standardizes program and university names using a local
+TinyLlama LLM, and inserts rows into PostgreSQL. The <strong>Update Analysis</strong> button
+reloads the page to re-run all queries against the current database.</p>
+</section>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h2>
+<p>The application is organized into three layers: <strong>Web</strong>, <strong>ETL</strong>, and <strong>DB</strong>.</p>
+<section id="web-layer">
+<h3>Web Layer<a class="headerlink" href="#web-layer" title="Link to this heading"></a></h3>
+<p>The web layer is a Flask application (<code class="docutils literal notranslate"><span class="pre">app.py</span></code>) that serves a single-page
+dashboard. It handles two routes:</p>
+<ul class="simple">
+<li><p><strong>GET /</strong> renders the dashboard by calling <code class="docutils literal notranslate"><span class="pre">run_queries()</span></code> against
+PostgreSQL and passing the results to a Jinja2 template
+(<code class="docutils literal notranslate"><span class="pre">website/_templates/index.html</span></code>).</p></li>
+<li><p><strong>POST /pull-data</strong> triggers the ETL pipeline and returns a JSON summary
+of pages fetched, rows scraped, and rows inserted.</p></li>
+</ul>
+<p>Client-side behavior is handled by <code class="docutils literal notranslate"><span class="pre">website/_static/dashboard.js</span></code>, which
+wires the Pull Data and Update Analysis buttons, manages the <code class="docutils literal notranslate"><span class="pre">isPulling</span></code>
+guard to prevent concurrent operations, and reloads the page after analysis
+updates.</p>
+</section>
+<section id="etl-layer">
+<h3>ETL Layer<a class="headerlink" href="#etl-layer" title="Link to this heading"></a></h3>
+<p>The ETL (Extract, Transform, Load) layer handles data ingestion:</p>
+<ul class="simple">
+<li><p><strong>Extract</strong> – <code class="docutils literal notranslate"><span class="pre">scrape.py</span></code> fetches HTML pages from thegradcafe.com/survey
+and parses applicant rows from the survey tables. <code class="docutils literal notranslate"><span class="pre">RobotsChecker.py</span></code>
+enforces robots.txt compliance before fetching.</p></li>
+<li><p><strong>Transform</strong> – <code class="docutils literal notranslate"><span class="pre">llm_standardizer.py</span></code> sends raw program/university
+strings through a local TinyLlama LLM (via llama_cpp) with few-shot
+prompting to produce standardized names. It falls back to rule-based
+parsing if the LLM returns invalid output, and applies fuzzy matching
+against canonical name lists (290 programs, 1000+ universities).</p></li>
+<li><p><strong>Load</strong> – <code class="docutils literal notranslate"><span class="pre">app.insert_row()</span></code> parses dates, runs LLM standardization,
+and inserts into the <code class="docutils literal notranslate"><span class="pre">applicants</span></code> table using <code class="docutils literal notranslate"><span class="pre">ON</span> <span class="pre">CONFLICT</span> <span class="pre">(url)</span> <span class="pre">DO</span>
+<span class="pre">NOTHING</span></code> to skip duplicates. <code class="docutils literal notranslate"><span class="pre">cleanup_data.py</span></code> runs post-insert fixes
+for invalid GRE AW scores (values &gt; 6 set to NULL) and UC campus
+normalization.</p></li>
+</ul>
+<p>The initial dataset is loaded by <code class="docutils literal notranslate"><span class="pre">load_data.py</span></code>, which reads from
+<code class="docutils literal notranslate"><span class="pre">llm_extended_applicant_data.json</span></code> and bulk-inserts into PostgreSQL.</p>
+</section>
+<section id="db-layer">
+<h3>DB Layer<a class="headerlink" href="#db-layer" title="Link to this heading"></a></h3>
+<p>The database layer uses PostgreSQL (via psycopg v3) with a single
+<code class="docutils literal notranslate"><span class="pre">applicants</span></code> table containing 14 columns: <code class="docutils literal notranslate"><span class="pre">program</span></code>, <code class="docutils literal notranslate"><span class="pre">comments</span></code>,
+<code class="docutils literal notranslate"><span class="pre">date_added</span></code>, <code class="docutils literal notranslate"><span class="pre">url</span></code> (unique), <code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">term</span></code>,
+<code class="docutils literal notranslate"><span class="pre">us_or_international</span></code>, <code class="docutils literal notranslate"><span class="pre">gpa</span></code>, <code class="docutils literal notranslate"><span class="pre">gre</span></code>, <code class="docutils literal notranslate"><span class="pre">gre_v</span></code>, <code class="docutils literal notranslate"><span class="pre">gre_aw</span></code>,
+<code class="docutils literal notranslate"><span class="pre">degree</span></code>, <code class="docutils literal notranslate"><span class="pre">llm_generated_program</span></code>, and <code class="docutils literal notranslate"><span class="pre">llm_generated_university</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">query_data.py</span></code> defines <code class="docutils literal notranslate"><span class="pre">DB_CONFIG</span></code> (shared by all modules) and
+<code class="docutils literal notranslate"><span class="pre">run_queries()</span></code>, which executes 13 parameterized SQL queries and returns
+results as a dictionary. Queries include counts, averages, percentages,
+top-N rankings, and acceptance rates grouped by degree type and nationality.
+All queries use parameterized statements for SQL injection protection.</p>
+</section>
+</section>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading"></a></h2>
+<section id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Python 3.10+</p></li>
+<li><p>PostgreSQL running locally with the <code class="docutils literal notranslate"><span class="pre">applicant_data</span></code> database created</p></li>
+<li><p>Required Python packages (install from <code class="docutils literal notranslate"><span class="pre">module_4/</span></code>):</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</pre></div>
+</div>
+</section>
+<section id="database-configuration">
+<h3>Database Configuration<a class="headerlink" href="#database-configuration" title="Link to this heading"></a></h3>
+<p>The database connection is configured in <code class="docutils literal notranslate"><span class="pre">query_data.py</span></code> via the <code class="docutils literal notranslate"><span class="pre">DB_CONFIG</span></code>
+dictionary:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">DB_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;dbname&quot;</span><span class="p">:</span> <span class="s2">&quot;applicant_data&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;dawnaproskourine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Update <code class="docutils literal notranslate"><span class="pre">user</span></code> to match your local PostgreSQL user. All modules import
+<code class="docutils literal notranslate"><span class="pre">DB_CONFIG</span></code> from <code class="docutils literal notranslate"><span class="pre">query_data.py</span></code>.</p>
+<p>To populate the database with the initial dataset:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>source/load_data.py
+</pre></div>
+</div>
+</section>
+<section id="running-the-app">
+<h3>Running the App<a class="headerlink" href="#running-the-app" title="Link to this heading"></a></h3>
+<p>From the <code class="docutils literal notranslate"><span class="pre">module_4/</span></code> directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>source/app.py
+</pre></div>
+</div>
+<p>Visit <code class="docutils literal notranslate"><span class="pre">http://localhost:8080</span></code> in a browser.</p>
+</section>
+<section id="routes">
+<h3>Routes<a class="headerlink" href="#routes" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Route</p></th>
+<th class="head"><p>Method</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/</span></code></p></td>
+<td><p>GET</p></td>
+<td><p>Renders the dashboard with all 13 analysis queries</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/pull-data</span></code></p></td>
+<td><p>POST</p></td>
+<td><p>Scrapes new entries from thegradcafe.com, processes with LLM,
+and runs cleanup</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="running-tests">
+<h2>Running Tests<a class="headerlink" href="#running-tests" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">tests/</span></code> directory contains a pytest suite organized into thirteen files
+with pytest markers for selective execution.</p>
+<section id="running-all-tests">
+<h3>Running All Tests<a class="headerlink" href="#running-all-tests" title="Link to this heading"></a></h3>
+<p>From <code class="docutils literal notranslate"><span class="pre">module_4/</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-v
+</pre></div>
+</div>
+</section>
+<section id="running-with-coverage">
+<h3>Running with Coverage<a class="headerlink" href="#running-with-coverage" title="Link to this heading"></a></h3>
+<p>Coverage is configured in <code class="docutils literal notranslate"><span class="pre">pytest.ini</span></code> (via <code class="docutils literal notranslate"><span class="pre">--cov=source</span>
+<span class="pre">--cov-config=.coveragerc</span> <span class="pre">--cov-fail-under=100</span></code>) and <code class="docutils literal notranslate"><span class="pre">.coveragerc</span></code>, which
+omits <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> and excludes <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;</span></code> guard lines.
+The suite enforces <strong>100 % statement coverage</strong>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-v<span class="w"> </span>--cov<span class="o">=</span><span class="nb">source</span><span class="w"> </span>--cov-report<span class="o">=</span>term-missing
+</pre></div>
+</div>
+</section>
+<section id="running-by-marker">
+<h3>Running by Marker<a class="headerlink" href="#running-by-marker" title="Link to this heading"></a></h3>
+<p>Each test is marked with one or more of the following markers (registered in
+<code class="docutils literal notranslate"><span class="pre">pytest.ini</span></code>):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Marker</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">web</span></code></p></td>
+<td><p>Page rendering and Flask app setup tests</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">buttons</span></code></p></td>
+<td><p>Button behavior and POST <code class="docutils literal notranslate"><span class="pre">/pull-data</span></code> tests</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">analysis</span></code></p></td>
+<td><p>Analysis output formatting tests</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">db</span></code></p></td>
+<td><p>Database insert, query, and cleanup tests</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">integration</span></code></p></td>
+<td><p>End-to-end integration tests</p></td>
+</tr>
+</tbody>
+</table>
+<p>Run a specific marker:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-m<span class="w"> </span>web<span class="w"> </span>-v
+python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-m<span class="w"> </span>db<span class="w"> </span>-v
+python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-m<span class="w"> </span>integration<span class="w"> </span>-v
+</pre></div>
+</div>
+</section>
+<section id="test-files">
+<h3>Test Files<a class="headerlink" href="#test-files" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Tests</p></th>
+<th class="head"><p>What it covers</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test_flask_page.py</span></code></p></td>
+<td><p>19</p></td>
+<td><p>App setup, page loads, 13 Q&amp;A blocks, buttons,
+tables, ordered lists</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">test_buttons.py</span></code></p></td>
+<td><p>11</p></td>
+<td><p>POST <code class="docutils literal notranslate"><span class="pre">/pull-data</span></code> JSON response, onclick
+wiring, JS inclusion, isPulling guard</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test_analysis_format.py</span></code></p></td>
+<td><p>9</p></td>
+<td><p>Question labels, answer rendering, percentage
+formats, all scalar values rendered</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">test_db_insert.py</span></code></p></td>
+<td><p>30</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">clean_text</span></code>, <code class="docutils literal notranslate"><span class="pre">parse_float</span></code>,
+<code class="docutils literal notranslate"><span class="pre">parse_date</span></code>, <code class="docutils literal notranslate"><span class="pre">insert_row</span></code>, duplicate
+handling, column values, GRE AW cleanup,
+<code class="docutils literal notranslate"><span class="pre">run_queries</span></code> keys</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test_integration_end_to_end.py</span></code></p></td>
+<td><p>2</p></td>
+<td><p>Full pipeline: pull data, insert, render
+dashboard; duplicate pull uniqueness</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">test_scrape.py</span></code></p></td>
+<td><p>34</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">parse_main_row</span></code>, <code class="docutils literal notranslate"><span class="pre">parse_detail_row</span></code>,
+<code class="docutils literal notranslate"><span class="pre">parse_survey</span></code>, <code class="docutils literal notranslate"><span class="pre">get_max_pages</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fetch_page</span></code>, <code class="docutils literal notranslate"><span class="pre">scrape_data</span></code>, <code class="docutils literal notranslate"><span class="pre">main</span></code>;
+edge cases for absolute URLs, empty cells,
+pipe-separated comments, multi-page fetching</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test_cleanup.py</span></code></p></td>
+<td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">normalize_uc</span></code> (pure), <code class="docutils literal notranslate"><span class="pre">fix_gre_aw</span></code> and
+<code class="docutils literal notranslate"><span class="pre">fix_uc_universities</span></code> (DB integration)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">test_cleanup_main.py</span></code></p></td>
+<td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cleanup_data.main()</span></code> happy path and DB
+connection error</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test_robots_checker.py</span></code></p></td>
+<td><p>5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RobotsChecker</span></code> init, exception handling,
+<code class="docutils literal notranslate"><span class="pre">can_fetch</span></code>, <code class="docutils literal notranslate"><span class="pre">get_crawl_delay</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">test_llm_standardizer.py</span></code></p></td>
+<td><p>25</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_read_lines</span></code>, <code class="docutils literal notranslate"><span class="pre">_split_fallback</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_best_match</span></code>, <code class="docutils literal notranslate"><span class="pre">_post_normalize_program</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_post_normalize_university</span></code>, <code class="docutils literal notranslate"><span class="pre">_load_llm</span></code>
+singleton, <code class="docutils literal notranslate"><span class="pre">standardize</span></code> with mocked LLM</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test_query_main.py</span></code></p></td>
+<td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">query_data.main()</span></code> output and DB error</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">test_load_main.py</span></code></p></td>
+<td><p>9</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">create_connection</span></code> success/failure,
+<code class="docutils literal notranslate"><span class="pre">main()</span></code> DB creation, JSON loading, and
+error paths (missing file, bad JSON)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test_app_errors.py</span></code></p></td>
+<td><p>9</p></td>
+<td><p>Index DB error, <code class="docutils literal notranslate"><span class="pre">insert_row</span></code> LLM exception,
+invalid <code class="docutils literal notranslate"><span class="pre">max_pages</span></code>, DB connect failure,
+network error, DB error during scrape,
+caught-up break, cleanup message, multi-page</p></td>
+</tr>
+</tbody>
+</table>
+<p>Database tests require a running PostgreSQL instance and skip automatically if
+unavailable.</p>
+</section>
+<section id="expected-html-selectors">
+<h3>Expected HTML Selectors<a class="headerlink" href="#expected-html-selectors" title="Link to this heading"></a></h3>
+<p>Tests use BeautifulSoup to assert on the following HTML structure rendered by
+the Jinja2 template:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Selector</p></th>
+<th class="head"><p>Expected content</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">div.qa</span></code></p></td>
+<td><p>13 Q&amp;A blocks, one per analysis query</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">div.question</span></code></p></td>
+<td><p>Non-empty question label inside each Q&amp;A block</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">div.answer</span></code></p></td>
+<td><p>Non-empty rendered answer inside each Q&amp;A block</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">#pull-btn</span></code></p></td>
+<td><p>Pull Data button with <code class="docutils literal notranslate"><span class="pre">onclick=&quot;pullData()&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">#update-btn</span></code></p></td>
+<td><p>Update Analysis button with
+<code class="docutils literal notranslate"><span class="pre">onclick=&quot;updateAnalysis()&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ol</span> <span class="pre">&gt;</span> <span class="pre">li</span></code></p></td>
+<td><p>Ordered lists with 10 items for top programs
+(Q10) and top universities (Q11)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="fixtures">
+<h3>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h3>
+<p>Two shared fixtures are defined in <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code>:</p>
+<dl class="simple">
+<dt><strong>client</strong></dt><dd><p>A Flask test client with <code class="docutils literal notranslate"><span class="pre">app.run_queries</span></code> and <code class="docutils literal notranslate"><span class="pre">app.psycopg.connect</span></code>
+patched via <code class="docutils literal notranslate"><span class="pre">monkeypatch</span></code>. <code class="docutils literal notranslate"><span class="pre">run_queries</span></code> returns <code class="docutils literal notranslate"><span class="pre">MOCK_QUERY_DATA</span></code>,
+a dictionary of deterministic <code class="docutils literal notranslate"><span class="pre">Decimal</span></code> values matching what psycopg
+returns from <code class="docutils literal notranslate"><span class="pre">ROUND()</span></code> queries. <code class="docutils literal notranslate"><span class="pre">psycopg.connect</span></code> returns a lightweight
+<code class="docutils literal notranslate"><span class="pre">_FakeConn</span></code> stub so no real database is needed. Used by the <code class="docutils literal notranslate"><span class="pre">web</span></code>,
+<code class="docutils literal notranslate"><span class="pre">buttons</span></code>, and <code class="docutils literal notranslate"><span class="pre">analysis</span></code> marked tests.</p>
+</dd>
+<dt><strong>db_conn</strong></dt><dd><p>A real PostgreSQL connection with <code class="docutils literal notranslate"><span class="pre">autocommit=False</span></code>. Issues a
+<code class="docutils literal notranslate"><span class="pre">SAVEPOINT</span></code> before the test and <code class="docutils literal notranslate"><span class="pre">ROLLBACK</span> <span class="pre">TO</span> <span class="pre">SAVEPOINT</span></code> on teardown,
+so tests leave no trace in the database. Yields <code class="docutils literal notranslate"><span class="pre">(conn,</span> <span class="pre">cur)</span></code>. Calls
+<code class="docutils literal notranslate"><span class="pre">pytest.skip()</span></code> automatically if PostgreSQL is unavailable. Used by
+<code class="docutils literal notranslate"><span class="pre">db</span></code> and <code class="docutils literal notranslate"><span class="pre">integration</span></code> marked tests.</p>
+</dd>
+</dl>
+</section>
+<section id="test-doubles">
+<h3>Test Doubles<a class="headerlink" href="#test-doubles" title="Link to this heading"></a></h3>
+<p>Tests avoid loading the 668 MB TinyLlama model, making network requests,
+and requiring a live database (for non-DB tests) by using <code class="docutils literal notranslate"><span class="pre">monkeypatch</span></code>
+with lightweight stub classes instead of <code class="docutils literal notranslate"><span class="pre">unittest.mock</span></code>.</p>
+<p>Only <code class="docutils literal notranslate"><span class="pre">llm_standardize</span></code> (the LLM call) is mocked in all test suites.
+Scraper functions (<code class="docutils literal notranslate"><span class="pre">fetch_page</span></code>, <code class="docutils literal notranslate"><span class="pre">parse_survey</span></code>, <code class="docutils literal notranslate"><span class="pre">get_max_pages</span></code>)
+and cleanup functions (<code class="docutils literal notranslate"><span class="pre">fix_gre_aw</span></code>, <code class="docutils literal notranslate"><span class="pre">fix_uc_universities</span></code>) run for
+real — network I/O is intercepted at the transport level by patching
+<code class="docutils literal notranslate"><span class="pre">scrape.urlopen</span></code> with a <code class="docutils literal notranslate"><span class="pre">_FakeResponse</span></code> stub.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>What is patched</p></th>
+<th class="head"><p>Patch target</p></th>
+<th class="head"><p>Replacement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LLM standardization</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">app.llm_standardize</span></code></p></td>
+<td><p>Lambda returning a dict with <code class="docutils literal notranslate"><span class="pre">standardized_program</span></code> and
+<code class="docutils literal notranslate"><span class="pre">standardized_university</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Database connection</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">app.psycopg.connect</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_FakeConn</span></code> (context manager stub) or <code class="docutils literal notranslate"><span class="pre">_TestConn</span></code> (direct usage
+wrapper)</p></td>
+</tr>
+<tr class="row-even"><td><p>Network I/O (transport)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scrape.urlopen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_FakeResponse</span></code> stub returning crafted HTML</p></td>
+</tr>
+<tr class="row-odd"><td><p>Analysis queries</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">app.run_queries</span></code></p></td>
+<td><p>Lambda returning <code class="docutils literal notranslate"><span class="pre">MOCK_QUERY_DATA</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Robots.txt checker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scrape.RobotsChecker</span></code></p></td>
+<td><p>Fake module namespace with inner <code class="docutils literal notranslate"><span class="pre">RobotsChecker</span></code> class and
+<code class="docutils literal notranslate"><span class="pre">DEFAULT_USER_AGENT</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>LLM model loading</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">llm._load_llm</span></code></p></td>
+<td><p>Lambda returning a <code class="docutils literal notranslate"><span class="pre">FakeLLM</span></code> with <code class="docutils literal notranslate"><span class="pre">create_chat_completion</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Robot parser I/O</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">robotparser.read()</span></code></p></td>
+<td><p>Monkeypatched to no-op or raise for exception tests</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>No longer mocked</strong> in integration and DB tests — these run for real:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">scrape.fetch_page</span></code> — builds <code class="docutils literal notranslate"><span class="pre">Request</span></code>, calls <code class="docutils literal notranslate"><span class="pre">urlopen</span></code>, decodes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scrape.parse_survey</span></code> — parses HTML with BeautifulSoup</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scrape.get_max_pages</span></code> — extracts pagination from HTML</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cleanup_data.fix_gre_aw</span></code> — runs against SAVEPOINT-protected DB</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cleanup_data.fix_uc_universities</span></code> — runs against SAVEPOINT-protected DB</p></li>
+</ul>
+<p>Button behavior tests (<code class="docutils literal notranslate"><span class="pre">test_buttons.py</span></code>) still mock at the function level
+because they verify JSON response structure and button wiring, not scraping
+logic.</p>
+<p>Integration tests (<code class="docutils literal notranslate"><span class="pre">test_db_insert.py</span></code> and <code class="docutils literal notranslate"><span class="pre">test_integration_end_to_end.py</span></code>)
+use a <code class="docutils literal notranslate"><span class="pre">_NoCloseConn</span></code> / <code class="docutils literal notranslate"><span class="pre">_TestConn</span></code> wrapper that routes the app’s
+<code class="docutils literal notranslate"><span class="pre">psycopg.connect</span></code> calls through the test’s SAVEPOINT-protected connection,
+suppressing <code class="docutils literal notranslate"><span class="pre">close()</span></code> and <code class="docutils literal notranslate"><span class="pre">autocommit</span></code> changes so the rollback stays intact.</p>
+</section>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h2>
+<section id="module-app">
+<span id="app"></span><h3>app<a class="headerlink" href="#module-app" title="Link to this heading"></a></h3>
+<p>Flask dashboard for applicant_data analysis.</p>
+<p>Serves a Q&amp;A-style web page displaying analysis results from the
+applicant_data PostgreSQL database. Also provides an endpoint to
+scrape new data from thegradcafe.com and insert it into the database.
+LLM-based standardization populates llm_generated_program and
+llm_generated_university fields for newly pulled data.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="app.index">
+<span class="sig-prename descclassname"><span class="pre">app.</span></span><span class="sig-name descname"><span class="pre">index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#app.index" title="Link to this definition"></a></dt>
+<dd><p>Render the dashboard by running all analysis queries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Rendered HTML of the dashboard page.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="app.insert_row">
+<span class="sig-prename descclassname"><span class="pre">app.</span></span><span class="sig-name descname"><span class="pre">insert_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Cursor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#app.insert_row" title="Link to this definition"></a></dt>
+<dd><p>Insert a single row into the database with LLM standardization.</p>
+<p>Parses dates, runs LLM standardization on the program field, and
+inserts into the <code class="docutils literal notranslate"><span class="pre">applicants</span></code> table. Duplicates are skipped via
+<code class="docutils literal notranslate"><span class="pre">ON</span> <span class="pre">CONFLICT</span> <span class="pre">(url)</span> <span class="pre">DO</span> <span class="pre">NOTHING</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cur</strong> (<em>psycopg.cursor.Cursor</em>) – An open database cursor.</p></li>
+<li><p><strong>row</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – A dictionary of scraped applicant data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the row was inserted, <code class="docutils literal notranslate"><span class="pre">False</span></code> if it was a duplicate.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="app.pull_data">
+<span class="sig-prename descclassname"><span class="pre">app.</span></span><span class="sig-name descname"><span class="pre">pull_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Response</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Response</span></span></span><a class="headerlink" href="#app.pull_data" title="Link to this definition"></a></dt>
+<dd><p>Scrape new data from thegradcafe.com until caught up with database.</p>
+<p>Scrapes pages one at a time, stopping when a page has all duplicates
+(meaning we’ve caught up with existing data). No gaps are left.
+Accepts a JSON body with an optional <code class="docutils literal notranslate"><span class="pre">max_pages</span></code> field (default 100)
+as a safety limit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>JSON response with pages scraped, entries processed, and new
+rows inserted, or a tuple of (response, status_code) on error.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>flask.Response or tuple[flask.Response, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-load_data">
+<span id="load-data"></span><h3>load_data<a class="headerlink" href="#module-load_data" title="Link to this heading"></a></h3>
+<p>Load llm_extended_applicant_data.json into a PostgreSQL applicants table.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="load_data.clean_text">
+<span class="sig-prename descclassname"><span class="pre">load_data.</span></span><span class="sig-name descname"><span class="pre">clean_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#load_data.clean_text" title="Link to this definition"></a></dt>
+<dd><p>Strip NUL bytes that PostgreSQL text fields reject.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>Any</em>) – The input value to clean.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The cleaned string with NUL bytes removed.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="load_data.create_connection">
+<span class="sig-prename descclassname"><span class="pre">load_data.</span></span><span class="sig-name descname"><span class="pre">create_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dbname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Connection</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#load_data.create_connection" title="Link to this definition"></a></dt>
+<dd><p>Create a database connection with autocommit enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dbname</strong> (<em>str</em>) – The name of the PostgreSQL database.</p></li>
+<li><p><strong>user</strong> (<em>str</em>) – The database user.</p></li>
+<li><p><strong>host</strong> (<em>str</em><em> or </em><em>None</em>) – The database host address, or <code class="docutils literal notranslate"><span class="pre">None</span></code> for local socket.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An open connection with autocommit, or <code class="docutils literal notranslate"><span class="pre">None</span></code> on failure.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>psycopg.Connection or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="load_data.main">
+<span class="sig-prename descclassname"><span class="pre">load_data.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#load_data.main" title="Link to this definition"></a></dt>
+<dd><p>Load JSON data into PostgreSQL database.</p>
+<p>Creates the <code class="docutils literal notranslate"><span class="pre">applicant_data</span></code> database and <code class="docutils literal notranslate"><span class="pre">applicants</span></code> table if they
+do not exist, then inserts all rows from the JSON file. Duplicates are
+skipped via <code class="docutils literal notranslate"><span class="pre">ON</span> <span class="pre">CONFLICT</span> <span class="pre">(url)</span> <span class="pre">DO</span> <span class="pre">NOTHING</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="load_data.parse_date">
+<span class="sig-prename descclassname"><span class="pre">load_data.</span></span><span class="sig-name descname"><span class="pre">parse_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#load_data.parse_date" title="Link to this definition"></a></dt>
+<dd><p>Parse ‘Added on January 15, 2026’ date format, return <code class="docutils literal notranslate"><span class="pre">None</span></code> if invalid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>date_str</strong> (<em>Any</em>) – The raw date string from GradCafe.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The parsed date, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the format is invalid.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>datetime.date or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="load_data.parse_float">
+<span class="sig-prename descclassname"><span class="pre">load_data.</span></span><span class="sig-name descname"><span class="pre">parse_float</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#load_data.parse_float" title="Link to this definition"></a></dt>
+<dd><p>Strip a prefix like ‘GPA ‘ or ‘GRE V ‘ and return a float, or None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>Any</em>) – The raw value containing a numeric string.</p></li>
+<li><p><strong>prefix</strong> (<em>str</em>) – A prefix to strip before parsing (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;GPA&quot;</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The parsed float value, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if parsing fails.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-query_data">
+<span id="query-data"></span><h3>query_data<a class="headerlink" href="#module-query_data" title="Link to this heading"></a></h3>
+<p>Analysis queries on the applicant_data database.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="query_data.main">
+<span class="sig-prename descclassname"><span class="pre">query_data.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#query_data.main" title="Link to this definition"></a></dt>
+<dd><p>Print all analysis results to the console.</p>
+<p>Connects to the database, runs all queries, and prints formatted
+results to stdout.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="query_data.run_queries">
+<span class="sig-prename descclassname"><span class="pre">query_data.</span></span><span class="sig-name descname"><span class="pre">run_queries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Connection</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#query_data.run_queries" title="Link to this definition"></a></dt>
+<dd><p>Run all 13 analysis queries and return results as a dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>conn</strong> (<em>psycopg.Connection</em>) – An open PostgreSQL database connection.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary of query result keys and their values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-cleanup_data">
+<span id="cleanup-data"></span><h3>cleanup_data<a class="headerlink" href="#module-cleanup_data" title="Link to this heading"></a></h3>
+<p>Data cleanup script for applicant_data database.</p>
+<p>Fixes:
+1. Invalid GRE AW scores (&gt; 6) - sets them to NULL
+2. Re-normalizes UC university names to specific campuses</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="cleanup_data.fix_gre_aw">
+<span class="sig-prename descclassname"><span class="pre">cleanup_data.</span></span><span class="sig-name descname"><span class="pre">fix_gre_aw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Connection</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#cleanup_data.fix_gre_aw" title="Link to this definition"></a></dt>
+<dd><p>Set invalid GRE AW scores (&gt; 6) to NULL.</p>
+<p>GRE Analytical Writing is scored on a 0–6 scale. Any value above 6
+is treated as invalid and set to <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>conn</strong> (<em>psycopg.Connection</em>) – An open PostgreSQL database connection.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The number of rows updated.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cleanup_data.fix_uc_universities">
+<span class="sig-prename descclassname"><span class="pre">cleanup_data.</span></span><span class="sig-name descname"><span class="pre">fix_uc_universities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Connection</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#cleanup_data.fix_uc_universities" title="Link to this definition"></a></dt>
+<dd><p>Re-normalize UC university names using the original program field.</p>
+<p>Finds rows with generic “University of California” names and attempts
+to resolve them to specific campuses (e.g., UCLA, Berkeley).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>conn</strong> (<em>psycopg.Connection</em>) – An open PostgreSQL database connection.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The number of rows updated.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cleanup_data.main">
+<span class="sig-prename descclassname"><span class="pre">cleanup_data.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#cleanup_data.main" title="Link to this definition"></a></dt>
+<dd><p>Run all cleanup operations.</p>
+<p>Connects to the database and runs GRE AW and UC university fixes.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cleanup_data.normalize_uc">
+<span class="sig-prename descclassname"><span class="pre">cleanup_data.</span></span><span class="sig-name descname"><span class="pre">normalize_uc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#cleanup_data.normalize_uc" title="Link to this definition"></a></dt>
+<dd><p>Try to match a UC campus pattern and return the canonical name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – The university name string to check.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The canonical UC campus name, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no match.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-scrape">
+<span id="scrape"></span><h3>scrape<a class="headerlink" href="#module-scrape" title="Link to this heading"></a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.fetch_page">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">fetch_page</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DawnaGradCafeScraper/1.0'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scrape.fetch_page" title="Link to this definition"></a></dt>
+<dd><p>Fetch a web page and return its HTML content.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> (<em>str</em>) – The URL to fetch.</p></li>
+<li><p><strong>user_agent</strong> (<em>str</em>) – The User-Agent header string.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The decoded HTML content of the page.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.get_max_pages">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">get_max_pages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">html</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scrape.get_max_pages" title="Link to this definition"></a></dt>
+<dd><p>Extract the maximum page number from pagination links.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>html</strong> (<em>str</em>) – The raw HTML content of a survey page.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The highest page number found, or 1 if no pagination exists.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.main">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#scrape.main" title="Link to this definition"></a></dt>
+<dd><p>Scrape the survey page and output results as JSON.</p>
+<p>Parses CLI arguments for page count, delay, output file, user agent,
+and robots.txt handling. Writes results to a file or stdout.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.parse_detail_row">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">parse_detail_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scrape.parse_detail_row" title="Link to this definition"></a></dt>
+<dd><p>Parse a detail or comment row and update the result dict in place.</p>
+<p>Handles two types of rows:</p>
+<ol class="arabic simple">
+<li><p>Detail rows containing structured data (GPA, GRE, status, etc.)</p></li>
+<li><p>Comment rows containing free-form text.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell</strong> (<em>bs4.element.Tag</em>) – The single <code class="docutils literal notranslate"><span class="pre">&lt;td&gt;</span></code> element from the detail row.</p></li>
+<li><p><strong>result</strong> (<em>dict</em>) – The applicant data dict to update.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.parse_main_row">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">parse_main_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cells</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scrape.parse_main_row" title="Link to this definition"></a></dt>
+<dd><p>Parse a main table row and return a dict of applicant data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cells</strong> (<em>list</em><em>[</em><em>bs4.element.Tag</em><em>]</em>) – The list of <code class="docutils literal notranslate"><span class="pre">&lt;td&gt;</span></code> elements from a main data row.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary of parsed applicant fields.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.parse_survey">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">parse_survey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">html</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scrape.parse_survey" title="Link to this definition"></a></dt>
+<dd><p>Parse the GradCafe survey page and return a list of applicant data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>html</strong> (<em>str</em>) – The raw HTML content of a survey page.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of dictionaries, each containing one applicant’s data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.scrape_data">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">scrape_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://www.thegradcafe.com/survey/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DawnaGradCafeScraper/1.0'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_robots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scrape.scrape_data" title="Link to this definition"></a></dt>
+<dd><p>Scrape the GradCafe survey across multiple pages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base_url</strong> (<em>str</em>) – Base URL for GradCafe survey pages.</p></li>
+<li><p><strong>max_pages</strong> (<em>int</em><em> or </em><em>None</em>) – Maximum number of pages to scrape, or <code class="docutils literal notranslate"><span class="pre">None</span></code> for all.</p></li>
+<li><p><strong>delay</strong> (<em>float</em>) – Delay between page fetches in seconds.</p></li>
+<li><p><strong>user_agent</strong> (<em>str</em>) – User-Agent header string for requests.</p></li>
+<li><p><strong>ignore_robots</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, skip the robots.txt check (not recommended).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of dictionaries containing applicant survey data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-RobotsChecker">
+<span id="robotschecker"></span><h3>RobotsChecker<a class="headerlink" href="#module-RobotsChecker" title="Link to this heading"></a></h3>
+<p>Robots.txt compliance checker for web scraping.</p>
+<p>Fetches and parses a site’s robots.txt to determine whether a given
+URL may be crawled and what crawl delay to respect.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="RobotsChecker.RobotsChecker">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">RobotsChecker.</span></span><span class="sig-name descname"><span class="pre">RobotsChecker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DawnaGradCafeScraper/1.0'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RobotsChecker.RobotsChecker" title="Link to this definition"></a></dt>
+<dd><p>Check robots.txt permissions for a given site and user agent.</p>
+<p>Parses the robots.txt file at the target site and provides methods
+to check crawl permissions and retrieve crawl delay directives.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="RobotsChecker.RobotsChecker.can_fetch">
+<span class="sig-name descname"><span class="pre">can_fetch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RobotsChecker.RobotsChecker.can_fetch" title="Link to this definition"></a></dt>
+<dd><p>Check if the given URL can be crawled according to robots.txt.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>url</strong> (<em>str</em>) – The URL to check.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if crawling is allowed, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RobotsChecker.RobotsChecker.get_crawl_delay">
+<span class="sig-name descname"><span class="pre">get_crawl_delay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RobotsChecker.RobotsChecker.get_crawl_delay" title="Link to this definition"></a></dt>
+<dd><p>Get the crawl delay from robots.txt, or use a default.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>default</strong> (<em>float</em>) – Fallback delay in seconds if robots.txt has none.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The crawl delay in seconds.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-llm_standardizer">
+<span id="llm-standardizer"></span><h3>llm_standardizer<a class="headerlink" href="#module-llm_standardizer" title="Link to this heading"></a></h3>
+<p>LLM-based standardization for program and university names.</p>
+<p>Uses TinyLlama via llama_cpp to parse and standardize the combined
+program/university strings from GradCafe data. Falls back to rule-based
+parsing if LLM output is invalid.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="llm_standardizer.standardize">
+<span class="sig-prename descclassname"><span class="pre">llm_standardizer.</span></span><span class="sig-name descname"><span class="pre">standardize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">program_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#llm_standardizer.standardize" title="Link to this definition"></a></dt>
+<dd><p>Standardize a program/university string using the LLM.</p>
+<p>Sends the input through TinyLlama with few-shot prompting, then
+post-processes with canonical mappings and fuzzy matching. Falls
+back to rule-based parsing if LLM output is invalid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>program_text</strong> (<em>str</em>) – Raw program string (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;Computer</span> <span class="pre">Science,</span> <span class="pre">MIT&quot;</span></code>).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">standardized_program</span></code> and <code class="docutils literal notranslate"><span class="pre">standardized_university</span></code> keys.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Dawna Jones Proskourine.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
