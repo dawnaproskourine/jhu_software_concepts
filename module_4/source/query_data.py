@@ -11,12 +11,33 @@ from psycopg import Connection, OperationalError
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-DB_CONFIG: dict[str, Any] = {
-    "dbname": os.environ.get("DB_NAME", "applicant_data"),
-    "user": os.environ.get("DB_USER", "dawnaproskourine"),
-    "host": os.environ.get("DB_HOST", "127.0.0.1"),
-    "port": int(os.environ.get("DB_PORT", "5432")),
-}
+def _build_db_config():
+    """Build database connection config from environment variables.
+
+    Checks ``DATABASE_URL`` first (standard 12-factor pattern).
+    Falls back to individual ``DB_NAME``, ``DB_USER``, ``DB_HOST``,
+    ``DB_PORT`` env vars.
+    """
+    url = os.environ.get("DATABASE_URL")
+    if url:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        return {
+            "dbname": parsed.path.lstrip("/") or "applicant_data",
+            "user": parsed.username or "",
+            "host": parsed.hostname or "127.0.0.1",
+            "port": parsed.port or 5432,
+            "password": parsed.password or "",
+        }
+    return {
+        "dbname": os.environ.get("DB_NAME", "applicant_data"),
+        "user": os.environ.get("DB_USER", "dawnaproskourine"),
+        "host": os.environ.get("DB_HOST", "127.0.0.1"),
+        "port": int(os.environ.get("DB_PORT", "5432")),
+    }
+
+
+DB_CONFIG: dict[str, Any] = _build_db_config()
 
 
 def run_queries(conn: Connection) -> dict[str, Any]:

@@ -3,19 +3,19 @@ platform darwin -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0
 rootdir: /Users/dawnaproskourine/Desktop/jhu/jhu-python concepts/jhu_software_concepts/module_4
 configfile: pytest.ini
 plugins: anyio-4.12.1, cov-7.0.0
-collected 168 items
+collected 169 items
 
 tests/test_analysis_format.py .........                                  [  5%]
 tests/test_app_errors.py .........                                       [ 10%]
 tests/test_buttons.py .............                                      [ 18%]
 tests/test_cleanup.py .........                                          [ 23%]
-tests/test_cleanup_main.py ..                                            [ 25%]
+tests/test_cleanup_main.py ..                                            [ 24%]
 tests/test_db_insert.py .............................                    [ 42%]
 tests/test_flask_page.py ...................                             [ 53%]
 tests/test_integration_end_to_end.py ...                                 [ 55%]
-tests/test_llm_standardizer.py .........................                 [ 70%]
+tests/test_llm_standardizer.py .........................                 [ 69%]
 tests/test_load_main.py .........                                        [ 75%]
-tests/test_query_main.py ..                                              [ 76%]
+tests/test_query_main.py ...                                             [ 76%]
 tests/test_robots_checker.py .....                                       [ 79%]
 tests/test_scrape.py ..................................                  [100%]
 
@@ -28,10 +28,10 @@ source/app.py                  114      0   100%
 source/cleanup_data.py          50      0   100%
 source/llm_standardizer.py     104      0   100%
 source/load_data.py             75      0   100%
-source/query_data.py            77      0   100%
+source/query_data.py            84      0   100%
 source/robots_checker.py        23      0   100%
 source/scrape.py               180      0   100%
 ----------------------------------------------------------
-TOTAL                          623      0   100%
+TOTAL                          630      0   100%
 Required test coverage of 100% reached. Total coverage: 100.00%
-============================= 168 passed in 2.63s ==============================
+============================= 169 passed in 2.53s ==============================

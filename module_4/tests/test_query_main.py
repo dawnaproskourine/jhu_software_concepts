@@ -39,3 +39,15 @@ def test_main_db_error(monkeypatch):
     )
     # Should return without crashing
     query_data.main()
+
+
+def test_build_db_config_uses_database_url(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://myuser:secret@myhost:5433/mydb")
+    config = query_data._build_db_config()
+    assert config == {
+        "dbname": "mydb",
+        "user": "myuser",
+        "host": "myhost",
+        "port": 5433,
+        "password": "secret",
+    }
