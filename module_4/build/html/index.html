@@ -62,6 +62,9 @@
 <li><a class="reference internal" href="#running-with-coverage">Running with Coverage</a></li>
 <li><a class="reference internal" href="#running-by-marker">Running by Marker</a></li>
 <li><a class="reference internal" href="#test-files">Test Files</a></li>
+<li><a class="reference internal" href="#expected-html-selectors">Expected HTML Selectors</a></li>
+<li><a class="reference internal" href="#fixtures">Fixtures</a></li>
+<li><a class="reference internal" href="#test-doubles">Test Doubles</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#api-reference">API Reference</a><ul>
@@ -287,6 +290,69 @@ python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> 
 <h3>Test Files<a class="headerlink" href="#test-files" title="Link to this heading"></a></h3>
 <p>Database tests require a running PostgreSQL instance and skip automatically if
 unavailable.</p>
+</section>
+<section id="expected-html-selectors">
+<h3>Expected HTML Selectors<a class="headerlink" href="#expected-html-selectors" title="Link to this heading"></a></h3>
+<p>Tests use BeautifulSoup to assert on the following HTML structure rendered by
+the Jinja2 template:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Selector</p></th>
+<th class="head"><p>Expected content</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">div.qa</span></code></p></td>
+<td><p>13 Q&amp;A blocks, one per analysis query</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">div.question</span></code></p></td>
+<td><p>Non-empty question label inside each Q&amp;A block</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">div.answer</span></code></p></td>
+<td><p>Non-empty rendered answer inside each Q&amp;A block</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">#pull-btn</span></code></p></td>
+<td><p>Pull Data button with <code class="docutils literal notranslate"><span class="pre">onclick=&quot;pullData()&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">#update-btn</span></code></p></td>
+<td><p>Update Analysis button with
+<code class="docutils literal notranslate"><span class="pre">onclick=&quot;updateAnalysis()&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ol</span> <span class="pre">&gt;</span> <span class="pre">li</span></code></p></td>
+<td><p>Ordered lists with 10 items for top programs
+(Q10) and top universities (Q11)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="fixtures">
+<h3>Fixtures<a class="headerlink" href="#fixtures" title="Link to this heading"></a></h3>
+<p>Two shared fixtures are defined in <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code>:</p>
+<dl class="simple">
+<dt><strong>client</strong></dt><dd><p>A Flask test client with <code class="docutils literal notranslate"><span class="pre">app.run_queries</span></code> and <code class="docutils literal notranslate"><span class="pre">app.psycopg.connect</span></code>
+patched via <code class="docutils literal notranslate"><span class="pre">monkeypatch</span></code>. <code class="docutils literal notranslate"><span class="pre">run_queries</span></code> returns <code class="docutils literal notranslate"><span class="pre">MOCK_QUERY_DATA</span></code>,
+a dictionary of deterministic <code class="docutils literal notranslate"><span class="pre">Decimal</span></code> values matching what psycopg
+returns from <code class="docutils literal notranslate"><span class="pre">ROUND()</span></code> queries. <code class="docutils literal notranslate"><span class="pre">psycopg.connect</span></code> returns a lightweight
+<code class="docutils literal notranslate"><span class="pre">_FakeConn</span></code> stub so no real database is needed. Used by the <code class="docutils literal notranslate"><span class="pre">web</span></code>,
+<code class="docutils literal notranslate"><span class="pre">buttons</span></code>, and <code class="docutils literal notranslate"><span class="pre">analysis</span></code> marked tests.</p>
+</dd>
+<dt><strong>db_conn</strong></dt><dd><p>A real PostgreSQL connection with <code class="docutils literal notranslate"><span class="pre">autocommit=False</span></code>. Issues a
+<code class="docutils literal notranslate"><span class="pre">SAVEPOINT</span></code> before the test and <code class="docutils literal notranslate"><span class="pre">ROLLBACK</span> <span class="pre">TO</span> <span class="pre">SAVEPOINT</span></code> on teardown,
+so tests leave no trace in the database. Yields <code class="docutils literal notranslate"><span class="pre">(conn,</span> <span class="pre">cur)</span></code>. Calls
+<code class="docutils literal notranslate"><span class="pre">pytest.skip()</span></code> automatically if PostgreSQL is unavailable. Used by
+<code class="docutils literal notranslate"><span class="pre">db</span></code> and <code class="docutils literal notranslate"><span class="pre">integration</span></code> marked tests.</p>
+</dd>
+</dl>
+</section>
+<section id="test-doubles">
+<h3>Test Doubles<a class="headerlink" href="#test-doubles" title="Link to this heading"></a></h3>
+<p>Tests avoid loading the 668 MB TinyLlama model, making network requests,
+and requiring a live database (for non-DB tests) by using <code class="docutils literal notranslate"><span class="pre">monkeypatch</span></code>
+with lightweight stub classes instead of <code class="docutils literal notranslate"><span class="pre">unittest.mock</span></code>:</p>
+<p>Integration tests (<code class="docutils literal notranslate"><span class="pre">test_db_insert.py</span></code> and <code class="docutils literal notranslate"><span class="pre">test_integration_end_to_end.py</span></code>)
+use a <code class="docutils literal notranslate"><span class="pre">_NoCloseConn</span></code> / <code class="docutils literal notranslate"><span class="pre">_TestConn</span></code> wrapper that routes the app’s
+<code class="docutils literal notranslate"><span class="pre">psycopg.connect</span></code> calls through the test’s SAVEPOINT-protected connection,
+suppressing <code class="docutils literal notranslate"><span class="pre">close()</span></code> and <code class="docutils literal notranslate"><span class="pre">autocommit</span></code> changes so the rollback stays intact.</p>
 </section>
 </section>
 <section id="api-reference">

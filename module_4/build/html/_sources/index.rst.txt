@@ -209,6 +209,77 @@ File                              Tests  What it covers
 Database tests require a running PostgreSQL instance and skip automatically if
 unavailable.
 
+Expected HTML Selectors
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Tests use BeautifulSoup to assert on the following HTML structure rendered by
+the Jinja2 template:
+
+==========================  =================================================
+Selector                    Expected content
+==========================  =================================================
+``div.qa``                  13 Q&A blocks, one per analysis query
+``div.question``            Non-empty question label inside each Q&A block
+``div.answer``              Non-empty rendered answer inside each Q&A block
+``#pull-btn``               Pull Data button with ``onclick="pullData()"``
+``#update-btn``             Update Analysis button with
+                            ``onclick="updateAnalysis()"``
+``ol > li``                 Ordered lists with 10 items for top programs
+                            (Q10) and top universities (Q11)
+==========================  =================================================
+
+Fixtures
+~~~~~~~~
+
+Two shared fixtures are defined in ``conftest.py``:
+
+**client**
+   A Flask test client with ``app.run_queries`` and ``app.psycopg.connect``
+   patched via ``monkeypatch``. ``run_queries`` returns ``MOCK_QUERY_DATA``,
+   a dictionary of deterministic ``Decimal`` values matching what psycopg
+   returns from ``ROUND()`` queries. ``psycopg.connect`` returns a lightweight
+   ``_FakeConn`` stub so no real database is needed. Used by the ``web``,
+   ``buttons``, and ``analysis`` marked tests.
+
+**db_conn**
+   A real PostgreSQL connection with ``autocommit=False``. Issues a
+   ``SAVEPOINT`` before the test and ``ROLLBACK TO SAVEPOINT`` on teardown,
+   so tests leave no trace in the database. Yields ``(conn, cur)``. Calls
+   ``pytest.skip()`` automatically if PostgreSQL is unavailable. Used by
+   ``db`` and ``integration`` marked tests.
+
+Test Doubles
+~~~~~~~~~~~~
+
+Tests avoid loading the 668 MB TinyLlama model, making network requests,
+and requiring a live database (for non-DB tests) by using ``monkeypatch``
+with lightweight stub classes instead of ``unittest.mock``:
+
+============================  =========================  ============================
+What is patched               Patch target               Replacement
+============================  =========================  ============================
+LLM standardization           ``app.llm_standardize``    Lambda returning a dict with
+                                                         ``standardized_program`` and
+                                                         ``standardized_university``
+Database connection            ``app.psycopg.connect``    ``_FakeConn`` (context
+                                                         manager stub) or
+                                                         ``_FakePullConn`` (direct
+                                                         usage stub)
+Scraper fetch                  ``scrape.fetch_page``      Lambda returning fake HTML
+Scraper parse                  ``scrape.parse_survey``    Lambda returning a list of
+                                                         row dicts (or empty list)
+Scraper pagination             ``scrape.get_max_pages``   Lambda returning ``1``
+Analysis queries               ``app.run_queries``        Lambda returning
+                                                         ``MOCK_QUERY_DATA``
+GRE AW cleanup                 ``app.fix_gre_aw``         Lambda returning ``0``
+UC campus cleanup              ``app.fix_uc_universities`` Lambda returning ``0``
+============================  =========================  ============================
+
+Integration tests (``test_db_insert.py`` and ``test_integration_end_to_end.py``)
+use a ``_NoCloseConn`` / ``_TestConn`` wrapper that routes the app's
+``psycopg.connect`` calls through the test's SAVEPOINT-protected connection,
+suppressing ``close()`` and ``autocommit`` changes so the rollback stays intact.
+
 API Reference
 -------------
 
