@@ -139,6 +139,18 @@ def test_dashboard_js_warning_message():
 
 
 @pytest.mark.buttons
+def test_pull_btn_disabled_during_isPulling():
+    js = _read_js()
+    assert "btn.disabled = true" in js
+
+
+@pytest.mark.buttons
+def test_update_btn_disabled_during_isPulling():
+    js = _read_js()
+    assert 'document.getElementById("update-btn").disabled = true' in js
+
+
+@pytest.mark.buttons
 def test_update_analysis_reloads_page():
     js = _read_js()
     assert "location.reload()" in js

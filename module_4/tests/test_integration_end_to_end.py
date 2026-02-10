@@ -262,3 +262,61 @@ def test_duplicate_pull_preserves_uniqueness(db_conn, monkeypatch):
             full_url = f"https://www.thegradcafe.com{href}"
             cur.execute("SELECT COUNT(*) FROM applicants WHERE url = %s", (full_url,))
             assert cur.fetchone()[0] == 1
+
+
+@pytest.mark.integration
+def test_update_analysis_reload_reflects_new_data(db_conn, monkeypatch):
+    """Update Analysis (location.reload) re-renders the page with current DB data."""
+    conn, cur = db_conn
+    import app as app_module
+    import scrape
+
+    cur.execute("DELETE FROM applicants")
+
+    url_a = _unique_url()
+    url_b = _unique_url()
+    rows = [
+        {
+            "school": "Stanford University",
+            "program": "Computer Science",
+            "degree": "Masters",
+            "date_text": "January 15, 2026",
+            "status": "Accepted",
+            "href": url_a,
+            "detail": "Fall 2026 | American | GPA 3.85 | GRE 320 | GRE V 160 | GRE AW 4.5",
+        },
+        {
+            "school": "MIT",
+            "program": "Electrical Engineering",
+            "degree": "PhD",
+            "date_text": "February 1, 2026",
+            "status": "Rejected",
+            "href": url_b,
+            "detail": "Fall 2026 | International | GPA 3.60 | GRE 315 | GRE V 155 | GRE AW 4.0",
+        },
+    ]
+    html = _build_test_html(rows)
+
+    wrapper = NoCloseConn(conn)
+    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT)
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
+
+    app_module.app.config["TESTING"] = True
+
+    with app_module.app.test_client() as client:
+        # Pull data into DB
+        pull_resp = client.post("/pull-data", json={"max_pages": 1})
+        assert pull_resp.status_code == 200
+        assert pull_resp.get_json()["inserted"] == 2
+
+        # Simulate Update Analysis button (location.reload → GET /)
+        reload_resp = client.get("/")
+        assert reload_resp.status_code == 200
+        html_out = reload_resp.data.decode()
+
+        # Reload reflects the newly inserted data
+        assert "Computer Science" in html_out
+        assert "Stanford University" in html_out
+        assert "Accepted" in html_out
+        assert "update-btn" in html_out
