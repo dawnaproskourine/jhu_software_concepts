@@ -78,6 +78,23 @@ def test_fix_uc_universities_updates_generic_uc(db_conn):
 
 
 @pytest.mark.db
+def test_fix_uc_universities_fallback_to_current_uni(db_conn):
+    """Line 89: program has no UC pattern, so normalize_uc falls back to current_uni."""
+    conn, cur = db_conn
+    url = _unique_url()
+    # program="Computer Science" → normalize_uc returns None
+    # llm_university="UC Berkeley" → SQL LIKE matches, fallback normalize_uc succeeds
+    _insert_raw_row(cur, url, "Computer Science", "UC Berkeley")
+    updated = fix_uc_universities(conn)
+    assert updated >= 1
+
+    cur.execute(
+        "SELECT llm_generated_university FROM applicants WHERE url = %s", (url,)
+    )
+    assert cur.fetchone()[0] == "University of California, Berkeley"
+
+
+@pytest.mark.db
 def test_fix_uc_universities_skips_non_uc(db_conn):
     conn, cur = db_conn
     url = _unique_url()
