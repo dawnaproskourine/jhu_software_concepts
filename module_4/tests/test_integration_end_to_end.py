@@ -319,4 +319,4 @@ def test_update_analysis_reload_reflects_new_data(db_conn, monkeypatch):
         assert "Computer Science" in html_out
         assert "Stanford University" in html_out
         assert "Accepted" in html_out
-        assert "update-btn" in html_out
+        assert 'data-testid="update-analysis-btn"' in html_out

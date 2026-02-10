@@ -99,13 +99,13 @@ def test_each_qa_has_answer_div(client):
 @pytest.mark.web
 def test_pull_btn_present(client):
     soup = _soup(client)
-    assert soup.find(id="pull-btn") is not None
+    assert soup.find(attrs={"data-testid": "pull-data-btn"}) is not None
 
 
 @pytest.mark.web
 def test_update_btn_present(client):
     soup = _soup(client)
-    assert soup.find(id="update-btn") is not None
+    assert soup.find(attrs={"data-testid": "update-analysis-btn"}) is not None
 
 
 # ---- averages table ----
