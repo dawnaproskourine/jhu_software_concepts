@@ -78,9 +78,13 @@ The database layer uses PostgreSQL (via psycopg v3) with a single
 
 ``query_data.py`` defines ``DB_CONFIG`` (shared by all modules) and
 ``run_queries()``, which executes 13 parameterized SQL queries and returns
-results as a dictionary. Queries include counts, averages, percentages,
-top-N rankings, and acceptance rates grouped by degree type and nationality.
-All queries use parameterized statements for SQL injection protection.
+results as a dictionary. ``DB_CONFIG`` is built by ``_build_db_config()``,
+which reads ``DATABASE_URL`` first (standard 12-factor pattern, e.g.
+``postgresql://user:pass@host:5432/dbname``) and falls back to individual
+``DB_NAME``, ``DB_USER``, ``DB_HOST``, ``DB_PORT`` env vars. Queries include
+counts, averages, percentages, top-N rankings, and acceptance rates grouped
+by degree type and nationality. All queries use parameterized statements for
+SQL injection protection.
 
 Setup
 -----
@@ -100,18 +104,28 @@ Database Configuration
 ~~~~~~~~~~~~~~~~~~~~~~
 
 The database connection is configured in ``query_data.py`` via the ``DB_CONFIG``
-dictionary:
+dictionary, built at import time by ``_build_db_config()``.
 
-.. code-block:: python
+**Option 1 — ``DATABASE_URL`` (recommended for deployment):**
 
-   DB_CONFIG = {
-       "dbname": "applicant_data",
-       "user": "dawnaproskourine",
-       "host": "127.0.0.1",
-   }
+.. code-block:: bash
 
-Update ``user`` to match your local PostgreSQL user. All modules import
-``DB_CONFIG`` from ``query_data.py``.
+   export DATABASE_URL="postgresql://myuser:secret@localhost:5432/applicant_data"
+
+The URL is parsed into component keys (``dbname``, ``user``, ``host``,
+``port``, ``password``) so all downstream code works unchanged.
+
+**Option 2 — individual env vars (default for local development):**
+
+.. code-block:: bash
+
+   export DB_NAME="applicant_data"
+   export DB_USER="dawnaproskourine"
+   export DB_HOST="127.0.0.1"
+   export DB_PORT="5432"
+
+When ``DATABASE_URL`` is set it takes priority; the individual vars are
+ignored. All modules import ``DB_CONFIG`` from ``query_data.py``.
 
 To populate the database with the initial dataset:
 
@@ -225,7 +239,8 @@ File                                  Tests  What it covers
                                              ``_best_match``, ``_post_normalize_program``,
                                              ``_post_normalize_university``, ``_load_llm``
                                              singleton, ``standardize`` with mocked LLM
-``test_query_main.py``                2      ``query_data.main()`` output and DB error
+``test_query_main.py``                3      ``query_data.main()`` output, DB error,
+                                             ``DATABASE_URL`` config parsing
 ``test_load_main.py``                 9      ``create_connection`` success/failure,
                                              ``main()`` DB creation, JSON loading, and
                                              error paths (missing file, bad JSON)
