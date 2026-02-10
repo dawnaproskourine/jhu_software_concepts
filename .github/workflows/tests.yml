@@ -33,11 +33,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          cache: pip
 
       - name: Install dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y cmake g++
-          pip install -r module_4/requirements.txt
+          pip install flask psycopg beautifulsoup4 requests \
+                    sphinx sphinx-rtd-theme pytest pytest-cov
 
       - name: Create applicants table
         run: |

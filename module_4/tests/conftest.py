@@ -2,6 +2,7 @@
 
 import os
 import sys
+import types
 from decimal import Decimal
 
 import pytest
@@ -13,6 +14,25 @@ SOURCE_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "source")
 SOURCE_DIR = os.path.abspath(SOURCE_DIR)
 if SOURCE_DIR not in sys.path:
     sys.path.insert(0, SOURCE_DIR)
+
+# ---------------------------------------------------------------------------
+# Stub heavy LLM packages when they are not installed (CI)
+# ---------------------------------------------------------------------------
+if "llama_cpp" not in sys.modules:
+    try:
+        import llama_cpp  # noqa: F401
+    except ModuleNotFoundError:
+        _llama = types.ModuleType("llama_cpp")
+        _llama.Llama = type("Llama", (), {})
+        sys.modules["llama_cpp"] = _llama
+
+if "huggingface_hub" not in sys.modules:
+    try:
+        import huggingface_hub  # noqa: F401
+    except ModuleNotFoundError:
+        _hf = types.ModuleType("huggingface_hub")
+        _hf.hf_hub_download = lambda *a, **kw: ""
+        sys.modules["huggingface_hub"] = _hf
 
 from query_data import DB_CONFIG  # noqa: E402
 
