@@ -158,7 +158,6 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
 
         try:
             conn = psycopg.connect(**DB_CONFIG)
-            conn.autocommit = True
         except OperationalError as e:
             logger.error(f"Database connection failed: {e}")
             return jsonify({"error": "Database connection failed"}), 500
@@ -206,10 +205,12 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
 
         except (URLError, HTTPError) as e:
             logger.error(f"Network error during scrape: {e}")
+            conn.rollback()
             conn.close()
             return jsonify({"error": f"Network error: {e}"}), 500
         except psycopg.Error as e:
             logger.error(f"Database error during scrape: {e}")
+            conn.rollback()
             conn.close()
             return jsonify({"error": f"Database error: {e}"}), 500
 
@@ -217,10 +218,17 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
         cleaned_gre = 0
         cleaned_uc = 0
         if total_inserted > 0:
-            logger.info("Running data cleanup on new entries...")
-            cleaned_gre = fix_gre_aw(conn)
-            cleaned_uc = fix_uc_universities(conn)
+            try:
+                logger.info("Running data cleanup on new entries...")
+                cleaned_gre = fix_gre_aw(conn)
+                cleaned_uc = fix_uc_universities(conn)
+            except psycopg.Error as e:
+                logger.error(f"Cleanup error: {e}")
+                conn.rollback()
+                conn.close()
+                return jsonify({"error": f"Cleanup error: {e}"}), 500
 
+        conn.commit()
         conn.close()
 
         if total_inserted == 0:

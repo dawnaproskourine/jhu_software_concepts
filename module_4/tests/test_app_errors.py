@@ -149,6 +149,10 @@ def test_pull_data_db_error_during_scrape_500(monkeypatch):
             return _ErrorCursor()
         def close(self):
             pass
+        def commit(self):
+            pass
+        def rollback(self):
+            pass
 
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _ErrorConn())
@@ -229,6 +233,10 @@ def test_pull_data_caught_up_breaks(monkeypatch):
             return _DupCursor()
         def close(self):
             pass
+        def commit(self):
+            pass
+        def rollback(self):
+            pass
 
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
@@ -285,6 +293,10 @@ def test_pull_data_fetches_multiple_pages(monkeypatch):
             return _InsertCursor()
         def close(self):
             pass
+        def commit(self):
+            pass
+        def rollback(self):
+            pass
 
     monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
@@ -301,3 +313,170 @@ def test_pull_data_fetches_multiple_pages(monkeypatch):
         resp = c.post("/pull-data", json={"max_pages": 2})
     data = resp.get_json()
     assert data["pages_fetched"] == 2
+
+
+# =====================================================================
+# POST /pull-data — network error on page 2 triggers rollback
+# =====================================================================
+
+@pytest.mark.buttons
+def test_pull_data_network_error_page2_rolls_back(monkeypatch):
+    page1 = """<html><body>
+<table><tbody>
+  <tr><td>S</td><td>CS | PhD</td><td>Jan 1, 2026</td><td>Accepted</td>
+      <td><a href="/result/net1">V</a></td></tr>
+  <tr><td>Fall 2026 | American</td></tr>
+</tbody></table>
+<a href="?page=1">1</a><a href="?page=2">2</a>
+</body></html>"""
+
+    call_n = {"n": 0}
+
+    def _fake_fetch(url, *a, **kw):
+        call_n["n"] += 1
+        if call_n["n"] == 1:
+            return page1
+        raise URLError("timeout on page 2")
+
+    class _TrackCursor:
+        rowcount = 1
+        def execute(self, *a, **kw):
+            pass
+
+    class _TrackConn:
+        autocommit = True
+        rolled_back = False
+        def cursor(self):
+            return _TrackCursor()
+        def close(self):
+            pass
+        def commit(self):
+            pass
+        def rollback(self):
+            _TrackConn.rolled_back = True
+
+    _TrackConn.rolled_back = False
+
+    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
+    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
+    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
+    monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _TrackConn())
+    monkeypatch.setattr(scrape, "fetch_page", _fake_fetch)
+    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 2)
+    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
+    monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
+
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
+        resp = c.post("/pull-data", json={"max_pages": 2})
+    assert resp.status_code == 500
+    assert "Network error" in resp.get_json()["error"]
+    assert _TrackConn.rolled_back is True
+
+
+# =====================================================================
+# POST /pull-data — cleanup exception returns 500 and rollback
+# =====================================================================
+
+@pytest.mark.buttons
+def test_pull_data_cleanup_error_returns_500(monkeypatch):
+    fake_html = """<html><body>
+<table><tbody>
+  <tr><td>S</td><td>CS | PhD</td><td>Jan 1, 2026</td><td>Accepted</td>
+      <td><a href="/result/cl1">V</a></td></tr>
+  <tr><td>Fall 2026 | American</td></tr>
+</tbody></table>
+<a href="?page=1">1</a>
+</body></html>"""
+
+    class _CleanCursor:
+        rowcount = 1
+        def execute(self, *a, **kw):
+            pass
+
+    class _CleanConn:
+        autocommit = True
+        rolled_back = False
+        def cursor(self):
+            return _CleanCursor()
+        def close(self):
+            pass
+        def commit(self):
+            pass
+        def rollback(self):
+            _CleanConn.rolled_back = True
+
+    _CleanConn.rolled_back = False
+
+    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
+    monkeypatch.setattr(app_module, "fix_gre_aw",
+                        lambda _c: (_ for _ in ()).throw(psycopg.Error("cleanup boom")))
+    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
+    monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _CleanConn())
+    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
+    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
+    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
+
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
+        resp = c.post("/pull-data", json={"max_pages": 1})
+    assert resp.status_code == 500
+    assert "Cleanup error" in resp.get_json()["error"]
+    assert _CleanConn.rolled_back is True
+
+
+# =====================================================================
+# POST /pull-data — DB error mid-insert triggers rollback
+# =====================================================================
+
+@pytest.mark.buttons
+def test_pull_data_insert_error_rolls_back(monkeypatch):
+    fake_html = """<html><body>
+<table><tbody>
+  <tr><td>S</td><td>CS | PhD</td><td>Jan 1, 2026</td><td>Accepted</td>
+      <td><a href="/result/ie1">V</a></td></tr>
+  <tr><td>Fall 2026 | American</td></tr>
+</tbody></table>
+<a href="?page=1">1</a>
+</body></html>"""
+
+    class _BombCursor:
+        rowcount = 1
+        _call_count = 0
+        def execute(self, *a, **kw):
+            _BombCursor._call_count += 1
+            if _BombCursor._call_count >= 3:
+                raise psycopg.Error("disk full on 3rd execute")
+
+    class _BombConn:
+        autocommit = True
+        rolled_back = False
+        def cursor(self):
+            return _BombCursor()
+        def close(self):
+            pass
+        def commit(self):
+            pass
+        def rollback(self):
+            _BombConn.rolled_back = True
+
+    _BombCursor._call_count = 0
+    _BombConn.rolled_back = False
+
+    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
+    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
+    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
+    monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _BombConn())
+    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
+    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
+    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
+
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
+        resp = c.post("/pull-data", json={"max_pages": 1})
+    assert resp.status_code == 500
+    assert "Database error" in resp.get_json()["error"]
+    assert _BombConn.rolled_back is True

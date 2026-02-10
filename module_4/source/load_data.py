@@ -155,36 +155,41 @@ def main() -> None:
         conn.close()
         return
 
-    cursor.executemany("""
-        INSERT INTO applicants (
-            program, comments, date_added, url, status, term,
-            us_or_international, gpa, gre, gre_v, gre_aw,
-            degree, llm_generated_program, llm_generated_university
-        ) VALUES (
-            %(program)s, %(comments)s, %(date_added)s, %(url)s, %(status)s, %(term)s,
-            %(us_or_international)s, %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s,
-            %(degree)s, %(llm_generated_program)s, %(llm_generated_university)s
-        )
-        ON CONFLICT (url) DO NOTHING
-    """, [
-        {
-            "program": clean_text(row.get("program", "")),
-            "comments": clean_text(row.get("comments", "")),
-            "date_added": parse_date(row.get("date_added", "")),
-            "url": clean_text(row.get("url", "")),
-            "status": clean_text(row.get("status", "")),
-            "term": clean_text(row.get("term", "")),
-            "us_or_international": clean_text(row.get("US/International", "")),
-            "gpa": parse_float(row.get("GPA", ""), "GPA"),
-            "gre": parse_float(row.get("GRE", ""), "GRE"),
-            "gre_v": parse_float(row.get("GRE V", ""), "GRE V"),
-            "gre_aw": parse_float(row.get("GRE AW", ""), "GRE AW"),
-            "degree": clean_text(row.get("Degree", "")),
-            "llm_generated_program": clean_text(row.get("llm-generated-program", "")),
-            "llm_generated_university": clean_text(row.get("llm-generated-university", "")),
-        }
-        for row in rows
-    ])
+    try:
+        cursor.executemany("""
+            INSERT INTO applicants (
+                program, comments, date_added, url, status, term,
+                us_or_international, gpa, gre, gre_v, gre_aw,
+                degree, llm_generated_program, llm_generated_university
+            ) VALUES (
+                %(program)s, %(comments)s, %(date_added)s, %(url)s, %(status)s, %(term)s,
+                %(us_or_international)s, %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s,
+                %(degree)s, %(llm_generated_program)s, %(llm_generated_university)s
+            )
+            ON CONFLICT (url) DO NOTHING
+        """, [
+            {
+                "program": clean_text(row.get("program", "")),
+                "comments": clean_text(row.get("comments", "")),
+                "date_added": parse_date(row.get("date_added", "")),
+                "url": clean_text(row.get("url", "")),
+                "status": clean_text(row.get("status", "")),
+                "term": clean_text(row.get("term", "")),
+                "us_or_international": clean_text(row.get("US/International", "")),
+                "gpa": parse_float(row.get("GPA", ""), "GPA"),
+                "gre": parse_float(row.get("GRE", ""), "GRE"),
+                "gre_v": parse_float(row.get("GRE V", ""), "GRE V"),
+                "gre_aw": parse_float(row.get("GRE AW", ""), "GRE AW"),
+                "degree": clean_text(row.get("Degree", "")),
+                "llm_generated_program": clean_text(row.get("llm-generated-program", "")),
+                "llm_generated_university": clean_text(row.get("llm-generated-university", "")),
+            }
+            for row in rows
+        ])
+    except psycopg.Error as e:
+        logger.error(f"Database error during insert: {e}")
+        conn.close()
+        return
 
     logger.info(f"Inserted {len(rows)} rows")
 

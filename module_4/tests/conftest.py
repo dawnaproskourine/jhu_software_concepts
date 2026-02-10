@@ -105,6 +105,12 @@ class NoCloseConn:
     def close(self):
         pass
 
+    def commit(self):
+        pass
+
+    def rollback(self):
+        pass
+
     def __enter__(self):
         return self._conn
 
@@ -138,6 +144,12 @@ class FakePullConn:
     def close(self):
         pass
 
+    def commit(self):
+        pass
+
+    def rollback(self):
+        pass
+
 
 class FakeInsertConn:
     """Connection stub returning ``FakeInsertCursor`` (rowcount=1)."""
@@ -147,6 +159,12 @@ class FakeInsertConn:
         return FakeInsertCursor()
 
     def close(self):
+        pass
+
+    def commit(self):
+        pass
+
+    def rollback(self):
         pass
 
 
