@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-import RobotsChecker as rc_module
-from RobotsChecker import RobotsChecker
+import robots_checker as rc_module
+from robots_checker import RobotsChecker
 
 
 @pytest.mark.web

@@ -130,7 +130,7 @@ python3 source/cleanup_data.py
 ## scrape.py
 
 GradCafe web scraper that extracts applicant data from thegradcafe.com/survey. Respects robots.txt via
-`RobotsChecker.py`. Used by `app.py` for the Pull Data feature.
+`robots_checker.py`. Used by `app.py` for the Pull Data feature.
 
 ### Project Structure
 
@@ -153,7 +153,7 @@ module_4/
 │   ├── test_scrape.py                      # Scraper unit tests
 │   ├── test_cleanup.py                     # Cleanup function tests
 │   ├── test_cleanup_main.py                # cleanup_data.main() tests
-│   ├── test_robots_checker.py              # RobotsChecker tests
+│   ├── test_robots_checker.py              # robots_checker tests
 │   ├── test_llm_standardizer.py            # LLM standardizer tests
 │   ├── test_query_main.py                  # query_data.main() tests
 │   ├── test_load_main.py                   # load_data.main() tests
@@ -169,7 +169,7 @@ module_4/
 │   ├── canon_programs.txt                  # Canonical program names (290 entries)
 │   ├── canon_universities.txt              # Canonical university names (1000+ entries)
 │   ├── scrape.py                           # GradCafe web scraper
-│   ├── RobotsChecker.py                    # robots.txt compliance checker
+│   ├── robots_checker.py                   # robots.txt compliance checker
 │   ├── llm_extended_applicant_data.json    # Initial dataset from module_2
 │   ├── models/                             # LLM model files (TinyLlama)
 │   └── website/
@@ -219,7 +219,7 @@ Coverage is configured in `pytest.ini` and `.coveragerc`. The suite enforces **1
 |------|----------|
 | `app.py` | 100% |
 | `cleanup_data.py` | 100% |
-| `RobotsChecker.py` | 100% |
+| `robots_checker.py` | 100% |
 | `llm_standardizer.py` | 100% |
 | `load_data.py` | 100% |
 | `query_data.py` | 100% |

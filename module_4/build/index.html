@@ -104,10 +104,10 @@
 <li><a class="reference internal" href="#scrape.scrape_data"><code class="docutils literal notranslate"><span class="pre">scrape_data()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-RobotsChecker">RobotsChecker</a><ul>
-<li><a class="reference internal" href="#RobotsChecker.RobotsChecker"><code class="docutils literal notranslate"><span class="pre">RobotsChecker</span></code></a><ul>
-<li><a class="reference internal" href="#RobotsChecker.RobotsChecker.can_fetch"><code class="docutils literal notranslate"><span class="pre">RobotsChecker.can_fetch()</span></code></a></li>
-<li><a class="reference internal" href="#RobotsChecker.RobotsChecker.get_crawl_delay"><code class="docutils literal notranslate"><span class="pre">RobotsChecker.get_crawl_delay()</span></code></a></li>
+<li><a class="reference internal" href="#module-robots_checker">robots_checker</a><ul>
+<li><a class="reference internal" href="#robots_checker.RobotsChecker"><code class="docutils literal notranslate"><span class="pre">RobotsChecker</span></code></a><ul>
+<li><a class="reference internal" href="#robots_checker.RobotsChecker.can_fetch"><code class="docutils literal notranslate"><span class="pre">RobotsChecker.can_fetch()</span></code></a></li>
+<li><a class="reference internal" href="#robots_checker.RobotsChecker.get_crawl_delay"><code class="docutils literal notranslate"><span class="pre">RobotsChecker.get_crawl_delay()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -185,7 +185,7 @@ updates.</p>
 <p>The ETL (Extract, Transform, Load) layer handles data ingestion:</p>
 <ul class="simple">
 <li><p><strong>Extract</strong> – <code class="docutils literal notranslate"><span class="pre">scrape.py</span></code> fetches HTML pages from thegradcafe.com/survey
-and parses applicant rows from the survey tables. <code class="docutils literal notranslate"><span class="pre">RobotsChecker.py</span></code>
+and parses applicant rows from the survey tables. <code class="docutils literal notranslate"><span class="pre">robots_checker.py</span></code>
 enforces robots.txt compliance before fetching.</p></li>
 <li><p><strong>Transform</strong> – <code class="docutils literal notranslate"><span class="pre">llm_standardizer.py</span></code> sends raw program/university
 strings through a local TinyLlama LLM (via llama_cpp) with few-shot
@@ -517,7 +517,7 @@ wrapper)</p></td>
 <td><p>Lambda returning <code class="docutils literal notranslate"><span class="pre">MOCK_QUERY_DATA</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p>Robots.txt checker</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">scrape.RobotsChecker</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scrape.robots_checker</span></code></p></td>
 <td><p>Fake module namespace with inner <code class="docutils literal notranslate"><span class="pre">RobotsChecker</span></code> class and
 <code class="docutils literal notranslate"><span class="pre">DEFAULT_USER_AGENT</span></code></p></td>
 </tr>
@@ -925,20 +925,20 @@ and robots.txt handling. Writes results to a file or stdout.</p>
 </dd></dl>
 
 </section>
-<section id="module-RobotsChecker">
-<span id="robotschecker"></span><h3>RobotsChecker<a class="headerlink" href="#module-RobotsChecker" title="Link to this heading"></a></h3>
+<section id="module-robots_checker">
+<span id="robots-checker"></span><h3>robots_checker<a class="headerlink" href="#module-robots_checker" title="Link to this heading"></a></h3>
 <p>Robots.txt compliance checker for web scraping.</p>
 <p>Fetches and parses a site’s robots.txt to determine whether a given
 URL may be crawled and what crawl delay to respect.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="RobotsChecker.RobotsChecker">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">RobotsChecker.</span></span><span class="sig-name descname"><span class="pre">RobotsChecker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DawnaGradCafeScraper/1.0'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RobotsChecker.RobotsChecker" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="robots_checker.RobotsChecker">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">robots_checker.</span></span><span class="sig-name descname"><span class="pre">RobotsChecker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DawnaGradCafeScraper/1.0'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#robots_checker.RobotsChecker" title="Link to this definition"></a></dt>
 <dd><p>Check robots.txt permissions for a given site and user agent.</p>
 <p>Parses the robots.txt file at the target site and provides methods
 to check crawl permissions and retrieve crawl delay directives.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="RobotsChecker.RobotsChecker.can_fetch">
-<span class="sig-name descname"><span class="pre">can_fetch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RobotsChecker.RobotsChecker.can_fetch" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="robots_checker.RobotsChecker.can_fetch">
+<span class="sig-name descname"><span class="pre">can_fetch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#robots_checker.RobotsChecker.can_fetch" title="Link to this definition"></a></dt>
 <dd><p>Check if the given URL can be crawled according to robots.txt.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -954,8 +954,8 @@ to check crawl permissions and retrieve crawl delay directives.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="RobotsChecker.RobotsChecker.get_crawl_delay">
-<span class="sig-name descname"><span class="pre">get_crawl_delay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RobotsChecker.RobotsChecker.get_crawl_delay" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="robots_checker.RobotsChecker.get_crawl_delay">
+<span class="sig-name descname"><span class="pre">get_crawl_delay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#robots_checker.RobotsChecker.get_crawl_delay" title="Link to this definition"></a></dt>
 <dd><p>Get the crawl delay from robots.txt, or use a default.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

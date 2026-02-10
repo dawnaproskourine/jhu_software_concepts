@@ -3,12 +3,12 @@ import sys
 import time
 from bs4 import BeautifulSoup
 from urllib.request import urlopen, Request
-import RobotsChecker
+import robots_checker
 import argparse
 import re
 import json
 
-def fetch_page(url, user_agent = RobotsChecker.DEFAULT_USER_AGENT):
+def fetch_page(url, user_agent = robots_checker.DEFAULT_USER_AGENT):
     """Fetch a web page and return its HTML content.
 
     :param url: The URL to fetch.
@@ -237,7 +237,7 @@ def get_max_pages(html):
 def scrape_data(
         base_url="https://www.thegradcafe.com/survey/",
         max_pages=None, delay=0.5,
-        user_agent = RobotsChecker.DEFAULT_USER_AGENT,
+        user_agent = robots_checker.DEFAULT_USER_AGENT,
         ignore_robots=False):
     """Scrape the GradCafe survey across multiple pages.
 
@@ -259,7 +259,7 @@ def scrape_data(
     # Check robots.txt
     if not ignore_robots:
         print(f"Checking robots.txt for user-agent: {user_agent}", file=sys.stderr)
-        robots = RobotsChecker.RobotsChecker(base_url, user_agent)
+        robots = robots_checker.RobotsChecker(base_url, user_agent)
 
         if not robots.can_fetch(base_url):
             print(f"Error: robots.txt disallows access to {base_url} for {user_agent}", file=sys.stderr)
@@ -348,8 +348,8 @@ def main():
     parser.add_argument(
         "--user_agent", "-u",
         type=str,
-        default=RobotsChecker.DEFAULT_USER_AGENT,
-        help=f"User agent string to use for requests (default: {RobotsChecker.DEFAULT_USER_AGENT})"
+        default=robots_checker.DEFAULT_USER_AGENT,
+        help=f"User agent string to use for requests (default: {robots_checker.DEFAULT_USER_AGENT})"
     )
     parser.add_argument(
         "--ignore_robots",

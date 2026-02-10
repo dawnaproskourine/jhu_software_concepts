@@ -424,7 +424,7 @@ def test_scrape_data_robots_disallows(monkeypatch):
         DEFAULT_USER_AGENT = "FakeAgent"
         RobotsChecker = _FakeRobots
 
-    monkeypatch.setattr(scrape, "RobotsChecker", _FakeModule)
+    monkeypatch.setattr(scrape, "robots_checker", _FakeModule)
     results = scrape_data(
         base_url="https://example.com/survey/",
         max_pages=1, delay=0, ignore_robots=False,
@@ -446,7 +446,7 @@ def test_scrape_data_crawl_delay_override(monkeypatch):
         DEFAULT_USER_AGENT = "FakeAgent"
         RobotsChecker = _FakeRobots
 
-    monkeypatch.setattr(scrape, "RobotsChecker", _FakeModule)
+    monkeypatch.setattr(scrape, "robots_checker", _FakeModule)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
 
     delays = []
@@ -519,7 +519,7 @@ def test_scrape_data_per_page_robots_skip(monkeypatch):
         DEFAULT_USER_AGENT = "FakeAgent"
         RobotsChecker = _FakeRobots
 
-    monkeypatch.setattr(scrape, "RobotsChecker", _FakeModule)
+    monkeypatch.setattr(scrape, "robots_checker", _FakeModule)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_TWO_PAGE_HTML_P1))
     monkeypatch.setattr(scrape.time, "sleep", lambda d: None)
 

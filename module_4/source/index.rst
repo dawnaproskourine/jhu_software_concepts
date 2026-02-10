@@ -51,7 +51,7 @@ ETL Layer
 The ETL (Extract, Transform, Load) layer handles data ingestion:
 
 - **Extract** -- ``scrape.py`` fetches HTML pages from thegradcafe.com/survey
-  and parses applicant rows from the survey tables. ``RobotsChecker.py``
+  and parses applicant rows from the survey tables. ``robots_checker.py``
   enforces robots.txt compliance before fetching.
 - **Transform** -- ``llm_standardizer.py`` sends raw program/university
   strings through a local TinyLlama LLM (via llama_cpp) with few-shot
@@ -312,7 +312,7 @@ real — network I/O is intercepted at the transport level by patching
      - ``app.run_queries``
      - Lambda returning ``MOCK_QUERY_DATA``
    * - Robots.txt checker
-     - ``scrape.RobotsChecker``
+     - ``scrape.robots_checker``
      - Fake module namespace with inner ``RobotsChecker`` class and
        ``DEFAULT_USER_AGENT``
    * - LLM model loading
@@ -367,9 +367,9 @@ scrape
 .. automodule:: scrape
    :members:
 
-RobotsChecker
-~~~~~~~~~~~~~~
-.. automodule:: RobotsChecker
+robots_checker
+~~~~~~~~~~~~~~~~
+.. automodule:: robots_checker
    :members:
 
 llm_standardizer
