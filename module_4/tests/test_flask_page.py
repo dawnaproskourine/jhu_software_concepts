@@ -19,36 +19,41 @@ def _soup(client):
 
 @pytest.mark.web
 def test_app_is_testing(client):
-    from app import app
-    assert app.config["TESTING"] is True
+    import app as app_module
+    test_app = app_module.create_app(testing=True)
+    assert test_app.config["TESTING"] is True
 
 
 @pytest.mark.web
 def test_app_has_index_route(client):
-    from app import app
-    rules = [rule.rule for rule in app.url_map.iter_rules()]
+    import app as app_module
+    test_app = app_module.create_app(testing=True)
+    rules = [rule.rule for rule in test_app.url_map.iter_rules()]
     assert "/" in rules
 
 
 @pytest.mark.web
 def test_app_has_pull_data_route(client):
-    from app import app
-    rules = [rule.rule for rule in app.url_map.iter_rules()]
+    import app as app_module
+    test_app = app_module.create_app(testing=True)
+    rules = [rule.rule for rule in test_app.url_map.iter_rules()]
     assert "/pull-data" in rules
 
 
 @pytest.mark.web
 def test_pull_data_route_accepts_post(client):
-    from app import app
-    for rule in app.url_map.iter_rules():
+    import app as app_module
+    test_app = app_module.create_app(testing=True)
+    for rule in test_app.url_map.iter_rules():
         if rule.rule == "/pull-data":
             assert "POST" in rule.methods
 
 
 @pytest.mark.web
 def test_index_route_accepts_get(client):
-    from app import app
-    for rule in app.url_map.iter_rules():
+    import app as app_module
+    test_app = app_module.create_app(testing=True)
+    for rule in test_app.url_map.iter_rules():
         if rule.rule == "/":
             assert "GET" in rule.methods
 

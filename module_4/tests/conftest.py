@@ -171,8 +171,8 @@ def client(monkeypatch):
     monkeypatch.setattr(app_module, "run_queries", lambda _conn: MOCK_QUERY_DATA)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _FakeConn())
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         yield c
 
 

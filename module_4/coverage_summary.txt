@@ -24,14 +24,14 @@ _______________ coverage: platform darwin, python 3.14.2-final-0 _______________
 
 Name                         Stmts   Miss  Cover   Missing
 ----------------------------------------------------------
-source/app.py                  109      0   100%
+source/app.py                  114      0   100%
 source/cleanup_data.py          50      0   100%
 source/llm_standardizer.py     104      0   100%
 source/load_data.py             75      0   100%
-source/query_data.py            76      0   100%
+source/query_data.py            77      0   100%
 source/robots_checker.py        23      0   100%
 source/scrape.py               180      0   100%
 ----------------------------------------------------------
-TOTAL                          617      0   100%
+TOTAL                          623      0   100%
 Required test coverage of 100% reached. Total coverage: 100.00%
-============================= 168 passed in 3.16s ==============================
+============================= 168 passed in 2.63s ==============================

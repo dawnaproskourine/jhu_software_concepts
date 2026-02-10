@@ -27,27 +27,6 @@ from cleanup_data import fix_gre_aw, fix_uc_universities
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__,
-            template_folder="website/_templates",
-            static_folder="website/_static")
-
-
-@app.route("/")
-def index() -> str:
-    """Render the dashboard by running all analysis queries.
-
-    :returns: Rendered HTML of the dashboard page.
-    :rtype: str
-    """
-    try:
-        with psycopg.connect(**DB_CONFIG) as conn:
-            data = run_queries(conn)
-        return render_template("index.html", **data)
-    except OperationalError as e:
-        logger.error(f"Database connection failed: {e}")
-        return render_template("index.html", error="Database connection failed")
-
-
 def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
     """Insert a single row into the database with LLM standardization.
 
@@ -112,116 +91,150 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
     return cur.rowcount > 0
 
 
-@app.route("/pull-data", methods=["POST"])
-def pull_data() -> tuple[Response, int] | Response:
-    """Scrape new data from thegradcafe.com until caught up with database.
+def create_app(testing=False):
+    """Application factory for the Flask dashboard.
 
-    Scrapes pages one at a time, stopping when a page has all duplicates
-    (meaning we've caught up with existing data). No gaps are left.
-    Accepts a JSON body with an optional ``max_pages`` field (default 100)
-    as a safety limit.
-
-    :returns: JSON response with pages scraped, entries processed, and new
-        rows inserted, or a tuple of (response, status_code) on error.
-    :rtype: flask.Response or tuple[flask.Response, int]
+    :param testing: If ``True``, enables Flask's TESTING config flag.
+    :type testing: bool
+    :returns: Configured Flask application with routes registered.
+    :rtype: Flask
     """
-    # Lazy imports
-    from scrape import fetch_page, parse_survey, get_max_pages
-    from urllib.error import URLError, HTTPError
+    application = Flask(__name__,
+                        template_folder="website/_templates",
+                        static_folder="website/_static")
+    if testing:
+        application.config["TESTING"] = True
 
-    # Validate and get max_pages with bounds checking
-    raw_max_pages = request.json.get("max_pages", 100) if request.is_json else 100
-    try:
-        max_pages = max(1, min(int(raw_max_pages), 500))  # Clamp between 1 and 500
-    except (ValueError, TypeError):
-        max_pages = 100
+    @application.route("/")
+    def index() -> str:
+        """Render the dashboard by running all analysis queries.
 
-    base_url = "https://www.thegradcafe.com/survey/"
-    delay = 0.5  # seconds between page fetches
+        :returns: Rendered HTML of the dashboard page.
+        :rtype: str
+        """
+        try:
+            with psycopg.connect(**DB_CONFIG) as conn:
+                data = run_queries(conn)
+            return render_template("index.html", **data)
+        except OperationalError as e:
+            logger.error(f"Database connection failed: {e}")
+            return render_template("index.html", error="Database connection failed")
 
-    try:
-        conn = psycopg.connect(**DB_CONFIG)
-        conn.autocommit = True
-    except OperationalError as e:
-        logger.error(f"Database connection failed: {e}")
-        return jsonify({"error": "Database connection failed"}), 500
+    @application.route("/pull-data", methods=["POST"])
+    def pull_data() -> tuple[Response, int] | Response:
+        """Scrape new data from thegradcafe.com until caught up with database.
 
-    cur = conn.cursor()
+        Scrapes pages one at a time, stopping when a page has all duplicates
+        (meaning we've caught up with existing data). No gaps are left.
+        Accepts a JSON body with an optional ``max_pages`` field (default 100)
+        as a safety limit.
 
-    total_scraped = 0
-    total_inserted = 0
-    pages_fetched = 0
+        :returns: JSON response with pages scraped, entries processed, and new
+            rows inserted, or a tuple of (response, status_code) on error.
+        :rtype: flask.Response or tuple[flask.Response, int]
+        """
+        # Lazy imports
+        from scrape import fetch_page, parse_survey, get_max_pages
+        from urllib.error import URLError, HTTPError
 
-    try:
-        # Fetch first page
-        html = fetch_page(base_url)
-        total_pages = get_max_pages(html)
-        pages_to_check = min(total_pages, max_pages)
+        # Validate and get max_pages with bounds checking
+        raw_max_pages = request.json.get("max_pages", 100) if request.is_json else 100
+        try:
+            max_pages = max(1, min(int(raw_max_pages), 500))  # Clamp between 1 and 500
+        except (ValueError, TypeError):
+            max_pages = 100
 
-        for page_num in range(1, pages_to_check + 1):
-            if page_num > 1:
-                time.sleep(delay)
-                page_url = f"{base_url}?page={page_num}"
-                html = fetch_page(page_url)
+        base_url = "https://www.thegradcafe.com/survey/"
+        delay = 0.5  # seconds between page fetches
 
-            rows = parse_survey(html)
-            if not rows:
-                break
+        try:
+            conn = psycopg.connect(**DB_CONFIG)
+            conn.autocommit = True
+        except OperationalError as e:
+            logger.error(f"Database connection failed: {e}")
+            return jsonify({"error": "Database connection failed"}), 500
 
-            # Convert comment lists to strings
-            for row in rows:
-                if isinstance(row.get("comments"), list):
-                    row["comments"] = " ".join(row["comments"]).strip()
+        cur = conn.cursor()
 
-            pages_fetched += 1
-            page_inserted = 0
+        total_scraped = 0
+        total_inserted = 0
+        pages_fetched = 0
 
-            for row in rows:
-                total_scraped += 1
-                if insert_row(cur, row):
-                    total_inserted += 1
-                    page_inserted += 1
+        try:
+            # Fetch first page
+            html = fetch_page(base_url)
+            total_pages = get_max_pages(html)
+            pages_to_check = min(total_pages, max_pages)
 
-            # If no new entries on this page, we've caught up
-            if page_inserted == 0:
-                logger.info(f"Caught up after {pages_fetched} pages")
-                break
+            for page_num in range(1, pages_to_check + 1):
+                if page_num > 1:
+                    time.sleep(delay)
+                    page_url = f"{base_url}?page={page_num}"
+                    html = fetch_page(page_url)
 
-    except (URLError, HTTPError) as e:
-        logger.error(f"Network error during scrape: {e}")
+                rows = parse_survey(html)
+                if not rows:
+                    break
+
+                # Convert comment lists to strings
+                for row in rows:
+                    if isinstance(row.get("comments"), list):
+                        row["comments"] = " ".join(row["comments"]).strip()
+
+                pages_fetched += 1
+                page_inserted = 0
+
+                for row in rows:
+                    total_scraped += 1
+                    if insert_row(cur, row):
+                        total_inserted += 1
+                        page_inserted += 1
+
+                # If no new entries on this page, we've caught up
+                if page_inserted == 0:
+                    logger.info(f"Caught up after {pages_fetched} pages")
+                    break
+
+        except (URLError, HTTPError) as e:
+            logger.error(f"Network error during scrape: {e}")
+            conn.close()
+            return jsonify({"error": f"Network error: {e}"}), 500
+        except psycopg.Error as e:
+            logger.error(f"Database error during scrape: {e}")
+            conn.close()
+            return jsonify({"error": f"Database error: {e}"}), 500
+
+        # Run data cleanup if new entries were inserted
+        cleaned_gre = 0
+        cleaned_uc = 0
+        if total_inserted > 0:
+            logger.info("Running data cleanup on new entries...")
+            cleaned_gre = fix_gre_aw(conn)
+            cleaned_uc = fix_uc_universities(conn)
+
         conn.close()
-        return jsonify({"error": f"Network error: {e}"}), 500
-    except psycopg.Error as e:
-        logger.error(f"Database error during scrape: {e}")
-        conn.close()
-        return jsonify({"error": f"Database error: {e}"}), 500
 
-    # Run data cleanup if new entries were inserted
-    cleaned_gre = 0
-    cleaned_uc = 0
-    if total_inserted > 0:
-        logger.info("Running data cleanup on new entries...")
-        cleaned_gre = fix_gre_aw(conn)
-        cleaned_uc = fix_uc_universities(conn)
+        if total_inserted == 0:
+            message = f"Already up to date. Checked {pages_fetched} page(s), no new entries found."
+        else:
+            message = f"Caught up! Scraped {pages_fetched} page(s), {total_scraped} entries checked, {total_inserted} new rows added."
+            if cleaned_gre > 0 or cleaned_uc > 0:
+                message += f" Cleaned: {cleaned_gre} GRE AW, {cleaned_uc} UC names."
 
-    conn.close()
+        logger.info(message)
+        return jsonify({
+            "pages_fetched": pages_fetched,
+            "scraped": total_scraped,
+            "inserted": total_inserted,
+            "cleaned_gre_aw": cleaned_gre,
+            "cleaned_uc": cleaned_uc,
+            "message": message,
+        })
 
-    if total_inserted == 0:
-        message = f"Already up to date. Checked {pages_fetched} page(s), no new entries found."
-    else:
-        message = f"Caught up! Scraped {pages_fetched} page(s), {total_scraped} entries checked, {total_inserted} new rows added."
-        if cleaned_gre > 0 or cleaned_uc > 0:
-            message += f" Cleaned: {cleaned_gre} GRE AW, {cleaned_uc} UC names."
+    return application
 
-    logger.info(message)
-    return jsonify({
-        "pages_fetched": pages_fetched,
-        "scraped": total_scraped,
-        "inserted": total_inserted,
-        "cleaned_gre_aw": cleaned_gre,
-        "cleaned_uc": cleaned_uc,
-        "message": message,
-    })
+
+app = create_app()
 
 
 if __name__ == "__main__":

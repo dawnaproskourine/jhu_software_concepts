@@ -22,8 +22,8 @@ def test_index_db_error_renders_error(monkeypatch):
         raise OperationalError("db down")
 
     monkeypatch.setattr(app_module.psycopg, "connect", _raise)
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         resp = c.get("/")
     # App catches OperationalError, logs it, and still renders the page
     assert resp.status_code == 200
@@ -85,8 +85,8 @@ def test_pull_data_invalid_max_pages_defaults(monkeypatch):
     monkeypatch.setattr(scrape, "parse_survey", lambda html: [])
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         resp = c.post("/pull-data", json={"max_pages": "not-a-number"})
     assert resp.status_code == 200
 
@@ -103,8 +103,8 @@ def test_pull_data_db_connect_fails_500(monkeypatch):
         lambda **kw: (_ for _ in ()).throw(OperationalError("db down")),
     )
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         resp = c.post("/pull-data", json={"max_pages": 1})
     assert resp.status_code == 500
     assert "error" in resp.get_json()
@@ -123,8 +123,8 @@ def test_pull_data_network_error_500(monkeypatch):
         lambda url, *a, **kw: (_ for _ in ()).throw(URLError("timeout")),
     )
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         resp = c.post("/pull-data", json={"max_pages": 1})
     assert resp.status_code == 500
     assert "Network error" in resp.get_json()["error"]
@@ -156,8 +156,8 @@ def test_pull_data_db_error_during_scrape_500(monkeypatch):
     monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "x", "program": "y", "comments": "z"}])
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         resp = c.post("/pull-data", json={"max_pages": 1})
     assert resp.status_code == 500
     assert "Database error" in resp.get_json()["error"]
@@ -192,8 +192,8 @@ def test_pull_data_cleanup_message_with_counts(db_conn, monkeypatch):
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         resp = c.post("/pull-data", json={"max_pages": 1})
 
     data = resp.get_json()
@@ -240,8 +240,8 @@ def test_pull_data_caught_up_breaks(monkeypatch):
     monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
     monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         resp = c.post("/pull-data", json={"max_pages": 2})
     data = resp.get_json()
     # Caught up after page 1, never fetched page 2
@@ -296,8 +296,8 @@ def test_pull_data_fetches_multiple_pages(monkeypatch):
     monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": f"u{call_n['n']}", "program": "p", "comments": "c"}])
     monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as c:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
         resp = c.post("/pull-data", json={"max_pages": 2})
     data = resp.get_json()
     assert data["pages_fetched"] == 2

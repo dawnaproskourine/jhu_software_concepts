@@ -8,6 +8,8 @@
 
 ## Sphinx Documentation
 
+Full documentation is hosted on Read the Docs: https://python-software-concepts.readthedocs.io/en/latest/
+
 Module 4 adds Sphinx-based documentation and a `tests/` directory. Sphinx configuration lives in `source/conf.py`
 and the documentation entry point is `source/index.rst`.
 

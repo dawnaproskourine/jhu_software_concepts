@@ -333,8 +333,8 @@ def test_pull_data_inserts_into_empty_table(db_conn, monkeypatch):
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
-    app_module.app.config["TESTING"] = True
-    with app_module.app.test_client() as client:
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as client:
         resp = client.post("/pull-data", json={"max_pages": 1})
 
     assert resp.status_code == 200

@@ -1,6 +1,7 @@
 """Analysis queries on the applicant_data database."""
 
 import logging
+import os
 from typing import Any
 
 import psycopg
@@ -10,10 +11,11 @@ from psycopg import Connection, OperationalError
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-DB_CONFIG: dict[str, str] = {
-    "dbname": "applicant_data",
-    "user": "dawnaproskourine",
-    "host": "127.0.0.1",
+DB_CONFIG: dict[str, Any] = {
+    "dbname": os.environ.get("DB_NAME", "applicant_data"),
+    "user": os.environ.get("DB_USER", "dawnaproskourine"),
+    "host": os.environ.get("DB_HOST", "127.0.0.1"),
+    "port": int(os.environ.get("DB_PORT", "5432")),
 }
 
 

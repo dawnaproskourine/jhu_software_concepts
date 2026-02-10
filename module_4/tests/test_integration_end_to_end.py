@@ -112,9 +112,9 @@ def test_pull_then_render(db_conn, monkeypatch):
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
-    app_module.app.config["TESTING"] = True
+    test_app = app_module.create_app(testing=True)
 
-    with app_module.app.test_client() as client:
+    with test_app.test_client() as client:
         # ---- Phase 1: POST /pull-data ----
         pull_resp = client.post("/pull-data", json={"max_pages": 1})
         assert pull_resp.status_code == 200
@@ -235,9 +235,9 @@ def test_duplicate_pull_preserves_uniqueness(db_conn, monkeypatch):
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", _urlopen_switch)
 
-    app_module.app.config["TESTING"] = True
+    test_app = app_module.create_app(testing=True)
 
-    with app_module.app.test_client() as client:
+    with test_app.test_client() as client:
         # First pull: 2 new rows
         resp1 = client.post("/pull-data", json={"max_pages": 1})
         assert resp1.status_code == 200
@@ -302,9 +302,9 @@ def test_update_analysis_reload_reflects_new_data(db_conn, monkeypatch):
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
-    app_module.app.config["TESTING"] = True
+    test_app = app_module.create_app(testing=True)
 
-    with app_module.app.test_client() as client:
+    with test_app.test_client() as client:
         # Pull data into DB
         pull_resp = client.post("/pull-data", json={"max_pages": 1})
         assert pull_resp.status_code == 200
