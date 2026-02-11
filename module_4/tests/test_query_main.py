@@ -76,3 +76,8 @@ def test_build_db_config_uses_database_url(monkeypatch):
         "port": 5433,
         "password": "secret",
     }
+
+
+def test_build_db_config_missing_url_returns_empty(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    assert query_data._build_db_config() == {}

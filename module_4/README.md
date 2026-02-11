@@ -25,9 +25,10 @@ Output is generated in the `build/` directory.
 
 ## Running from module_4
 
-All source files live under `source/`. Scripts are run from the `module_4/` directory:
+All source files live under `source/`. Set `DATABASE_URL` first, then run from the `module_4/` directory:
 
 ```bash
+export DATABASE_URL="postgresql://myuser@localhost:5432/applicant_data"
 python3 source/load_data.py
 python3 source/app.py
 python3 source/query_data.py
@@ -49,7 +50,17 @@ Q&A-style dashboard. Queries are defined in `query_data.py` and shared between t
 
 - Python 3
 - PostgreSQL running locally with the `applicant_data` database populated (via `load_data.py`)
-- Required packages: `flask`, `psycopg`, `llama-cpp-python`, `huggingface_hub`, `beautifulsoup4`
+- `DATABASE_URL` environment variable set (all modules read this via `query_data.DB_CONFIG`)
+- Required packages: `flask`, `psycopg`, `beautifulsoup4`
+
+### Database Configuration
+
+```bash
+export DATABASE_URL="postgresql://myuser@localhost:5432/applicant_data"
+```
+
+All modules connect via `DB_CONFIG` from `query_data.py`, which parses `DATABASE_URL`. A warning is logged
+if the variable is not set, and database connections will fail at runtime.
 
 ### Running
 
@@ -184,7 +195,7 @@ module_4/
 
 ## Testing
 
-The `tests/` directory contains 165 pytest tests across thirteen files with markers for selective execution.
+The `tests/` directory contains 175 pytest tests across thirteen files with markers for selective execution.
 
 | File | Tests | Marker | What it covers |
 |------|-------|--------|----------------|
@@ -198,19 +209,23 @@ The `tests/` directory contains 165 pytest tests across thirteen files with mark
 | `test_cleanup_main.py` | 2 | `db` | `cleanup_data.main()` happy path and DB connection error |
 | `test_robots_checker.py` | 5 | `web` | `RobotsChecker` init, exception handling, `can_fetch`, `get_crawl_delay` |
 | `test_llm_standardizer.py` | 25 | `web` | `_read_lines`, `_split_fallback`, `_best_match`, `_post_normalize_program`, `_post_normalize_university`, `_load_llm` singleton, `standardize` with mocked LLM |
-| `test_query_main.py` | 2 | `db` | `query_data.main()` output and DB error |
-| `test_load_main.py` | 9 | `db` | `create_connection` success/failure, `main()` DB creation, JSON loading, error paths |
-| `test_app_errors.py` | 9 | `buttons` | Index DB error, `insert_row` LLM exception, invalid `max_pages`, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page |
+| `test_query_main.py` | 5 | `db` | `query_data.main()` output, DB error, `DATABASE_URL` config parsing, missing `DATABASE_URL`, dependency-injected scraper test |
+| `test_load_main.py` | 10 | `db` | `create_connection` success/failure, `main()` DB creation, JSON loading, error paths (missing file, bad JSON, executemany failure) |
+| `test_app_errors.py` | 12 | `buttons` | Index DB error, `insert_row` LLM exception, invalid `max_pages`, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page, network error page 2 rollback, cleanup error, insert error rollback |
 
 ### Running Tests
 
+Set `DATABASE_URL` before running tests so DB tests can connect:
+
 ```bash
+export DATABASE_URL="postgresql://myuser@localhost:5432/applicant_data"
 python3 -m pytest tests/ -v
 python3 -m pytest tests/ -v --cov=source --cov-report=term-missing   # with coverage
 python3 -m pytest tests/ -m web -v                                    # by marker
 ```
 
-DB integration tests require a running PostgreSQL instance and skip automatically if unavailable.
+Non-DB tests (`web`, `buttons`, `analysis`) run without `DATABASE_URL`.
+DB and integration tests require a running PostgreSQL instance and skip automatically if unavailable.
 
 ### Coverage
 

@@ -1,0 +1,329 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operational Notes &mdash; Module 4: Testing and Documentation 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Module 4: Testing and Documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Module 4: Testing and Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Operational Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#busy-state-policy">Busy-State Policy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#client-side-guard">Client-Side Guard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#server-side-transaction">Server-Side Transaction</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#idempotency-strategy">Idempotency Strategy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#insert-idempotency">Insert Idempotency</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#caught-up-detection">Caught-Up Detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cleanup-idempotency">Cleanup Idempotency</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#transaction-rollback">Transaction Rollback</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#uniqueness-keys">Uniqueness Keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#local-development">Local Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ci-github-actions">CI (GitHub Actions)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Module 4: Testing and Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Operational Notes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/operations.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="operational-notes">
+<h1>Operational Notes<a class="headerlink" href="#operational-notes" title="Link to this heading"></a></h1>
+<p>This page documents runtime behaviour that is not obvious from the API
+reference alone: how the application prevents concurrent writes, how
+repeated requests stay safe, and what makes each row unique. A
+troubleshooting section at the end covers the most common local and CI
+issues.</p>
+<section id="busy-state-policy">
+<h2>Busy-State Policy<a class="headerlink" href="#busy-state-policy" title="Link to this heading"></a></h2>
+<p>The Pull Data operation can take several seconds (one HTTP request per
+survey page, each separated by a 0.5 s delay). Two mechanisms prevent
+overlapping operations from corrupting data or confusing the user.</p>
+<section id="client-side-guard">
+<h3>Client-Side Guard<a class="headerlink" href="#client-side-guard" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">dashboard.js</span></code> maintains a module-level <code class="docutils literal notranslate"><span class="pre">isPulling</span></code> flag:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pullData()</span></code> sets <code class="docutils literal notranslate"><span class="pre">isPulling</span> <span class="pre">=</span> <span class="pre">true</span></code>, disables both the <strong>Pull
+Data</strong> and <strong>Update Analysis</strong> buttons, and starts the <code class="docutils literal notranslate"><span class="pre">POST</span>
+<span class="pre">/pull-data</span></code> request.</p></li>
+<li><p>While <code class="docutils literal notranslate"><span class="pre">isPulling</span></code> is true, <code class="docutils literal notranslate"><span class="pre">updateAnalysis()</span></code> shows a warning
+(“A Pull Data request is still running”) and returns without
+reloading the page.</p></li>
+<li><p>When the fetch promise settles (success, server error, or network
+error), the handler resets <code class="docutils literal notranslate"><span class="pre">isPulling</span> <span class="pre">=</span> <span class="pre">false</span></code> and re-enables both
+buttons.</p></li>
+</ol>
+<p>This prevents a page reload from interrupting an in-flight scrape and
+stops double-clicks from launching concurrent pulls.</p>
+</section>
+<section id="server-side-transaction">
+<h3>Server-Side Transaction<a class="headerlink" href="#server-side-transaction" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">pull_data()</span></code> opens a single psycopg connection in <strong>transaction mode</strong>
+(the psycopg v3 default – <code class="docutils literal notranslate"><span class="pre">autocommit</span></code> is <em>not</em> enabled). All
+<code class="docutils literal notranslate"><span class="pre">INSERT</span></code> statements and cleanup <code class="docutils literal notranslate"><span class="pre">UPDATE</span></code> statements run inside one
+transaction:</p>
+<ul class="simple">
+<li><p>On success, <code class="docutils literal notranslate"><span class="pre">conn.commit()</span></code> makes all changes visible atomically.</p></li>
+<li><p>On any error (network, database, or cleanup), <code class="docutils literal notranslate"><span class="pre">conn.rollback()</span></code>
+discards every uncommitted change before returning a 500 response.</p></li>
+</ul>
+<p>Because Flask’s development server is single-threaded by default, two
+simultaneous <code class="docutils literal notranslate"><span class="pre">/pull-data</span></code> requests are serialized at the WSGI level.
+In a multi-worker deployment, PostgreSQL’s row-level locking and the
+<code class="docutils literal notranslate"><span class="pre">ON</span> <span class="pre">CONFLICT</span></code> clause prevent duplicate inserts even if two workers
+scrape the same page concurrently.</p>
+</section>
+</section>
+<section id="idempotency-strategy">
+<h2>Idempotency Strategy<a class="headerlink" href="#idempotency-strategy" title="Link to this heading"></a></h2>
+<p>Pressing <strong>Pull Data</strong> multiple times (or resuming after a partial
+failure) never creates duplicate rows and never leaves the database in an
+inconsistent state.</p>
+<section id="insert-idempotency">
+<h3>Insert Idempotency<a class="headerlink" href="#insert-idempotency" title="Link to this heading"></a></h3>
+<p>Every <code class="docutils literal notranslate"><span class="pre">INSERT</span></code> in <code class="docutils literal notranslate"><span class="pre">app.insert_row()</span></code> uses:</p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">applicants</span><span class="w"> </span><span class="p">(...)</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(...)</span>
+<span class="k">ON</span><span class="w"> </span><span class="n">CONFLICT</span><span class="w"> </span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="w"> </span><span class="k">DO</span><span class="w"> </span><span class="k">NOTHING</span>
+</pre></div>
+</div>
+<p>If a row with the same <code class="docutils literal notranslate"><span class="pre">url</span></code> already exists, PostgreSQL silently skips
+the insert and <code class="docutils literal notranslate"><span class="pre">cur.rowcount</span></code> returns 0. The caller uses this to
+distinguish new rows from duplicates.</p>
+</section>
+<section id="caught-up-detection">
+<h3>Caught-Up Detection<a class="headerlink" href="#caught-up-detection" title="Link to this heading"></a></h3>
+<p>After processing each page, <code class="docutils literal notranslate"><span class="pre">pull_data()</span></code> checks
+<code class="docutils literal notranslate"><span class="pre">page_inserted</span> <span class="pre">==</span> <span class="pre">0</span></code>. If an entire page consists of duplicates, the
+scraper concludes it has caught up with existing data and breaks out of
+the loop. This makes repeated pulls cheap: the first page is fetched,
+all rows are duplicates, and the function returns immediately with an
+“Already up to date” message.</p>
+</section>
+<section id="cleanup-idempotency">
+<h3>Cleanup Idempotency<a class="headerlink" href="#cleanup-idempotency" title="Link to this heading"></a></h3>
+<p>The two post-insert cleanup functions are also safe to re-run:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fix_gre_aw(conn)</span></code> sets <code class="docutils literal notranslate"><span class="pre">gre_aw</span> <span class="pre">=</span> <span class="pre">NULL</span> <span class="pre">WHERE</span> <span class="pre">gre_aw</span> <span class="pre">&gt;</span> <span class="pre">6</span></code>. Running
+it twice is a no-op because the first run already nullified the invalid
+values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fix_uc_universities(conn)</span></code> only updates a row when the resolved
+campus name differs from the current value (<code class="docutils literal notranslate"><span class="pre">new_uni</span> <span class="pre">!=</span> <span class="pre">current_uni</span></code>).
+A second run finds no differences and updates zero rows.</p></li>
+</ul>
+</section>
+<section id="transaction-rollback">
+<h3>Transaction Rollback<a class="headerlink" href="#transaction-rollback" title="Link to this heading"></a></h3>
+<p>If a network or database error occurs partway through a scrape, the
+entire transaction is rolled back. No partial set of rows is committed.
+The next Pull Data request starts from a clean state and re-scrapes the
+same pages, relying on <code class="docutils literal notranslate"><span class="pre">ON</span> <span class="pre">CONFLICT</span></code> to skip any rows that may have
+been committed in a previous successful run.</p>
+</section>
+</section>
+<section id="uniqueness-keys">
+<h2>Uniqueness Keys<a class="headerlink" href="#uniqueness-keys" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">applicants</span></code> table enforces uniqueness at two levels:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Constraint</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">p_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SERIAL</span> <span class="pre">PRIMARY</span> <span class="pre">KEY</span></code></p></td>
+<td><p>Auto-incrementing surrogate key. Used internally for joins and
+updates (e.g., <code class="docutils literal notranslate"><span class="pre">fix_uc_universities</span></code> updates by <code class="docutils literal notranslate"><span class="pre">p_id</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">url</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UNIQUE</span></code></p></td>
+<td><p>Natural key derived from the GradCafe result page URL
+(e.g., <code class="docutils literal notranslate"><span class="pre">https://www.thegradcafe.com/result/12345</span></code>). This is the
+column referenced by <code class="docutils literal notranslate"><span class="pre">ON</span> <span class="pre">CONFLICT</span> <span class="pre">(url)</span> <span class="pre">DO</span> <span class="pre">NOTHING</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <code class="docutils literal notranslate"><span class="pre">url</span></code> column is the deduplication key for both <code class="docutils literal notranslate"><span class="pre">app.insert_row()</span></code>
+(live scraping) and <code class="docutils literal notranslate"><span class="pre">load_data.main()</span></code> (initial bulk load). As long as
+GradCafe assigns a distinct URL to each survey submission, no two rows
+can represent the same applicant entry.</p>
+<p><code class="docutils literal notranslate"><span class="pre">load_data.main()</span></code> uses <code class="docutils literal notranslate"><span class="pre">cursor.executemany()</span></code> with the same
+<code class="docutils literal notranslate"><span class="pre">ON</span> <span class="pre">CONFLICT</span> <span class="pre">(url)</span> <span class="pre">DO</span> <span class="pre">NOTHING</span></code> clause, so re-running the initial load
+is also idempotent.</p>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<section id="local-development">
+<h3>Local Development<a class="headerlink" href="#local-development" title="Link to this heading"></a></h3>
+<p><strong>PostgreSQL not running or database missing</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>psycopg.OperationalError: connection to server ... failed
+</pre></div>
+</div>
+<p>Ensure PostgreSQL is running and the <code class="docutils literal notranslate"><span class="pre">applicant_data</span></code> database exists.
+Create it manually if needed:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>createdb<span class="w"> </span>applicant_data
+</pre></div>
+</div>
+<p>Or run the initial loader, which creates the database automatically:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>source/load_data.py
+</pre></div>
+</div>
+<p><strong>DB tests skipped locally</strong></p>
+<p>Tests marked <code class="docutils literal notranslate"><span class="pre">db</span></code> or <code class="docutils literal notranslate"><span class="pre">integration</span></code> call <code class="docutils literal notranslate"><span class="pre">psycopg.connect()</span></code> in the
+<code class="docutils literal notranslate"><span class="pre">db_conn</span></code> fixture. If the connection fails, the fixture calls
+<code class="docutils literal notranslate"><span class="pre">pytest.skip(&quot;PostgreSQL</span> <span class="pre">not</span> <span class="pre">available&quot;)</span></code>. This is expected when
+running tests without a local PostgreSQL instance – the non-DB tests
+(<code class="docutils literal notranslate"><span class="pre">web</span></code>, <code class="docutils literal notranslate"><span class="pre">buttons</span></code>, <code class="docutils literal notranslate"><span class="pre">analysis</span></code>) still run and pass.</p>
+<p><strong>DATABASE_URL not set</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">query_data._build_db_config()</span></code> requires the <code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code>
+environment variable. If it is missing, a warning is logged and
+<code class="docutils literal notranslate"><span class="pre">DB_CONFIG</span></code> is set to an empty dict. Any subsequent
+<code class="docutils literal notranslate"><span class="pre">psycopg.connect(**DB_CONFIG)</span></code> call will fail with
+<code class="docutils literal notranslate"><span class="pre">OperationalError</span></code>. Set it before running the app or tests:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">DATABASE_URL</span><span class="o">=</span><span class="s2">&quot;postgresql://myuser@localhost:5432/applicant_data&quot;</span>
+</pre></div>
+</div>
+<p><strong>Coverage below 100 %</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">pytest.ini</span></code> sets <code class="docutils literal notranslate"><span class="pre">--cov-fail-under=100</span></code>. If you add new source code
+without corresponding tests, the suite fails with:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>FAIL Required test coverage of 100% not reached.
+</pre></div>
+</div>
+<p>Add tests to cover the new lines. Check which lines are uncovered with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-v<span class="w"> </span>--cov<span class="o">=</span><span class="nb">source</span><span class="w"> </span>--cov-report<span class="o">=</span>term-missing
+</pre></div>
+</div>
+</section>
+<section id="ci-github-actions">
+<h3>CI (GitHub Actions)<a class="headerlink" href="#ci-github-actions" title="Link to this heading"></a></h3>
+<p><strong>llama_cpp / huggingface_hub ImportError</strong></p>
+<p>The CI workflow installs only lightweight dependencies from
+<code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code> (which excludes <code class="docutils literal notranslate"><span class="pre">llama_cpp_python</span></code> and
+<code class="docutils literal notranslate"><span class="pre">huggingface_hub</span></code>). <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code> injects stub modules into
+<code class="docutils literal notranslate"><span class="pre">sys.modules</span></code> when these packages are not installed. If a new import
+from either package is added outside <code class="docutils literal notranslate"><span class="pre">llm_standardizer.py</span></code>, the stub
+will not cover it. Fix by either:</p>
+<ul class="simple">
+<li><p>Adding the new import to the stub block in <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code>, or</p></li>
+<li><p>Lazy-importing the package inside the function that uses it.</p></li>
+</ul>
+<p><strong>PostgreSQL service container not ready</strong></p>
+<p>The workflow uses a <code class="docutils literal notranslate"><span class="pre">postgres:16</span></code> service container with health checks.
+If tests fail with connection errors, the health check interval
+(<code class="docutils literal notranslate"><span class="pre">--health-interval</span> <span class="pre">10s</span></code>, 5 retries) may need to be increased. The
+<code class="docutils literal notranslate"><span class="pre">Create</span> <span class="pre">applicants</span> <span class="pre">table</span></code> step runs <em>after</em> the health check passes,
+so a healthy container should always have the table ready.</p>
+<p><strong>Table schema mismatch</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">Create</span> <span class="pre">applicants</span> <span class="pre">table</span></code> step in the workflow uses
+<code class="docutils literal notranslate"><span class="pre">CREATE</span> <span class="pre">TABLE</span> <span class="pre">IF</span> <span class="pre">NOT</span> <span class="pre">EXISTS</span></code> with a hardcoded schema. If columns are
+added or renamed in <code class="docutils literal notranslate"><span class="pre">load_data.py</span></code>, the workflow schema must be updated
+to match. Symptoms: <code class="docutils literal notranslate"><span class="pre">psycopg.errors.UndefinedColumn</span></code> in DB tests.</p>
+<p><strong>pytest.ini coverage path</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">pytest.ini</span></code> uses <code class="docutils literal notranslate"><span class="pre">--cov=source</span></code>, which resolves relative to
+<code class="docutils literal notranslate"><span class="pre">working-directory:</span> <span class="pre">module_4</span></code> set in the workflow. If the working
+directory changes, coverage collection will silently report 0 % and the
+<code class="docutils literal notranslate"><span class="pre">--cov-fail-under=100</span></code> check will fail.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Module 4: Testing and Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Dawna Jones Proskourine.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -10,6 +10,8 @@ Module 4: Testing and Documentation
    :maxdepth: 2
    :caption: Contents:
 
+   operations
+
 Overview
 --------
 
@@ -82,9 +84,9 @@ The database layer uses PostgreSQL (via psycopg v3) with a single
 ``query_data.py`` defines ``DB_CONFIG`` (shared by all modules) and
 ``run_queries()``, which executes 13 parameterized SQL queries and returns
 results as a dictionary. ``DB_CONFIG`` is built by ``_build_db_config()``,
-which reads ``DATABASE_URL`` first (standard 12-factor pattern, e.g.
-``postgresql://user:pass@host:5432/dbname``) and falls back to individual
-``DB_NAME``, ``DB_USER``, ``DB_HOST``, ``DB_PORT`` env vars. Queries include
+which parses the ``DATABASE_URL`` environment variable (standard 12-factor
+pattern, e.g. ``postgresql://user:pass@host:5432/dbname``). A
+warning is logged if the variable is not set. Queries include
 counts, averages, percentages, top-N rankings, and acceptance rates grouped
 by degree type and nationality. All queries use parameterized statements for
 SQL injection protection.
@@ -106,10 +108,10 @@ Prerequisites
 Database Configuration
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The database connection is configured in ``query_data.py`` via the ``DB_CONFIG``
-dictionary, built at import time by ``_build_db_config()``.
-
-**Option 1 — ``DATABASE_URL`` (recommended for deployment):**
+All modules connect via the ``DB_CONFIG`` dictionary exported by
+``query_data.py``. It is built at import time by ``_build_db_config()``,
+which reads the ``DATABASE_URL`` environment variable (standard 12-factor
+pattern). The variable **must** be set before running the app or tests:
 
 .. code-block:: bash
 
@@ -117,18 +119,8 @@ dictionary, built at import time by ``_build_db_config()``.
 
 The URL is parsed into component keys (``dbname``, ``user``, ``host``,
 ``port``, ``password``) so all downstream code works unchanged.
-
-**Option 2 — individual env vars (default for local development):**
-
-.. code-block:: bash
-
-   export DB_NAME="applicant_data"
-   export DB_USER="dawnaproskourine"
-   export DB_HOST="127.0.0.1"
-   export DB_PORT="5432"
-
-When ``DATABASE_URL`` is set it takes priority; the individual vars are
-ignored. All modules import ``DB_CONFIG`` from ``query_data.py``.
+A warning is logged if ``DATABASE_URL`` is not set, and database
+connections will fail at runtime.
 
 To populate the database with the initial dataset:
 
@@ -242,8 +234,9 @@ File                                  Tests  What it covers
                                              ``_best_match``, ``_post_normalize_program``,
                                              ``_post_normalize_university``, ``_load_llm``
                                              singleton, ``standardize`` with mocked LLM
-``test_query_main.py``                4      ``query_data.main()`` output, DB error,
+``test_query_main.py``                5      ``query_data.main()`` output, DB error,
                                              ``DATABASE_URL`` config parsing,
+                                             missing ``DATABASE_URL`` error,
                                              dependency-injected scraper test
 ``test_load_main.py``                 10     ``create_connection`` success/failure,
                                              ``main()`` DB creation, JSON loading, and
