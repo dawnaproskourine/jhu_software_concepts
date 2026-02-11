@@ -8,9 +8,13 @@ Module 4: Testing and Documentation
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Pages:
 
    operations
+
+.. contents::
+   :local:
+   :depth: 2
 
 Overview
 --------

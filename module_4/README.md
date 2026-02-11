@@ -10,6 +10,9 @@
 
 Full documentation is hosted on Read the Docs: https://python-software-concepts.readthedocs.io/en/latest/
 
+- [Main documentation](https://python-software-concepts.readthedocs.io/en/latest/) — architecture, setup, test suite, API reference
+- [Operational Notes](https://python-software-concepts.readthedocs.io/en/latest/operations.html) — busy-state policy, idempotency strategy, uniqueness keys, troubleshooting
+
 Module 4 adds Sphinx-based documentation and a `tests/` directory. Sphinx configuration lives in `source/conf.py`
 and the documentation entry point is `source/index.rst`.
 
