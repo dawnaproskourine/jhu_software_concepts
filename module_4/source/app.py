@@ -7,6 +7,7 @@ scrape new data from thegradcafe.com and insert it into the database.
 LLM-based standardization populates llm_generated_program and
 llm_generated_university fields for newly pulled data.
 """
+from __future__ import annotations
 
 import logging
 import time

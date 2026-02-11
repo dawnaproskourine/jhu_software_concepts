@@ -5,6 +5,7 @@ Fixes:
 1. Invalid GRE AW scores (> 6) - sets them to NULL
 2. Re-normalizes UC university names to specific campuses
 """
+from __future__ import annotations
 
 import logging
 import re

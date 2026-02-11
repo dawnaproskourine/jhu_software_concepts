@@ -5,6 +5,7 @@ Uses TinyLlama via llama_cpp to parse and standardize the combined
 program/university strings from GradCafe data. Falls back to rule-based
 parsing if LLM output is invalid.
 """
+from __future__ import annotations
 
 import json
 import logging

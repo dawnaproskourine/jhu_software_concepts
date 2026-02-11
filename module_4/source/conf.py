@@ -24,10 +24,6 @@ extensions = ['sphinx.ext.autodoc']
 autodoc_mock_imports = [
     'llama_cpp',
     'huggingface_hub',
-    'psycopg',
-    'psycopg.cursor',
-    'flask',
-    'bs4',
 ]
 
 templates_path = ['website/_templates']

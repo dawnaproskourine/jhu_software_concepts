@@ -1,4 +1,5 @@
 """Load llm_extended_applicant_data.json into a PostgreSQL applicants table."""
+from __future__ import annotations
 
 import json
 import logging
