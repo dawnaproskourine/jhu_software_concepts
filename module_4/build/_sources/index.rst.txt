@@ -390,7 +390,4 @@ llm_standardizer
 .. automodule:: llm_standardizer
    :members:
 
-.. toctree::
-   :maxdepth: 2
-
-   operations
+.. include:: operations.rst

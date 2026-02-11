@@ -1,5 +1,5 @@
 Operational Notes
-=================
+-----------------
 
 This page documents runtime behaviour that is not obvious from the API
 reference alone: how the application prevents concurrent writes, how
@@ -8,14 +8,14 @@ troubleshooting section at the end covers the most common local and CI
 issues.
 
 Busy-State Policy
------------------
+~~~~~~~~~~~~~~~~~
 
 The Pull Data operation can take several seconds (one HTTP request per
 survey page, each separated by a 0.5 s delay). Two mechanisms prevent
 overlapping operations from corrupting data or confusing the user.
 
 Client-Side Guard
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 ``dashboard.js`` maintains a module-level ``isPulling`` flag:
 
@@ -33,7 +33,7 @@ This prevents a page reload from interrupting an in-flight scrape and
 stops double-clicks from launching concurrent pulls.
 
 Server-Side Transaction
-~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^
 
 ``pull_data()`` opens a single psycopg connection in **transaction mode**
 (the psycopg v3 default -- ``autocommit`` is *not* enabled). All
@@ -51,14 +51,14 @@ In a multi-worker deployment, PostgreSQL's row-level locking and the
 scrape the same page concurrently.
 
 Idempotency Strategy
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 Pressing **Pull Data** multiple times (or resuming after a partial
 failure) never creates duplicate rows and never leaves the database in an
 inconsistent state.
 
 Insert Idempotency
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 Every ``INSERT`` in ``app.insert_row()`` uses:
 
@@ -72,7 +72,7 @@ the insert and ``cur.rowcount`` returns 0. The caller uses this to
 distinguish new rows from duplicates.
 
 Caught-Up Detection
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 After processing each page, ``pull_data()`` checks
 ``page_inserted == 0``. If an entire page consists of duplicates, the
@@ -82,7 +82,7 @@ all rows are duplicates, and the function returns immediately with an
 "Already up to date" message.
 
 Cleanup Idempotency
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 The two post-insert cleanup functions are also safe to re-run:
 
@@ -94,7 +94,7 @@ The two post-insert cleanup functions are also safe to re-run:
   A second run finds no differences and updates zero rows.
 
 Transaction Rollback
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 If a network or database error occurs partway through a scrape, the
 entire transaction is rolled back. No partial set of rows is committed.
@@ -103,7 +103,7 @@ same pages, relying on ``ON CONFLICT`` to skip any rows that may have
 been committed in a previous successful run.
 
 Uniqueness Keys
----------------
+~~~~~~~~~~~~~~~
 
 The ``applicants`` table enforces uniqueness at two levels:
 
@@ -134,10 +134,10 @@ can represent the same applicant entry.
 is also idempotent.
 
 Troubleshooting
----------------
+~~~~~~~~~~~~~~~
 
 Local Development
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 **PostgreSQL not running or database missing**
 
@@ -194,7 +194,7 @@ Add tests to cover the new lines. Check which lines are uncovered with:
    python3 -m pytest tests/ -v --cov=source --cov-report=term-missing
 
 CI (GitHub Actions)
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 **llama_cpp / huggingface_hub ImportError**
 
