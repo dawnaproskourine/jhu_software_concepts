@@ -6,12 +6,6 @@
 Module 4: Testing and Documentation
 ====================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Pages:
-
-   operations
-
 .. contents::
    :local:
    :depth: 2
@@ -395,3 +389,8 @@ llm_standardizer
 ~~~~~~~~~~~~~~~~~~
 .. automodule:: llm_standardizer
    :members:
+
+.. toctree::
+   :maxdepth: 2
+
+   operations
