@@ -390,4 +390,9 @@ llm_standardizer
 .. automodule:: llm_standardizer
    :members:
 
-.. include:: operations.rst
+.. toctree::
+   :hidden:
+
+   operations
+
+See also: :doc:`operations`
