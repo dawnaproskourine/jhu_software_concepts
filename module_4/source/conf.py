@@ -20,8 +20,15 @@ sys.path.insert(0, os.path.abspath("."))
 
 extensions = ['sphinx.ext.autodoc']
 
-# Mock heavy packages so autodoc works without them installed (e.g. on RTD)
-autodoc_mock_imports = ['llama_cpp', 'huggingface_hub']
+# Mock external packages so autodoc works without them installed (e.g. on RTD)
+autodoc_mock_imports = [
+    'llama_cpp',
+    'huggingface_hub',
+    'psycopg',
+    'psycopg.cursor',
+    'flask',
+    'bs4',
+]
 
 templates_path = ['website/_templates']
 exclude_patterns = []
