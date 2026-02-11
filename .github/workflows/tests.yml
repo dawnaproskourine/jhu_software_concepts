@@ -36,9 +36,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: |
-          pip install flask psycopg beautifulsoup4 requests \
-                    sphinx sphinx-rtd-theme pytest pytest-cov
+        run: pip install -r module_4/requirements.txt
 
       - name: Create applicants table
         run: |
