@@ -9,9 +9,20 @@ module_3/models/
 # Python
 __pycache__/
 *.pyc
+*.egg-info/
+dist/
+build/
+.coverage
+.pytest_cache/
+
+# Environment / secrets
+.env
 
 # Claude Code
 .claude/
+
+# Logs / output
+*.log
 
 # macOS
 .DS_Store

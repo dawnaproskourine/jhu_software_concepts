@@ -15,6 +15,9 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
+# Set a dummy DATABASE_URL so query_data import doesn't warn during doc builds
+os.environ.setdefault("DATABASE_URL", "postgresql://docs@localhost/applicant_data")
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
