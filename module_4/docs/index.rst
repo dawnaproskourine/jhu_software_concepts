@@ -167,9 +167,9 @@ Running with Coverage
 ~~~~~~~~~~~~~~~~~~~~~
 
 Coverage is configured in ``pytest.ini`` (via ``--cov=src
---cov-config=.coveragerc --cov-fail-under=100``) and ``.coveragerc``, which
-omits ``conf.py`` and excludes ``if __name__ == "__main__"`` guard lines.
-The suite enforces **100 % statement coverage**.
+--cov-fail-under=100``) and ``setup.cfg``, which omits ``conf.py`` and
+excludes ``if __name__ == "__main__"`` guard lines. The suite enforces
+**100 % statement coverage**.
 
 .. code-block:: bash
 
