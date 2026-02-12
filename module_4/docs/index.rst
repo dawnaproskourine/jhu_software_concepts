@@ -202,51 +202,52 @@ Run a specific marker:
 Test Files
 ~~~~~~~~~~
 
-====================================  =====  =============================================
-File                                  Tests  What it covers
-====================================  =====  =============================================
-``test_flask_page.py``                19     App setup, page loads, 13 Q&A blocks, buttons,
-                                             tables, ordered lists
-``test_buttons.py``                   11     POST ``/pull-data`` JSON response, onclick
-                                             wiring, JS inclusion, isPulling guard
-``test_analysis_format.py``           9      Question labels, answer rendering, percentage
-                                             formats, all scalar values rendered
-``test_db_insert.py``                 30     ``clean_text``, ``parse_float``,
-                                             ``parse_date``, ``insert_row``, duplicate
-                                             handling, column values, GRE AW cleanup,
-                                             ``run_queries`` keys
-``test_integration_end_to_end.py``    2      Full pipeline: pull data, insert, render
-                                             dashboard; duplicate pull uniqueness
-``test_scrape.py``                    34     ``parse_main_row``, ``parse_detail_row``,
-                                             ``parse_survey``, ``get_max_pages``,
-                                             ``fetch_page``, ``scrape_data``, ``main``;
-                                             edge cases for absolute URLs, empty cells,
-                                             pipe-separated comments, multi-page fetching
-``test_cleanup.py``                   8      ``normalize_uc`` (pure), ``fix_gre_aw`` and
-                                             ``fix_uc_universities`` (DB integration)
-``test_cleanup_main.py``              2      ``cleanup_data.main()`` happy path and DB
-                                             connection error
-``test_robots_checker.py``            5      ``RobotsChecker`` init, exception handling,
-                                             ``can_fetch``, ``get_crawl_delay``
-``test_llm_standardizer.py``          25     ``_read_lines``, ``_split_fallback``,
-                                             ``_best_match``, ``_post_normalize_program``,
-                                             ``_post_normalize_university``, ``_load_llm``
-                                             singleton, ``standardize`` with mocked LLM
-``test_query_main.py``                5      ``query_data.main()`` output, DB error,
-                                             ``DATABASE_URL`` config parsing,
-                                             missing ``DATABASE_URL`` error,
-                                             dependency-injected scraper test
-``test_load_main.py``                 10     ``create_connection`` success/failure,
-                                             ``main()`` DB creation, JSON loading, and
-                                             error paths (missing file, bad JSON,
-                                             executemany failure)
-``test_app_errors.py``                12     Index DB error, ``insert_row`` LLM exception,
-                                             invalid ``max_pages``, DB connect failure,
-                                             network error, DB error during scrape,
-                                             caught-up break, cleanup message, multi-page,
-                                             network error page 2 rollback, cleanup error,
-                                             insert error rollback
-====================================  =====  =============================================
+.. list-table::
+   :header-rows: 1
+   :widths: 30 5 65
+
+   * - File
+     - Tests
+     - What it covers
+   * - ``test_flask_page.py``
+     - 19
+     - App setup, page loads, 13 Q&A blocks, buttons, tables, ordered lists
+   * - ``test_buttons.py``
+     - 11
+     - POST ``/pull-data`` JSON response, onclick wiring, JS inclusion, isPulling guard
+   * - ``test_analysis_format.py``
+     - 9
+     - Question labels, answer rendering, percentage formats, all scalar values rendered
+   * - ``test_db_insert.py``
+     - 30
+     - ``clean_text``, ``parse_float``, ``parse_date``, ``insert_row``, duplicate handling, column values, GRE AW cleanup, ``run_queries`` keys
+   * - ``test_integration_end_to_end.py``
+     - 2
+     - Full pipeline: pull data, insert, render dashboard; duplicate pull uniqueness
+   * - ``test_scrape.py``
+     - 34
+     - ``parse_main_row``, ``parse_detail_row``, ``parse_survey``, ``get_max_pages``, ``fetch_page``, ``scrape_data``, ``main``; edge cases for absolute URLs, empty cells, pipe-separated comments, multi-page fetching
+   * - ``test_cleanup.py``
+     - 8
+     - ``normalize_uc`` (pure), ``fix_gre_aw`` and ``fix_uc_universities`` (DB integration)
+   * - ``test_cleanup_main.py``
+     - 2
+     - ``cleanup_data.main()`` happy path and DB connection error
+   * - ``test_robots_checker.py``
+     - 5
+     - ``RobotsChecker`` init, exception handling, ``can_fetch``, ``get_crawl_delay``
+   * - ``test_llm_standardizer.py``
+     - 25
+     - ``_read_lines``, ``_split_fallback``, ``_best_match``, ``_post_normalize_program``, ``_post_normalize_university``, ``_load_llm`` singleton, ``standardize`` with mocked LLM
+   * - ``test_query_main.py``
+     - 5
+     - ``query_data.main()`` output, DB error, ``DATABASE_URL`` config parsing, missing ``DATABASE_URL`` error, dependency-injected scraper test
+   * - ``test_load_main.py``
+     - 10
+     - ``create_connection`` success/failure, ``main()`` DB creation, JSON loading, and error paths (missing file, bad JSON, executemany failure)
+   * - ``test_app_errors.py``
+     - 12
+     - Index DB error, ``insert_row`` LLM exception, invalid ``max_pages``, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page, network error page 2 rollback, cleanup error, insert error rollback
 
 Database tests require a running PostgreSQL instance and skip automatically if
 unavailable.
