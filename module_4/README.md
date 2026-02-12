@@ -13,8 +13,8 @@ Full documentation is hosted on Read the Docs: https://python-software-concepts.
 - [Main documentation](https://python-software-concepts.readthedocs.io/en/latest/) — architecture, setup, test suite, API reference
 - [Operational Notes](https://python-software-concepts.readthedocs.io/en/latest/operations.html) — busy-state policy, idempotency strategy, uniqueness keys, troubleshooting
 
-Module 4 adds Sphinx-based documentation and a `tests/` directory. Sphinx configuration lives in `source/conf.py`
-and the documentation entry point is `source/index.rst`.
+Module 4 adds Sphinx-based documentation and a `tests/` directory. Sphinx configuration lives in `docs/conf.py`
+and the documentation entry point is `docs/index.rst`.
 
 ### Building Docs
 
@@ -24,18 +24,18 @@ From `module_4/`:
 make html
 ```
 
-Output is generated in the `build/` directory.
+Output is generated in the `docs/build/` directory.
 
 ## Running from module_4
 
-All source files live under `source/`. Set `DATABASE_URL` first, then run from the `module_4/` directory:
+All source files live under `src/`. Set `DATABASE_URL` first, then run from the `module_4/` directory:
 
 ```bash
 export DATABASE_URL="postgresql://myuser@localhost:5432/applicant_data"
-python3 source/load_data.py
-python3 source/app.py
-python3 source/query_data.py
-python3 source/cleanup_data.py
+python3 src/load_data.py
+python3 src/app.py
+python3 src/query_data.py
+python3 src/cleanup_data.py
 ```
 
 ## load_data.py
@@ -68,7 +68,7 @@ if the variable is not set, and database connections will fail at runtime.
 ### Running
 
 ```bash
-python3 source/app.py
+python3 src/app.py
 ```
 
 Visit `http://localhost:8080` in a browser.
@@ -114,7 +114,7 @@ Shared analysis queries used by both the Flask dashboard and CLI. Exports `DB_CO
 parameters and `run_queries()` which returns all analysis results as a dictionary.
 
 ```bash
-python3 source/query_data.py  # Run standalone to print results to console
+python3 src/query_data.py  # Run standalone to print results to console
 ```
 
 ## llm_standardizer.py
@@ -140,7 +140,7 @@ Data quality cleanup script that fixes:
 script can still be run manually for one-time bulk cleanup:
 
 ```bash
-python3 source/cleanup_data.py
+python3 src/cleanup_data.py
 ```
 
 ## scrape.py
@@ -153,12 +153,15 @@ GradCafe web scraper that extracts applicant data from thegradcafe.com/survey. R
 ```
 module_4/
 ├── Makefile                                # Sphinx build commands
-├── make.bat                                # Sphinx build commands (Windows)
 ├── README.md
 ├── requirements.txt
 ├── pytest.ini                              # pytest configuration (markers, coverage)
 ├── .coveragerc                             # Coverage exclusions (conf.py, __main__ guards)
-├── build/                                  # Sphinx-generated documentation output
+├── docs/
+│   ├── conf.py                             # Sphinx configuration
+│   ├── index.rst                           # Sphinx documentation entry point
+│   ├── operations.rst                      # Operational notes page
+│   └── build/                              # Sphinx-generated documentation output
 ├── tests/
 │   ├── conftest.py                         # Shared fixtures (client, db_conn)
 │   ├── test_flask_page.py                  # Page rendering tests
@@ -174,9 +177,7 @@ module_4/
 │   ├── test_query_main.py                  # query_data.main() tests
 │   ├── test_load_main.py                   # load_data.main() tests
 │   └── test_app_errors.py                  # App error handling tests
-├── source/
-│   ├── conf.py                             # Sphinx configuration
-│   ├── index.rst                           # Sphinx documentation entry point
+├── src/
 │   ├── app.py                              # Flask application
 │   ├── query_data.py                       # Analysis queries (shared by app.py and CLI)
 │   ├── load_data.py                        # Initial database loader (JSON → PostgreSQL)
@@ -223,7 +224,7 @@ Set `DATABASE_URL` before running tests so DB tests can connect:
 ```bash
 export DATABASE_URL="postgresql://myuser@localhost:5432/applicant_data"
 python3 -m pytest tests/ -v
-python3 -m pytest tests/ -v --cov=source --cov-report=term-missing   # with coverage
+python3 -m pytest tests/ -v --cov=src --cov-report=term-missing   # with coverage
 python3 -m pytest tests/ -m web -v                                    # by marker
 ```
 

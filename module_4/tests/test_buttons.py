@@ -117,7 +117,7 @@ def test_dashboard_js_script_tag(client):
 def _read_js():
     js_path = os.path.join(
         os.path.dirname(__file__), os.pardir,
-        "source", "website", "_static", "dashboard.js",
+        "src", "website", "_static", "dashboard.js",
     )
     with open(js_path) as f:
         return f.read()

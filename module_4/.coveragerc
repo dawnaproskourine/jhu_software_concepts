@@ -1,5 +1,5 @@
 [run]
-omit = source/conf.py
+omit = docs/conf.py
 
 [report]
 exclude_lines =

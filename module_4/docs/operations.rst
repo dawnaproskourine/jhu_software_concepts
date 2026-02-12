@@ -160,7 +160,7 @@ Or run the initial loader, which creates the database automatically:
 
 .. code-block:: bash
 
-   python3 source/load_data.py
+   python3 src/load_data.py
 
 **DB tests skipped locally**
 
@@ -195,7 +195,7 @@ Add tests to cover the new lines. Check which lines are uncovered with:
 
 .. code-block:: bash
 
-   python3 -m pytest tests/ -v --cov=source --cov-report=term-missing
+   python3 -m pytest tests/ -v --cov=src --cov-report=term-missing
 
 CI (GitHub Actions)
 ~~~~~~~~~~~~~~~~~~~
@@ -229,7 +229,7 @@ to match. Symptoms: ``psycopg.errors.UndefinedColumn`` in DB tests.
 
 **pytest.ini coverage path**
 
-``pytest.ini`` uses ``--cov=source``, which resolves relative to
+``pytest.ini`` uses ``--cov=src``, which resolves relative to
 ``working-directory: module_4`` set in the workflow. If the working
 directory changes, coverage collection will silently report 0 % and the
 ``--cov-fail-under=100`` check will fail.

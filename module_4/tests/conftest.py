@@ -8,9 +8,9 @@ from decimal import Decimal
 import pytest
 
 # ---------------------------------------------------------------------------
-# Path setup – make ``module_4/source/`` importable
+# Path setup – make ``module_4/src/`` importable
 # ---------------------------------------------------------------------------
-SOURCE_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "source")
+SOURCE_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "src")
 SOURCE_DIR = os.path.abspath(SOURCE_DIR)
 if SOURCE_DIR not in sys.path:
     sys.path.insert(0, SOURCE_DIR)
