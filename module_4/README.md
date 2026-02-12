@@ -2,7 +2,7 @@
 ### Name: Dawna Jones Proskourine
 ### Hopkins ID: 2356B8
 ### Course: EN.605.256.82.SP26
-### Module 4 - Testing and Documentation Experiment Assignment
+### Module 4 - Testing and Documentation Assignment
 
 # DESCRIPTION
 
@@ -156,7 +156,7 @@ module_4/
 ├── README.md
 ├── requirements.txt
 ├── pytest.ini                              # pytest configuration (markers, coverage)
-├── .coveragerc                             # Coverage exclusions (conf.py, __main__ guards)
+├── setup.cfg                               # Coverage exclusions (conf.py, __main__ guards)
 ├── docs/
 │   ├── conf.py                             # Sphinx configuration
 │   ├── index.rst                           # Sphinx documentation entry point
@@ -233,7 +233,7 @@ DB and integration tests require a running PostgreSQL instance and skip automati
 
 ### Coverage
 
-Coverage is configured in `pytest.ini` and `.coveragerc`. The suite enforces **100% statement coverage**
+Coverage is configured in `pytest.ini` and `setup.cfg`. The suite enforces **100% statement coverage**
 (`--cov-fail-under=100`). Untestable lines (`if __name__ == "__main__"` guards) and `conf.py` are excluded.
 
 | File | Coverage |
