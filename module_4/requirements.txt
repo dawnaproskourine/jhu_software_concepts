@@ -6,7 +6,6 @@ psycopg>=3.0
 
 # Web scraping
 beautifulsoup4>=4.12
-requests>=2.31
 
 # Sphinx documentation
 sphinx>=7.0

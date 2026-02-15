@@ -213,22 +213,22 @@ Test Files
      - 19
      - App setup, page loads, 13 Q&A blocks, buttons, tables, ordered lists
    * - ``test_buttons.py``
-     - 11
+     - 13
      - POST ``/pull-data`` JSON response, onclick wiring, JS inclusion, isPulling guard
    * - ``test_analysis_format.py``
      - 9
      - Question labels, answer rendering, percentage formats, all scalar values rendered
    * - ``test_db_insert.py``
-     - 30
+     - 29
      - ``clean_text``, ``parse_float``, ``parse_date``, ``insert_row``, duplicate handling, column values, GRE AW cleanup, ``run_queries`` keys
    * - ``test_integration_end_to_end.py``
-     - 2
-     - Full pipeline: pull data, insert, render dashboard; duplicate pull uniqueness
+     - 3
+     - Full pipeline: pull data, insert, render dashboard; duplicate pull uniqueness; update analysis reload
    * - ``test_scrape.py``
      - 34
      - ``parse_main_row``, ``parse_detail_row``, ``parse_survey``, ``get_max_pages``, ``fetch_page``, ``scrape_data``, ``main``; edge cases for absolute URLs, empty cells, pipe-separated comments, multi-page fetching
    * - ``test_cleanup.py``
-     - 8
+     - 9
      - ``normalize_uc`` (pure), ``fix_gre_aw`` and ``fix_uc_universities`` (DB integration)
    * - ``test_cleanup_main.py``
      - 2

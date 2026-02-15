@@ -204,12 +204,12 @@ The `tests/` directory contains 175 pytest tests across thirteen files with mark
 | File | Tests | Marker | What it covers |
 |------|-------|--------|----------------|
 | `test_flask_page.py` | 19 | `web` | App setup, page loads, 13 Q&A blocks, buttons, tables, ordered lists |
-| `test_buttons.py` | 11 | `buttons` | POST `/pull-data` JSON response, onclick wiring, JS inclusion, isPulling guard |
+| `test_buttons.py` | 13 | `buttons` | POST `/pull-data` JSON response, onclick wiring, JS inclusion, isPulling guard |
 | `test_analysis_format.py` | 9 | `analysis` | Question labels, answer rendering, percentage formats, all scalar values rendered |
-| `test_db_insert.py` | 30 | `db` | `clean_text`, `parse_float`, `parse_date`, `insert_row`, duplicate handling, column values, GRE AW cleanup, `run_queries` keys |
-| `test_integration_end_to_end.py` | 2 | `integration` | Full pipeline: pull data, insert, render dashboard; duplicate pull uniqueness |
+| `test_db_insert.py` | 29 | `db` | `clean_text`, `parse_float`, `parse_date`, `insert_row`, duplicate handling, column values, GRE AW cleanup, `run_queries` keys |
+| `test_integration_end_to_end.py` | 3 | `integration` | Full pipeline: pull data, insert, render dashboard; duplicate pull uniqueness; update analysis reload |
 | `test_scrape.py` | 34 | `web` | `parse_main_row`, `parse_detail_row`, `parse_survey`, `get_max_pages`, `fetch_page`, `scrape_data`, `main`; edge cases for absolute URLs, empty cells, pipe-separated comments, multi-page fetching |
-| `test_cleanup.py` | 8 | `db` | `normalize_uc` (pure), `fix_gre_aw` and `fix_uc_universities` (DB integration) |
+| `test_cleanup.py` | 9 | `db` | `normalize_uc` (pure), `fix_gre_aw` and `fix_uc_universities` (DB integration) |
 | `test_cleanup_main.py` | 2 | `db` | `cleanup_data.main()` happy path and DB connection error |
 | `test_robots_checker.py` | 5 | `web` | `RobotsChecker` init, exception handling, `can_fetch`, `get_crawl_delay` |
 | `test_llm_standardizer.py` | 25 | `web` | `_read_lines`, `_split_fallback`, `_best_match`, `_post_normalize_program`, `_post_normalize_university`, `_load_llm` singleton, `standardize` with mocked LLM |
