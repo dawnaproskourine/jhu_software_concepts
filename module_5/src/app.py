@@ -14,10 +14,14 @@ import time
 from datetime import datetime
 from typing import Any
 
+from urllib.error import URLError, HTTPError
+
 from flask import Flask, render_template, jsonify, request, Response
 import psycopg
 from psycopg import OperationalError
 from psycopg.cursor import Cursor
+
+from scrape import fetch_page, parse_survey, get_max_pages
 
 from load_data import clean_text, parse_float
 from query_data import run_queries, DB_CONFIG
@@ -140,18 +144,10 @@ def create_app(testing=False, fetch_page_fn=None,  # pylint: disable=too-many-st
             on error.
         :rtype: flask.Response or tuple[flask.Response, int]
         """
-        # Dependency injection: use provided callables or lazy-import
-        if fetch_page_fn is not None:
-            fetch_page = fetch_page_fn
-            parse_survey = parse_survey_fn
-            get_max_pages = get_max_pages_fn
-        else:
-            from scrape import (  # pylint: disable=import-outside-toplevel
-                fetch_page, parse_survey, get_max_pages,
-            )
-        from urllib.error import (  # pylint: disable=import-outside-toplevel
-            URLError, HTTPError,
-        )
+        # Dependency injection: use provided callables or module-level imports
+        _fetch = fetch_page_fn or fetch_page
+        _parse = parse_survey_fn or parse_survey
+        _maxpg = get_max_pages_fn or get_max_pages
 
         # Validate and get max_pages with bounds checking
         raw_max = (request.json.get("max_pages", 100)
@@ -178,17 +174,17 @@ def create_app(testing=False, fetch_page_fn=None,  # pylint: disable=too-many-st
 
         try:
             # Fetch first page
-            html = fetch_page(base_url)
-            total_pages = get_max_pages(html)
+            html = _fetch(base_url)
+            total_pages = _maxpg(html)
             pages_to_check = min(total_pages, max_pages)
 
             for page_num in range(1, pages_to_check + 1):
                 if page_num > 1:
                     time.sleep(delay)
                     page_url = f"{base_url}?page={page_num}"
-                    html = fetch_page(page_url)
+                    html = _fetch(page_url)
 
-                rows = parse_survey(html)
+                rows = _parse(html)
                 if not rows:
                     break
 

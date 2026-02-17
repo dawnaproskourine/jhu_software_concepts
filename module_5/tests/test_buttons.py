@@ -15,7 +15,6 @@ from conftest import FakePullConn, FakeInsertConn
 def _patch_pull_data(monkeypatch):
     """Apply all monkeypatches needed to call POST /pull-data safely."""
     import app as app_module
-    import scrape
 
     fake_html = "<html><body><table><tbody></tbody></table></body></html>"
 
@@ -23,9 +22,9 @@ def _patch_pull_data(monkeypatch):
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakePullConn())
-    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [])
-    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
+    monkeypatch.setattr(app_module, "fetch_page", lambda url, *a, **kw: fake_html)
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [])
+    monkeypatch.setattr(app_module, "get_max_pages", lambda html: 1)
 
 
 # ---- POST /pull-data ----
@@ -57,7 +56,6 @@ def test_pull_data_no_new_data_message(client, monkeypatch):
 @pytest.mark.buttons
 def test_pull_data_triggers_loader_with_scraped_rows(client, monkeypatch):
     import app as app_module
-    import scrape
 
     fake_html = "<html><body><table><tbody></tbody></table></body></html>"
     fake_row = {
@@ -82,9 +80,9 @@ def test_pull_data_triggers_loader_with_scraped_rows(client, monkeypatch):
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakeInsertConn())
-    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [fake_row])
-    monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
+    monkeypatch.setattr(app_module, "fetch_page", lambda url, *a, **kw: fake_html)
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [fake_row])
+    monkeypatch.setattr(app_module, "get_max_pages", lambda html: 1)
 
     resp = client.post("/pull-data", json={"max_pages": 1})
     assert resp.status_code == 200

@@ -3,6 +3,7 @@
 import logging
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 import psycopg
 from psycopg import Connection, OperationalError
@@ -30,7 +31,6 @@ def _build_db_config():
             '"postgresql://user:pass@localhost:5432/applicant_data"'
         )
         return {}
-    from urllib.parse import urlparse  # pylint: disable=import-outside-toplevel
     parsed = urlparse(url)
     return {
         "dbname": parsed.path.lstrip("/") or "applicant_data",
