@@ -106,7 +106,7 @@ def main() -> None:
     if not conn:
         return
 
-    cursor = conn.cursor()  # pylint: disable=no-member
+    cursor = conn.cursor()
     cursor.execute(
         "SELECT 1 FROM pg_database WHERE datname = %s", (db_name,)
     )
@@ -115,15 +115,14 @@ def main() -> None:
         logger.info("Database %s created", db_name)
     else:
         logger.info("Database %s already exists", db_name)
-    conn.close()  # pylint: disable=no-member
+    conn.close()
 
     # Reconnect to the target database
     conn = create_connection(db_name, db_user, db_host)
     if not conn:
         return
 
-    cursor = conn.cursor()  # pylint: disable=no-member
-
+    cursor = conn.cursor()
     # Create table
     cursor.execute("DROP TABLE IF EXISTS applicants")
     cursor.execute("""
@@ -153,11 +152,11 @@ def main() -> None:
             rows = json.load(f)
     except FileNotFoundError:
         logger.error("JSON file not found: %s", JSON_PATH)
-        conn.close()  # pylint: disable=no-member
+        conn.close()
         return
     except json.JSONDecodeError as e:
         logger.error("Invalid JSON: %s", e)
-        conn.close()  # pylint: disable=no-member
+        conn.close()
         return
 
     try:
@@ -201,7 +200,7 @@ def main() -> None:
         ])
     except psycopg.Error as e:
         logger.error("Database error during insert: %s", e)
-        conn.close()  # pylint: disable=no-member
+        conn.close()
         return
 
     logger.info("Inserted %d rows", len(rows))
@@ -210,8 +209,7 @@ def main() -> None:
     cursor.execute("SELECT COUNT(*) FROM applicants")
     logger.info("Total rows in table: %s", cursor.fetchone()[0])
 
-    conn.close()  # pylint: disable=no-member
-
+    conn.close()
 
 if __name__ == "__main__":
     main()

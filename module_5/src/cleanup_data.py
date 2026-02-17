@@ -120,7 +120,7 @@ def main() -> None:
     logger.info("\n=== Fixing UC university names ===")
     fix_uc_universities(conn)
 
-    conn.close()  # pylint: disable=no-member
+    conn.close()
     logger.info("\nCleanup complete!")
 
 

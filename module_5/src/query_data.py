@@ -239,8 +239,7 @@ def main() -> None:
         return
 
     results = run_queries(conn)
-    conn.close()  # pylint: disable=no-member
-
+    conn.close()
     print(f"Total applicants: {results['total_count']}")
     print(f"Fall 2026 applicants: {results['fall_2026_count']}")
     print(f"International student percentage: "

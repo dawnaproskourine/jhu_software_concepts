@@ -1,5 +1,5 @@
 """Tests for RobotsChecker — robots.txt compliance checker."""
-# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,W0719
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import pytest
 
@@ -24,7 +24,7 @@ def test_init_sets_attributes(monkeypatch):
 @pytest.mark.web
 def test_init_read_exception_warns(monkeypatch, capsys):
     def _raise(self):
-        raise Exception("connection refused")
+        raise OSError("connection refused")
 
     monkeypatch.setattr("urllib.robotparser.RobotFileParser.read", _raise)
     checker = RobotsChecker("https://example.com/")

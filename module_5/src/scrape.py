@@ -331,7 +331,7 @@ def scrape_data(  # pylint: disable=too-many-locals
             all_results.extend(results)
             print(f"Page {page_num}/{pages_to_fetch} - "
                   f"{len(results)} results", file=sys.stderr)
-        except Exception as e:  # pylint: disable=broad-exception-caught
+        except (OSError, ValueError, UnicodeDecodeError) as e:
             print(f"Error fetching page {page_num}: {e}",
                   file=sys.stderr)
             continue

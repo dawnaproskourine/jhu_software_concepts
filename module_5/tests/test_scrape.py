@@ -487,7 +487,7 @@ def test_scrape_data_page_error_continues(monkeypatch):
         pages["n"] += 1
         if pages["n"] == 1:
             return FakeResponse(_TWO_PAGE_HTML_P1)
-        raise RuntimeError("Network error on page 2")
+        raise OSError("Network error on page 2")
 
     monkeypatch.setattr(scrape, "urlopen", _urlopen)
     monkeypatch.setattr(scrape.time, "sleep", lambda d: None)

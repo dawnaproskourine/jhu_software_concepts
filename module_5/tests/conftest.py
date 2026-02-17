@@ -1,4 +1,4 @@
-"""Shared fixtures and mock data for module_4 tests."""
+"""Shared fixtures and mock data for module_5 tests."""
 # pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import os
@@ -9,7 +9,7 @@ from decimal import Decimal
 import pytest
 
 # ---------------------------------------------------------------------------
-# Path setup – make ``module_4/src/`` importable
+# Path setup – make ``module_5/src/`` importable
 # ---------------------------------------------------------------------------
 SOURCE_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "src")
 SOURCE_DIR = os.path.abspath(SOURCE_DIR)
@@ -17,25 +17,18 @@ if SOURCE_DIR not in sys.path:
     sys.path.insert(0, SOURCE_DIR)
 
 # ---------------------------------------------------------------------------
-# Stub heavy LLM packages when they are not installed (CI)
+# Stub heavy LLM packages for tests in CI
 # ---------------------------------------------------------------------------
-if "llama_cpp" not in sys.modules:
-    try:
-        import llama_cpp  # pylint: disable=W0611  # noqa: F401
-    except ModuleNotFoundError:
-        _llama = types.ModuleType("llama_cpp")
-        _llama.Llama = type("Llama", (), {})
-        sys.modules["llama_cpp"] = _llama
 
-if "huggingface_hub" not in sys.modules:
-    try:
-        import huggingface_hub  # pylint: disable=W0611  # noqa: F401
-    except ModuleNotFoundError:
-        _hf = types.ModuleType("huggingface_hub")
-        _hf.hf_hub_download = lambda *a, **kw: ""
-        sys.modules["huggingface_hub"] = _hf
+_llama = types.ModuleType("llama_cpp")
+_llama.Llama = type("Llama", (), {})
+sys.modules["llama_cpp"] = _llama
 
-from query_data import DB_CONFIG  # pylint: disable=C0413  # noqa: E402
+_hf = types.ModuleType("huggingface_hub")
+_hf.hf_hub_download = lambda *a, **kw: ""
+sys.modules["huggingface_hub"] = _hf
+
+from query_data import DB_CONFIG  # pylint: disable=C0413
 
 # ---------------------------------------------------------------------------
 # Mock query data (Decimal values match what psycopg returns from ROUND)

@@ -43,7 +43,7 @@ class RobotsChecker:
 
             # check for crawl delay directive
             self.crawl_delay = self.parser.crawl_delay(user_agent)
-        except Exception as e:  # pylint: disable=broad-exception-caught
+        except (OSError, UnicodeDecodeError) as e:
             print(f"Warning: Could not fetch robots.txt: {e}",
                   file=sys.stderr)
 

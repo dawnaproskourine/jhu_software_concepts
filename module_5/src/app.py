@@ -166,7 +166,7 @@ def create_app(testing=False, fetch_page_fn=None,  # pylint: disable=too-many-st
             logger.error("Database connection failed: %s", e)
             return jsonify({"error": "Database connection failed"}), 500
 
-        cur = conn.cursor()  # pylint: disable=no-member
+        cur = conn.cursor()
 
         total_scraped = 0
         total_inserted = 0
@@ -211,13 +211,13 @@ def create_app(testing=False, fetch_page_fn=None,  # pylint: disable=too-many-st
 
         except (URLError, HTTPError) as e:
             logger.error("Network error during scrape: %s", e)
-            conn.rollback()  # pylint: disable=no-member
-            conn.close()  # pylint: disable=no-member
+            conn.rollback()
+            conn.close()
             return jsonify({"error": f"Network error: {e}"}), 500
         except psycopg.Error as e:
             logger.error("Database error during scrape: %s", e)
-            conn.rollback()  # pylint: disable=no-member
-            conn.close()  # pylint: disable=no-member
+            conn.rollback()
+            conn.close()
             return jsonify({"error": f"Database error: {e}"}), 500
 
         # Run data cleanup if new entries were inserted
@@ -230,12 +230,12 @@ def create_app(testing=False, fetch_page_fn=None,  # pylint: disable=too-many-st
                 cleaned_uc = fix_uc_universities(conn)
             except psycopg.Error as e:
                 logger.error("Cleanup error: %s", e)
-                conn.rollback()  # pylint: disable=no-member
-                conn.close()  # pylint: disable=no-member
+                conn.rollback()
+                conn.close()
                 return jsonify({"error": f"Cleanup error: {e}"}), 500
 
-        conn.commit()  # pylint: disable=no-member
-        conn.close()  # pylint: disable=no-member
+        conn.commit()
+        conn.close()
 
         message = _build_pull_message(
             pages_fetched, total_scraped, total_inserted,
