@@ -48,12 +48,14 @@ def fix_gre_aw(conn: Connection) -> int:
     """
     cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) FROM applicants WHERE gre_aw > 6")
+    count_query = "SELECT COUNT(*) FROM applicants WHERE gre_aw > 6"
+    cur.execute(count_query)
     count = cur.fetchone()[0]
     logger.info("Found %d rows with invalid GRE AW scores (> 6)", count)
 
     if count > 0:
-        cur.execute("UPDATE applicants SET gre_aw = NULL WHERE gre_aw > 6")
+        fix_query = "UPDATE applicants SET gre_aw = NULL WHERE gre_aw > 6"
+        cur.execute(fix_query)
         logger.info("Set %d invalid GRE AW values to NULL", count)
 
     return count
@@ -72,13 +74,14 @@ def fix_uc_universities(conn: Connection) -> int:
     """
     cur = conn.cursor()
 
-    cur.execute("""
+    select_query = """
         SELECT p_id, program, llm_generated_university
         FROM applicants
         WHERE llm_generated_university ILIKE '%University of California%'
            OR llm_generated_university ILIKE '%UC %'
            OR llm_generated_university ILIKE 'Uc %'
-    """)
+    """
+    cur.execute(select_query)
     rows = cur.fetchall()
     logger.info("Found %d UC-related rows to check", len(rows))
 
@@ -90,11 +93,12 @@ def fix_uc_universities(conn: Connection) -> int:
             new_uni = normalize_uc(current_uni or "")
 
         if new_uni and new_uni != current_uni:
-            cur.execute("""
+            update_query = """
                 UPDATE applicants
                 SET llm_generated_university = %s
                 WHERE p_id = %s
-            """, (new_uni, p_id))
+            """
+            cur.execute(update_query, (new_uni, p_id))
             updated += 1
 
     logger.info("Updated %d UC university names to specific campuses",

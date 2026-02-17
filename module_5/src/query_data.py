@@ -44,7 +44,7 @@ def _build_db_config():
 DB_CONFIG: dict[str, Any] = _build_db_config()
 
 
-def run_queries(conn: Connection) -> dict[str, Any]:
+def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many-locals
     """Run all 13 analysis queries and return results as a dict.
 
     :param conn: An open PostgreSQL database connection.
@@ -56,24 +56,27 @@ def run_queries(conn: Connection) -> dict[str, Any]:
     results: dict[str, Any] = {}
 
     # 0. Total applicant count
-    cur.execute("SELECT COUNT(*) FROM applicants")
+    q_total = "SELECT COUNT(*) FROM applicants"
+    cur.execute(q_total)
     results["total_count"] = cur.fetchone()[0]
 
     # 1. Fall 2026 count
-    cur.execute("SELECT COUNT(*) FROM applicants WHERE term = 'Fall 2026'")
+    q_fall = "SELECT COUNT(*) FROM applicants WHERE term = 'Fall 2026'"
+    cur.execute(q_fall)
     results["fall_2026_count"] = cur.fetchone()[0]
 
     # 2. International percentage
-    cur.execute("""
+    q_intl = """
         SELECT ROUND(
             100.0 * COUNT(*) FILTER (WHERE us_or_international = 'International')
             / COUNT(*), 2
         ) FROM applicants
-    """)
+    """
+    cur.execute(q_intl)
     results["international_pct"] = cur.fetchone()[0]
 
     # 3. Average GPA, GRE, GRE V, GRE AW
-    cur.execute("""
+    q_averages = """
         SELECT
             ROUND(AVG(gpa)::numeric, 2),
             ROUND(AVG(gre)::numeric, 2),
@@ -82,7 +85,8 @@ def run_queries(conn: Connection) -> dict[str, Any]:
         FROM applicants
         WHERE gpa IS NOT NULL OR gre IS NOT NULL
               OR gre_v IS NOT NULL OR gre_aw IS NOT NULL
-    """)
+    """
+    cur.execute(q_averages)
     row = cur.fetchone()
     results["avg_gpa"] = row[0]
     results["avg_gre"] = row[1]
@@ -90,47 +94,51 @@ def run_queries(conn: Connection) -> dict[str, Any]:
     results["avg_gre_aw"] = row[3]
 
     # 4. Average GPA of American students in Fall 2026
-    cur.execute("""
+    q_american_gpa = """
         SELECT ROUND(AVG(gpa)::numeric, 2)
         FROM applicants
         WHERE us_or_international = 'American'
           AND term = 'Fall 2026'
           AND gpa IS NOT NULL
-    """)
+    """
+    cur.execute(q_american_gpa)
     results["american_gpa_fall2026"] = cur.fetchone()[0]
 
     # 5. Acceptance percentage for Fall 2026
-    cur.execute("""
+    q_acceptance = """
         SELECT ROUND(
             100.0 * COUNT(*) FILTER (WHERE status ILIKE 'Accepted%%')
             / COUNT(*), 2
         ) FROM applicants
         WHERE term = 'Fall 2026'
-    """)
+    """
+    cur.execute(q_acceptance)
     results["acceptance_pct_fall2026"] = cur.fetchone()[0]
 
     # 6. Average GPA of accepted applicants in Fall 2026
-    cur.execute("""
+    q_accepted_gpa = """
         SELECT ROUND(AVG(gpa)::numeric, 2)
         FROM applicants
         WHERE term = 'Fall 2026'
           AND status ILIKE 'Accepted%%'
           AND gpa IS NOT NULL
-    """)
+    """
+    cur.execute(q_accepted_gpa)
     results["accepted_gpa_fall2026"] = cur.fetchone()[0]
 
     # 7. JHU Masters in Computer Science count
-    cur.execute("""
+    q_jhu = """
         SELECT COUNT(*)
         FROM applicants
         WHERE llm_generated_university ILIKE '%%Hopkins%%'
           AND llm_generated_program ILIKE '%%Computer Science%%'
           AND degree = 'Masters'
-    """)
+    """
+    cur.execute(q_jhu)
     results["jhu_cs_masters"] = cur.fetchone()[0]
 
     # 8. PhD CS acceptances (program field)
-    cur.execute("""
+    q_phd_program = """
         SELECT COUNT(*)
         FROM applicants
         WHERE term ILIKE '%%2026'
@@ -141,11 +149,12 @@ def run_queries(conn: Connection) -> dict[str, Any]:
             OR program ILIKE '%%Massachusetts Institute of Technology%%'
             OR program ILIKE '%%Stanford University%%'
             OR program ILIKE '%%Carnegie Mellon University%%')
-    """)
+    """
+    cur.execute(q_phd_program)
     results["phd_cs_program"] = cur.fetchone()[0]
 
     # 9. PhD CS acceptances (llm fields)
-    cur.execute("""
+    q_phd_llm = """
         SELECT COUNT(*)
         FROM applicants
         WHERE term ILIKE '%%2026'
@@ -158,11 +167,12 @@ def run_queries(conn: Connection) -> dict[str, Any]:
               'Stanford University',
               'Carnegie Mellon University'
           )
-    """)
+    """
+    cur.execute(q_phd_llm)
     results["phd_cs_llm"] = cur.fetchone()[0]
 
     # 10. Top 10 programs for Fall 2026
-    cur.execute("""
+    q_top_programs = """
         SELECT llm_generated_program, COUNT(*) AS num_applicants
         FROM applicants
         WHERE llm_generated_program IS NOT NULL
@@ -171,11 +181,12 @@ def run_queries(conn: Connection) -> dict[str, Any]:
         GROUP BY llm_generated_program
         ORDER BY num_applicants DESC
         LIMIT 10
-    """)
+    """
+    cur.execute(q_top_programs)
     results["top_programs"] = cur.fetchall()
 
     # 11. Top 10 universities for Fall 2026
-    cur.execute("""
+    q_top_unis = """
         SELECT llm_generated_university, COUNT(*) AS num_applicants
         FROM applicants
         WHERE llm_generated_university IS NOT NULL
@@ -184,11 +195,12 @@ def run_queries(conn: Connection) -> dict[str, Any]:
         GROUP BY llm_generated_university
         ORDER BY num_applicants DESC
         LIMIT 10
-    """)
+    """
+    cur.execute(q_top_unis)
     results["top_universities"] = cur.fetchall()
 
     # 12a. Acceptance rate by degree type for Fall 2026
-    cur.execute("""
+    q_rate_degree = """
         SELECT
             degree,
             COUNT(*) AS total,
@@ -202,11 +214,12 @@ def run_queries(conn: Connection) -> dict[str, Any]:
           AND term = 'Fall 2026'
         GROUP BY degree
         ORDER BY degree
-    """)
+    """
+    cur.execute(q_rate_degree)
     results["rate_by_degree"] = cur.fetchall()
 
     # 12b. Acceptance rate by nationality for Fall 2026
-    cur.execute("""
+    q_rate_nationality = """
         SELECT
             us_or_international,
             COUNT(*) AS total,
@@ -220,7 +233,8 @@ def run_queries(conn: Connection) -> dict[str, Any]:
           AND term = 'Fall 2026'
         GROUP BY us_or_international
         ORDER BY us_or_international
-    """)
+    """
+    cur.execute(q_rate_nationality)
     results["rate_by_nationality"] = cur.fetchall()
 
     return results

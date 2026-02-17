@@ -8,7 +8,7 @@ from datetime import datetime, date
 from typing import Any
 
 import psycopg
-from psycopg import Connection, OperationalError
+from psycopg import Connection, OperationalError, sql
 
 from query_data import DB_CONFIG
 
@@ -107,11 +107,13 @@ def main() -> None:
         return
 
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT 1 FROM pg_database WHERE datname = %s", (db_name,)
-    )
+    check_db_query = "SELECT 1 FROM pg_database WHERE datname = %s"
+    cursor.execute(check_db_query, (db_name,))
     if not cursor.fetchone():
-        cursor.execute(f'CREATE DATABASE "{db_name}"')
+        create_db_query = sql.SQL("CREATE DATABASE {}").format(
+            sql.Identifier(db_name)
+        )
+        cursor.execute(create_db_query)
         logger.info("Database %s created", db_name)
     else:
         logger.info("Database %s already exists", db_name)
@@ -124,8 +126,9 @@ def main() -> None:
 
     cursor = conn.cursor()
     # Create table
-    cursor.execute("DROP TABLE IF EXISTS applicants")
-    cursor.execute("""
+    drop_query = "DROP TABLE IF EXISTS applicants"
+    cursor.execute(drop_query)
+    create_table_query = """
         CREATE TABLE applicants (
             p_id SERIAL PRIMARY KEY,
             program TEXT,
@@ -143,7 +146,8 @@ def main() -> None:
             llm_generated_program TEXT,
             llm_generated_university TEXT
         )
-    """)
+    """
+    cursor.execute(create_table_query)
     logger.info("Table 'applicants' ready")
 
     # Load JSON
@@ -159,22 +163,22 @@ def main() -> None:
         conn.close()
         return
 
-    try:
-        cursor.executemany("""
-            INSERT INTO applicants (
-                program, comments, date_added, url, status, term,
-                us_or_international, gpa, gre, gre_v, gre_aw,
-                degree, llm_generated_program, llm_generated_university
-            ) VALUES (
-                %(program)s, %(comments)s, %(date_added)s, %(url)s,
-                %(status)s, %(term)s, %(us_or_international)s,
-                %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s,
-                %(degree)s, %(llm_generated_program)s,
-                %(llm_generated_university)s
-            )
-            ON CONFLICT (url) DO NOTHING
-        """, [
-            {
+    insert_query = """
+        INSERT INTO applicants (
+            program, comments, date_added, url, status, term,
+            us_or_international, gpa, gre, gre_v, gre_aw,
+            degree, llm_generated_program, llm_generated_university
+        ) VALUES (
+            %(program)s, %(comments)s, %(date_added)s, %(url)s,
+            %(status)s, %(term)s, %(us_or_international)s,
+            %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s,
+            %(degree)s, %(llm_generated_program)s,
+            %(llm_generated_university)s
+        )
+        ON CONFLICT (url) DO NOTHING
+    """
+    params_list = [
+        {
                 "program": clean_text(row.get("program", "")),
                 "comments": clean_text(row.get("comments", "")),
                 "date_added": parse_date(row.get("date_added", "")),
@@ -197,7 +201,9 @@ def main() -> None:
                 ),
             }
             for row in rows
-        ])
+    ]
+    try:
+        cursor.executemany(insert_query, params_list)
     except psycopg.Error as e:
         logger.error("Database error during insert: %s", e)
         conn.close()
@@ -206,7 +212,8 @@ def main() -> None:
     logger.info("Inserted %d rows", len(rows))
 
     # Verify
-    cursor.execute("SELECT COUNT(*) FROM applicants")
+    verify_query = "SELECT COUNT(*) FROM applicants"
+    cursor.execute(verify_query)
     logger.info("Total rows in table: %s", cursor.fetchone()[0])
 
     conn.close()

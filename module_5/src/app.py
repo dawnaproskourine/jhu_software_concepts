@@ -66,7 +66,7 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
         llm_university = ""
 
     # Insert row; ON CONFLICT (url) DO NOTHING skips duplicates
-    cur.execute("""
+    query = """
         INSERT INTO applicants (
             program, comments, date_added, url, status, term,
             us_or_international, gpa, gre, gre_v, gre_aw, degree,
@@ -78,7 +78,8 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
             %(llm_program)s, %(llm_university)s
         )
         ON CONFLICT (url) DO NOTHING
-    """, {
+    """
+    params = {
         "program": program_text,
         "comments": clean_text(row.get("comments", "")),
         "date_added": date_val,
@@ -93,7 +94,8 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
         "degree": clean_text(row.get("Degree", "")),
         "llm_program": llm_program,
         "llm_university": llm_university,
-    })
+    }
+    cur.execute(query, params)
     return cur.rowcount > 0
 
 
