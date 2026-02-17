@@ -26,6 +26,37 @@ make html
 
 Output is generated in the `docs/build/` directory.
 
+## Fresh Install
+
+All commands are run from the `module_5/` directory.
+
+### Option A: pip
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev,docs]"
+```
+
+### Option B: uv
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -e ".[dev,docs]"
+```
+
+Both methods install the runtime dependencies (Flask, psycopg, beautifulsoup4,
+llama-cpp-python, huggingface-hub) plus dev tools (pytest, pytest-cov, pylint,
+pydeps) and docs tools (sphinx, sphinx-rtd-theme).
+
+To install only the runtime dependencies, omit the extras:
+
+```bash
+pip install -e .        # pip
+uv pip install -e .     # uv
+```
+
 ## Running from module_5
 
 All source files live under `src/`. Set `DATABASE_URL` first, then run from the `module_5/` directory:
