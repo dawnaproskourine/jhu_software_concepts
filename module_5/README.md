@@ -6,26 +6,6 @@
 
 # DESCRIPTION
 
-## Sphinx Documentation
-
-Full documentation is hosted on Read the Docs: https://python-software-concepts.readthedocs.io/en/latest/
-
-- [Main documentation](https://python-software-concepts.readthedocs.io/en/latest/) — architecture, setup, test suite, API reference
-- [Operational Notes](https://python-software-concepts.readthedocs.io/en/latest/operations.html) — busy-state policy, idempotency strategy, uniqueness keys, troubleshooting
-
-Module 5 adds Sphinx-based documentation and a `tests/` directory. Sphinx configuration lives in `docs/conf.py`
-and the documentation entry point is `docs/index.rst`.
-
-### Building Docs
-
-From `module_5/`:
-
-```bash
-make html
-```
-
-Output is generated in the `docs/build/` directory.
-
 ## Fresh Install
 
 All commands are run from the `module_5/` directory.
@@ -35,7 +15,7 @@ All commands are run from the `module_5/` directory.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,docs]"
+pip install -e ".[dev]"
 ```
 
 ### Option B: uv
@@ -43,12 +23,11 @@ pip install -e ".[dev,docs]"
 ```bash
 uv venv
 source .venv/bin/activate
-uv pip install -e ".[dev,docs]"
+uv pip install -e ".[dev]"
 ```
 
 Both methods install the runtime dependencies (Flask, psycopg, beautifulsoup4)
-plus dev tools (pytest, pytest-cov, pylint, pydeps) and docs tools (sphinx,
-sphinx-rtd-theme).
+plus dev tools (pytest, pytest-cov, pylint, pydeps).
 
 To install only the runtime dependencies, omit the extras:
 
@@ -85,7 +64,7 @@ Q&A-style dashboard. Queries are defined in `query_data.py` and shared between t
 - Python 3
 - PostgreSQL running locally with the `applicant_data` database populated (via `load_data.py`)
 - Database environment variables set (see Database Configuration below)
-- Required packages: `pip install -r requirements.txt` (Flask, psycopg, beautifulsoup4, sphinx, pytest, pylint, pydeps)
+- Required packages: `pip install -r requirements.txt` (Flask, psycopg, beautifulsoup4, pytest, pylint, pydeps)
 
 ### Database Configuration
 
@@ -243,16 +222,10 @@ GradCafe web scraper that extracts applicant data from thegradcafe.com/survey. R
 ```
 module_5/
 ├── .env.example                            # Environment variable template (not committed)
-├── Makefile                                # Sphinx build commands
 ├── README.md
 ├── requirements.txt
 ├── pytest.ini                              # pytest configuration (markers, coverage)
-├── setup.cfg                               # Coverage exclusions (conf.py, __main__ guards)
-├── docs/
-│   ├── conf.py                             # Sphinx configuration
-│   ├── index.rst                           # Sphinx documentation entry point
-│   ├── operations.rst                      # Operational notes page
-│   └── build/                              # Sphinx-generated documentation output
+├── setup.cfg                               # Coverage exclusions (__main__ guards)
 ├── tests/
 │   ├── conftest.py                         # Shared fixtures (client, db_conn)
 │   ├── test_flask_page.py                  # Page rendering tests
@@ -322,7 +295,7 @@ DB and integration tests require a running PostgreSQL instance and skip automati
 ### Coverage
 
 Coverage is configured in `pytest.ini` and `setup.cfg`. The suite enforces **100% statement coverage**
-(`--cov-fail-under=100`). Untestable lines (`if __name__ == "__main__"` guards) and `conf.py` are excluded.
+(`--cov-fail-under=100`). Untestable lines (`if __name__ == "__main__"` guards) are excluded.
 
 | File | Coverage |
 |------|----------|
@@ -342,10 +315,10 @@ transport level by patching `scrape.urlopen` with a `FakeResponse` stub.
 
 ### Pylint
 
-All Python files (source, tests, and docs) score **10.00/10** with pylint. From `module_5/`:
+All Python files (source and tests) score **10.00/10** with pylint. From `module_5/`:
 
 ```bash
-PYTHONPATH=src pylint src/*.py tests/*.py docs/conf.py
+PYTHONPATH=src pylint src/*.py tests/*.py
 ```
 
 Output:
@@ -379,5 +352,3 @@ All Python files follow these practices:
 * https://flask.palletsprojects.com/
 * https://www.psycopg.org/psycopg3/docs/
 * https://realpython.com/pytest-python-testing/
-* https://www.docslikecode.com/learn/01-sphinx-python-rtd/
-* https://www.sphinx-doc.org/en/master/
