@@ -13,7 +13,7 @@ import re
 import psycopg
 from psycopg import Connection, OperationalError, sql
 
-from query_data import DB_CONFIG
+from query_data import DB_CONFIG, MAX_QUERY_LIMIT
 from llm_standardizer import UC_CAMPUS_PATTERNS
 
 # Configure logging
@@ -49,10 +49,11 @@ def fix_gre_aw(conn: Connection) -> int:
     cur = conn.cursor()
 
     gre_aw_max = 6
+    agg_limit = min(1, MAX_QUERY_LIMIT)
     count_query = sql.SQL(
-        "SELECT COUNT(*) FROM {} WHERE {} > %s"
+        "SELECT COUNT(*) FROM {} WHERE {} > %s LIMIT %s"
     ).format(sql.Identifier("applicants"), sql.Identifier("gre_aw"))
-    cur.execute(count_query, (gre_aw_max,))
+    cur.execute(count_query, (gre_aw_max, agg_limit))
     count = cur.fetchone()[0]
     logger.info("Found %d rows with invalid GRE AW scores (> 6)", count)
 
@@ -91,13 +92,16 @@ def fix_uc_universities(conn: Connection) -> int:
         WHERE {llm_uni} ILIKE %s
            OR {llm_uni} ILIKE %s
            OR {llm_uni} ILIKE %s
+        LIMIT %s
     """).format(
         p_id=sql.Identifier("p_id"),
         program=sql.Identifier("program"),
         llm_uni=sql.Identifier("llm_generated_university"),
         table=sql.Identifier("applicants"),
     )
-    cur.execute(select_query, (uc_pattern1, uc_pattern2, uc_pattern3))
+    row_limit = MAX_QUERY_LIMIT
+    cur.execute(select_query, (uc_pattern1, uc_pattern2, uc_pattern3,
+                               row_limit))
     rows = cur.fetchall()
     logger.info("Found %d UC-related rows to check", len(rows))
 

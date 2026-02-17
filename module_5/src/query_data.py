@@ -43,6 +43,8 @@ def _build_db_config():
 
 DB_CONFIG: dict[str, Any] = _build_db_config()
 
+MAX_QUERY_LIMIT = 1000
+
 
 def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many-locals,too-many-statements
     """Run all 13 analysis queries and return results as a dict.
@@ -54,21 +56,24 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
     """
     cur = conn.cursor()
     results: dict[str, Any] = {}
+    agg_limit = min(1, MAX_QUERY_LIMIT)
 
     # 0. Total applicant count
-    q_total = sql.SQL("SELECT COUNT(*) FROM {}").format(
+    q_total = sql.SQL("SELECT COUNT(*) FROM {} LIMIT %s").format(
         sql.Identifier("applicants"),
     )
-    cur.execute(q_total)
+    cur.execute(q_total, (agg_limit,))
     results["total_count"] = cur.fetchone()[0]
 
     # 1. Fall 2026 count
     fall_term = "Fall 2026"
-    q_fall = sql.SQL("SELECT COUNT(*) FROM {} WHERE {} = %s").format(
+    q_fall = sql.SQL(
+        "SELECT COUNT(*) FROM {} WHERE {} = %s LIMIT %s"
+    ).format(
         sql.Identifier("applicants"),
         sql.Identifier("term"),
     )
-    cur.execute(q_fall, (fall_term,))
+    cur.execute(q_fall, (fall_term, agg_limit))
     results["fall_2026_count"] = cur.fetchone()[0]
 
     # 2. International percentage
@@ -77,12 +82,12 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
         SELECT ROUND(
             100.0 * COUNT(*) FILTER (WHERE {} = %s)
             / COUNT(*), 2
-        ) FROM {}
+        ) FROM {} LIMIT %s
     """).format(
         sql.Identifier("us_or_international"),
         sql.Identifier("applicants"),
     )
-    cur.execute(q_intl, (international,))
+    cur.execute(q_intl, (international, agg_limit))
     results["international_pct"] = cur.fetchone()[0]
 
     # 3. Average GPA, GRE, GRE V, GRE AW
@@ -95,6 +100,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
         FROM {table}
         WHERE {gpa} IS NOT NULL OR {gre} IS NOT NULL
               OR {gre_v} IS NOT NULL OR {gre_aw} IS NOT NULL
+        LIMIT %s
     """).format(
         gpa=sql.Identifier("gpa"),
         gre=sql.Identifier("gre"),
@@ -102,7 +108,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
         gre_aw=sql.Identifier("gre_aw"),
         table=sql.Identifier("applicants"),
     )
-    cur.execute(q_averages)
+    cur.execute(q_averages, (agg_limit,))
     row = cur.fetchone()
     results["avg_gpa"] = row[0]
     results["avg_gre"] = row[1]
@@ -117,13 +123,14 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
         WHERE {nationality} = %s
           AND {term} = %s
           AND {gpa} IS NOT NULL
+        LIMIT %s
     """).format(
         gpa=sql.Identifier("gpa"),
         table=sql.Identifier("applicants"),
         nationality=sql.Identifier("us_or_international"),
         term=sql.Identifier("term"),
     )
-    cur.execute(q_american_gpa, (american, fall_term))
+    cur.execute(q_american_gpa, (american, fall_term, agg_limit))
     results["american_gpa_fall2026"] = cur.fetchone()[0]
 
     # 5. Acceptance percentage for Fall 2026
@@ -134,12 +141,13 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
             / COUNT(*), 2
         ) FROM {table}
         WHERE {term} = %s
+        LIMIT %s
     """).format(
         status=sql.Identifier("status"),
         table=sql.Identifier("applicants"),
         term=sql.Identifier("term"),
     )
-    cur.execute(q_acceptance, (accepted_pattern, fall_term))
+    cur.execute(q_acceptance, (accepted_pattern, fall_term, agg_limit))
     results["acceptance_pct_fall2026"] = cur.fetchone()[0]
 
     # 6. Average GPA of accepted applicants in Fall 2026
@@ -149,13 +157,14 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
         WHERE {term} = %s
           AND {status} ILIKE %s
           AND {gpa} IS NOT NULL
+        LIMIT %s
     """).format(
         gpa=sql.Identifier("gpa"),
         table=sql.Identifier("applicants"),
         term=sql.Identifier("term"),
         status=sql.Identifier("status"),
     )
-    cur.execute(q_accepted_gpa, (fall_term, accepted_pattern))
+    cur.execute(q_accepted_gpa, (fall_term, accepted_pattern, agg_limit))
     results["accepted_gpa_fall2026"] = cur.fetchone()[0]
 
     # 7. JHU Masters in Computer Science count
@@ -168,13 +177,14 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
         WHERE {llm_uni} ILIKE %s
           AND {llm_prog} ILIKE %s
           AND {degree} = %s
+        LIMIT %s
     """).format(
         table=sql.Identifier("applicants"),
         llm_uni=sql.Identifier("llm_generated_university"),
         llm_prog=sql.Identifier("llm_generated_program"),
         degree=sql.Identifier("degree"),
     )
-    cur.execute(q_jhu, (hopkins_pattern, cs_pattern, masters))
+    cur.execute(q_jhu, (hopkins_pattern, cs_pattern, masters, agg_limit))
     results["jhu_cs_masters"] = cur.fetchone()[0]
 
     # 8. PhD CS acceptances (program field)
@@ -195,6 +205,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
             OR {program} ILIKE %s
             OR {program} ILIKE %s
             OR {program} ILIKE %s)
+        LIMIT %s
     """).format(
         table=sql.Identifier("applicants"),
         term=sql.Identifier("term"),
@@ -205,6 +216,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
     cur.execute(q_phd_program, (
         term_2026, accepted_pattern, phd, cs_pattern,
         georgetown_pattern, mit_pattern, stanford_pattern, cmu_pattern,
+        agg_limit,
     ))
     results["phd_cs_program"] = cur.fetchone()[0]
 
@@ -221,6 +233,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
           AND {degree} = %s
           AND {llm_prog} ILIKE %s
           AND {llm_uni} IN (%s, %s, %s, %s)
+        LIMIT %s
     """).format(
         table=sql.Identifier("applicants"),
         term=sql.Identifier("term"),
@@ -232,12 +245,13 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
     cur.execute(q_phd_llm, (
         term_2026, accepted_pattern, phd, cs_pattern,
         georgetown, mit, stanford, cmu,
+        agg_limit,
     ))
     results["phd_cs_llm"] = cur.fetchone()[0]
 
     # 10. Top 10 programs for Fall 2026
     empty = ""
-    top_limit = 10
+    top_limit = min(10, MAX_QUERY_LIMIT)
     q_top_programs = sql.SQL("""
         SELECT {llm_prog}, COUNT(*) AS {alias}
         FROM {table}
@@ -291,6 +305,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
           AND {term} = %s
         GROUP BY {degree}
         ORDER BY {degree}
+        LIMIT %s
     """).format(
         degree=sql.Identifier("degree"),
         total=sql.Identifier("total"),
@@ -300,9 +315,11 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
         table=sql.Identifier("applicants"),
         term=sql.Identifier("term"),
     )
+    group_limit = min(10, MAX_QUERY_LIMIT)
     cur.execute(q_rate_degree, (
         accepted_pattern, accepted_pattern,
         masters, phd, psyd, fall_term,
+        group_limit,
     ))
     results["rate_by_degree"] = cur.fetchall()
 
@@ -321,6 +338,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
           AND {term} = %s
         GROUP BY {nationality}
         ORDER BY {nationality}
+        LIMIT %s
     """).format(
         nationality=sql.Identifier("us_or_international"),
         total=sql.Identifier("total"),
@@ -333,6 +351,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
     cur.execute(q_rate_nationality, (
         accepted_pattern, accepted_pattern,
         american, international, fall_term,
+        group_limit,
     ))
     results["rate_by_nationality"] = cur.fetchall()
 

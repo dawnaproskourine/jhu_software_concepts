@@ -11,7 +11,7 @@ from typing import Any
 import psycopg
 from psycopg import Connection, OperationalError, sql
 
-from query_data import DB_CONFIG
+from query_data import DB_CONFIG, MAX_QUERY_LIMIT
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 JSON_PATH = os.path.join(_DIR, "llm_extended_applicant_data.json")
@@ -108,11 +108,12 @@ def main() -> None:  # pylint: disable=too-many-locals
         return
 
     cursor = conn.cursor()
-    check_db_query = sql.SQL("SELECT 1 FROM {} WHERE {} = %s").format(
+    agg_limit = min(1, MAX_QUERY_LIMIT)
+    check_db_query = sql.SQL("SELECT 1 FROM {} WHERE {} = %s LIMIT %s").format(
         sql.Identifier("pg_database"),
         sql.Identifier("datname"),
     )
-    cursor.execute(check_db_query, (db_name,))
+    cursor.execute(check_db_query, (db_name, agg_limit))
     if not cursor.fetchone():
         create_db_query = sql.SQL("CREATE DATABASE {}").format(
             sql.Identifier(db_name)
@@ -218,10 +219,10 @@ def main() -> None:  # pylint: disable=too-many-locals
     logger.info("Inserted %d rows", len(rows))
 
     # Verify
-    verify_query = sql.SQL("SELECT COUNT(*) FROM {}").format(
+    verify_query = sql.SQL("SELECT COUNT(*) FROM {} LIMIT %s").format(
         sql.Identifier("applicants"),
     )
-    cursor.execute(verify_query)
+    cursor.execute(verify_query, (agg_limit,))
     logger.info("Total rows in table: %s", cursor.fetchone()[0])
 
     conn.close()
