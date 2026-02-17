@@ -11,7 +11,7 @@ import logging
 import re
 
 import psycopg
-from psycopg import Connection, OperationalError
+from psycopg import Connection, OperationalError, sql
 
 from query_data import DB_CONFIG
 from llm_standardizer import UC_CAMPUS_PATTERNS
@@ -48,15 +48,23 @@ def fix_gre_aw(conn: Connection) -> int:
     """
     cur = conn.cursor()
 
-    count_query = "SELECT COUNT(*) FROM applicants WHERE gre_aw > 6"
-    cur.execute(count_query)
+    gre_aw_max = 6
+    count_query = sql.SQL(
+        "SELECT COUNT(*) FROM {} WHERE {} > %s"
+    ).format(sql.Identifier("applicants"), sql.Identifier("gre_aw"))
+    cur.execute(count_query, (gre_aw_max,))
     count = cur.fetchone()[0]
     logger.info("Found %d rows with invalid GRE AW scores (> 6)", count)
 
     if count > 0:
-        fix_query = "UPDATE applicants SET gre_aw = NULL WHERE gre_aw > 6"
-        cur.execute(fix_query)
-        logger.info("Set %d invalid GRE AW values to NULL", count)
+        fix_query = sql.SQL(
+            "UPDATE {} SET {} = NULL WHERE {} > %s"
+        ).format(
+            sql.Identifier("applicants"),
+            sql.Identifier("gre_aw"),
+            sql.Identifier("gre_aw"),
+        )
+        cur.execute(fix_query, (gre_aw_max,))
 
     return count
 
@@ -74,14 +82,22 @@ def fix_uc_universities(conn: Connection) -> int:
     """
     cur = conn.cursor()
 
-    select_query = """
-        SELECT p_id, program, llm_generated_university
-        FROM applicants
-        WHERE llm_generated_university ILIKE '%University of California%'
-           OR llm_generated_university ILIKE '%UC %'
-           OR llm_generated_university ILIKE 'Uc %'
-    """
-    cur.execute(select_query)
+    uc_pattern1 = "%University of California%"
+    uc_pattern2 = "%UC %"
+    uc_pattern3 = "Uc %"
+    select_query = sql.SQL("""
+        SELECT {p_id}, {program}, {llm_uni}
+        FROM {table}
+        WHERE {llm_uni} ILIKE %s
+           OR {llm_uni} ILIKE %s
+           OR {llm_uni} ILIKE %s
+    """).format(
+        p_id=sql.Identifier("p_id"),
+        program=sql.Identifier("program"),
+        llm_uni=sql.Identifier("llm_generated_university"),
+        table=sql.Identifier("applicants"),
+    )
+    cur.execute(select_query, (uc_pattern1, uc_pattern2, uc_pattern3))
     rows = cur.fetchall()
     logger.info("Found %d UC-related rows to check", len(rows))
 
@@ -93,11 +109,15 @@ def fix_uc_universities(conn: Connection) -> int:
             new_uni = normalize_uc(current_uni or "")
 
         if new_uni and new_uni != current_uni:
-            update_query = """
-                UPDATE applicants
-                SET llm_generated_university = %s
-                WHERE p_id = %s
-            """
+            update_query = sql.SQL("""
+                UPDATE {table}
+                SET {llm_uni} = %s
+                WHERE {p_id} = %s
+            """).format(
+                table=sql.Identifier("applicants"),
+                llm_uni=sql.Identifier("llm_generated_university"),
+                p_id=sql.Identifier("p_id"),
+            )
             cur.execute(update_query, (new_uni, p_id))
             updated += 1
 

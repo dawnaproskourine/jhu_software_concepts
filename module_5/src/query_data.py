@@ -6,7 +6,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import psycopg
-from psycopg import Connection, OperationalError
+from psycopg import Connection, OperationalError, sql
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -44,7 +44,7 @@ def _build_db_config():
 DB_CONFIG: dict[str, Any] = _build_db_config()
 
 
-def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many-locals
+def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many-locals,too-many-statements
     """Run all 13 analysis queries and return results as a dict.
 
     :param conn: An open PostgreSQL database connection.
@@ -56,36 +56,52 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
     results: dict[str, Any] = {}
 
     # 0. Total applicant count
-    q_total = "SELECT COUNT(*) FROM applicants"
+    q_total = sql.SQL("SELECT COUNT(*) FROM {}").format(
+        sql.Identifier("applicants"),
+    )
     cur.execute(q_total)
     results["total_count"] = cur.fetchone()[0]
 
     # 1. Fall 2026 count
-    q_fall = "SELECT COUNT(*) FROM applicants WHERE term = 'Fall 2026'"
-    cur.execute(q_fall)
+    fall_term = "Fall 2026"
+    q_fall = sql.SQL("SELECT COUNT(*) FROM {} WHERE {} = %s").format(
+        sql.Identifier("applicants"),
+        sql.Identifier("term"),
+    )
+    cur.execute(q_fall, (fall_term,))
     results["fall_2026_count"] = cur.fetchone()[0]
 
     # 2. International percentage
-    q_intl = """
+    international = "International"
+    q_intl = sql.SQL("""
         SELECT ROUND(
-            100.0 * COUNT(*) FILTER (WHERE us_or_international = 'International')
+            100.0 * COUNT(*) FILTER (WHERE {} = %s)
             / COUNT(*), 2
-        ) FROM applicants
-    """
-    cur.execute(q_intl)
+        ) FROM {}
+    """).format(
+        sql.Identifier("us_or_international"),
+        sql.Identifier("applicants"),
+    )
+    cur.execute(q_intl, (international,))
     results["international_pct"] = cur.fetchone()[0]
 
     # 3. Average GPA, GRE, GRE V, GRE AW
-    q_averages = """
+    q_averages = sql.SQL("""
         SELECT
-            ROUND(AVG(gpa)::numeric, 2),
-            ROUND(AVG(gre)::numeric, 2),
-            ROUND(AVG(gre_v)::numeric, 2),
-            ROUND(AVG(gre_aw)::numeric, 2)
-        FROM applicants
-        WHERE gpa IS NOT NULL OR gre IS NOT NULL
-              OR gre_v IS NOT NULL OR gre_aw IS NOT NULL
-    """
+            ROUND(AVG({gpa})::numeric, 2),
+            ROUND(AVG({gre})::numeric, 2),
+            ROUND(AVG({gre_v})::numeric, 2),
+            ROUND(AVG({gre_aw})::numeric, 2)
+        FROM {table}
+        WHERE {gpa} IS NOT NULL OR {gre} IS NOT NULL
+              OR {gre_v} IS NOT NULL OR {gre_aw} IS NOT NULL
+    """).format(
+        gpa=sql.Identifier("gpa"),
+        gre=sql.Identifier("gre"),
+        gre_v=sql.Identifier("gre_v"),
+        gre_aw=sql.Identifier("gre_aw"),
+        table=sql.Identifier("applicants"),
+    )
     cur.execute(q_averages)
     row = cur.fetchone()
     results["avg_gpa"] = row[0]
@@ -94,147 +110,230 @@ def run_queries(conn: Connection) -> dict[str, Any]:  # pylint: disable=too-many
     results["avg_gre_aw"] = row[3]
 
     # 4. Average GPA of American students in Fall 2026
-    q_american_gpa = """
-        SELECT ROUND(AVG(gpa)::numeric, 2)
-        FROM applicants
-        WHERE us_or_international = 'American'
-          AND term = 'Fall 2026'
-          AND gpa IS NOT NULL
-    """
-    cur.execute(q_american_gpa)
+    american = "American"
+    q_american_gpa = sql.SQL("""
+        SELECT ROUND(AVG({gpa})::numeric, 2)
+        FROM {table}
+        WHERE {nationality} = %s
+          AND {term} = %s
+          AND {gpa} IS NOT NULL
+    """).format(
+        gpa=sql.Identifier("gpa"),
+        table=sql.Identifier("applicants"),
+        nationality=sql.Identifier("us_or_international"),
+        term=sql.Identifier("term"),
+    )
+    cur.execute(q_american_gpa, (american, fall_term))
     results["american_gpa_fall2026"] = cur.fetchone()[0]
 
     # 5. Acceptance percentage for Fall 2026
-    q_acceptance = """
+    accepted_pattern = "Accepted%"
+    q_acceptance = sql.SQL("""
         SELECT ROUND(
-            100.0 * COUNT(*) FILTER (WHERE status ILIKE 'Accepted%%')
+            100.0 * COUNT(*) FILTER (WHERE {status} ILIKE %s)
             / COUNT(*), 2
-        ) FROM applicants
-        WHERE term = 'Fall 2026'
-    """
-    cur.execute(q_acceptance)
+        ) FROM {table}
+        WHERE {term} = %s
+    """).format(
+        status=sql.Identifier("status"),
+        table=sql.Identifier("applicants"),
+        term=sql.Identifier("term"),
+    )
+    cur.execute(q_acceptance, (accepted_pattern, fall_term))
     results["acceptance_pct_fall2026"] = cur.fetchone()[0]
 
     # 6. Average GPA of accepted applicants in Fall 2026
-    q_accepted_gpa = """
-        SELECT ROUND(AVG(gpa)::numeric, 2)
-        FROM applicants
-        WHERE term = 'Fall 2026'
-          AND status ILIKE 'Accepted%%'
-          AND gpa IS NOT NULL
-    """
-    cur.execute(q_accepted_gpa)
+    q_accepted_gpa = sql.SQL("""
+        SELECT ROUND(AVG({gpa})::numeric, 2)
+        FROM {table}
+        WHERE {term} = %s
+          AND {status} ILIKE %s
+          AND {gpa} IS NOT NULL
+    """).format(
+        gpa=sql.Identifier("gpa"),
+        table=sql.Identifier("applicants"),
+        term=sql.Identifier("term"),
+        status=sql.Identifier("status"),
+    )
+    cur.execute(q_accepted_gpa, (fall_term, accepted_pattern))
     results["accepted_gpa_fall2026"] = cur.fetchone()[0]
 
     # 7. JHU Masters in Computer Science count
-    q_jhu = """
+    hopkins_pattern = "%Hopkins%"
+    cs_pattern = "%Computer Science%"
+    masters = "Masters"
+    q_jhu = sql.SQL("""
         SELECT COUNT(*)
-        FROM applicants
-        WHERE llm_generated_university ILIKE '%%Hopkins%%'
-          AND llm_generated_program ILIKE '%%Computer Science%%'
-          AND degree = 'Masters'
-    """
-    cur.execute(q_jhu)
+        FROM {table}
+        WHERE {llm_uni} ILIKE %s
+          AND {llm_prog} ILIKE %s
+          AND {degree} = %s
+    """).format(
+        table=sql.Identifier("applicants"),
+        llm_uni=sql.Identifier("llm_generated_university"),
+        llm_prog=sql.Identifier("llm_generated_program"),
+        degree=sql.Identifier("degree"),
+    )
+    cur.execute(q_jhu, (hopkins_pattern, cs_pattern, masters))
     results["jhu_cs_masters"] = cur.fetchone()[0]
 
     # 8. PhD CS acceptances (program field)
-    q_phd_program = """
+    term_2026 = "%2026"
+    phd = "PhD"
+    georgetown_pattern = "%Georgetown University%"
+    mit_pattern = "%Massachusetts Institute of Technology%"
+    stanford_pattern = "%Stanford University%"
+    cmu_pattern = "%Carnegie Mellon University%"
+    q_phd_program = sql.SQL("""
         SELECT COUNT(*)
-        FROM applicants
-        WHERE term ILIKE '%%2026'
-          AND status ILIKE 'Accepted%%'
-          AND degree = 'PhD'
-          AND program ILIKE '%%Computer Science%%'
-          AND (program ILIKE '%%Georgetown University%%'
-            OR program ILIKE '%%Massachusetts Institute of Technology%%'
-            OR program ILIKE '%%Stanford University%%'
-            OR program ILIKE '%%Carnegie Mellon University%%')
-    """
-    cur.execute(q_phd_program)
+        FROM {table}
+        WHERE {term} ILIKE %s
+          AND {status} ILIKE %s
+          AND {degree} = %s
+          AND {program} ILIKE %s
+          AND ({program} ILIKE %s
+            OR {program} ILIKE %s
+            OR {program} ILIKE %s
+            OR {program} ILIKE %s)
+    """).format(
+        table=sql.Identifier("applicants"),
+        term=sql.Identifier("term"),
+        status=sql.Identifier("status"),
+        degree=sql.Identifier("degree"),
+        program=sql.Identifier("program"),
+    )
+    cur.execute(q_phd_program, (
+        term_2026, accepted_pattern, phd, cs_pattern,
+        georgetown_pattern, mit_pattern, stanford_pattern, cmu_pattern,
+    ))
     results["phd_cs_program"] = cur.fetchone()[0]
 
     # 9. PhD CS acceptances (llm fields)
-    q_phd_llm = """
+    georgetown = "Georgetown University"
+    mit = "Massachusetts Institute of Technology"
+    stanford = "Stanford University"
+    cmu = "Carnegie Mellon University"
+    q_phd_llm = sql.SQL("""
         SELECT COUNT(*)
-        FROM applicants
-        WHERE term ILIKE '%%2026'
-          AND status ILIKE 'Accepted%%'
-          AND degree = 'PhD'
-          AND llm_generated_program ILIKE '%%Computer Science%%'
-          AND llm_generated_university IN (
-              'Georgetown University',
-              'Massachusetts Institute of Technology',
-              'Stanford University',
-              'Carnegie Mellon University'
-          )
-    """
-    cur.execute(q_phd_llm)
+        FROM {table}
+        WHERE {term} ILIKE %s
+          AND {status} ILIKE %s
+          AND {degree} = %s
+          AND {llm_prog} ILIKE %s
+          AND {llm_uni} IN (%s, %s, %s, %s)
+    """).format(
+        table=sql.Identifier("applicants"),
+        term=sql.Identifier("term"),
+        status=sql.Identifier("status"),
+        degree=sql.Identifier("degree"),
+        llm_prog=sql.Identifier("llm_generated_program"),
+        llm_uni=sql.Identifier("llm_generated_university"),
+    )
+    cur.execute(q_phd_llm, (
+        term_2026, accepted_pattern, phd, cs_pattern,
+        georgetown, mit, stanford, cmu,
+    ))
     results["phd_cs_llm"] = cur.fetchone()[0]
 
     # 10. Top 10 programs for Fall 2026
-    q_top_programs = """
-        SELECT llm_generated_program, COUNT(*) AS num_applicants
-        FROM applicants
-        WHERE llm_generated_program IS NOT NULL
-          AND llm_generated_program != ''
-          AND term = 'Fall 2026'
-        GROUP BY llm_generated_program
-        ORDER BY num_applicants DESC
-        LIMIT 10
-    """
-    cur.execute(q_top_programs)
+    empty = ""
+    top_limit = 10
+    q_top_programs = sql.SQL("""
+        SELECT {llm_prog}, COUNT(*) AS {alias}
+        FROM {table}
+        WHERE {llm_prog} IS NOT NULL
+          AND {llm_prog} != %s
+          AND {term} = %s
+        GROUP BY {llm_prog}
+        ORDER BY {alias} DESC
+        LIMIT %s
+    """).format(
+        llm_prog=sql.Identifier("llm_generated_program"),
+        alias=sql.Identifier("num_applicants"),
+        table=sql.Identifier("applicants"),
+        term=sql.Identifier("term"),
+    )
+    cur.execute(q_top_programs, (empty, fall_term, top_limit))
     results["top_programs"] = cur.fetchall()
 
     # 11. Top 10 universities for Fall 2026
-    q_top_unis = """
-        SELECT llm_generated_university, COUNT(*) AS num_applicants
-        FROM applicants
-        WHERE llm_generated_university IS NOT NULL
-          AND llm_generated_university != ''
-          AND term = 'Fall 2026'
-        GROUP BY llm_generated_university
-        ORDER BY num_applicants DESC
-        LIMIT 10
-    """
-    cur.execute(q_top_unis)
+    q_top_unis = sql.SQL("""
+        SELECT {llm_uni}, COUNT(*) AS {alias}
+        FROM {table}
+        WHERE {llm_uni} IS NOT NULL
+          AND {llm_uni} != %s
+          AND {term} = %s
+        GROUP BY {llm_uni}
+        ORDER BY {alias} DESC
+        LIMIT %s
+    """).format(
+        llm_uni=sql.Identifier("llm_generated_university"),
+        alias=sql.Identifier("num_applicants"),
+        table=sql.Identifier("applicants"),
+        term=sql.Identifier("term"),
+    )
+    cur.execute(q_top_unis, (empty, fall_term, top_limit))
     results["top_universities"] = cur.fetchall()
 
     # 12a. Acceptance rate by degree type for Fall 2026
-    q_rate_degree = """
+    psyd = "PsyD"
+    q_rate_degree = sql.SQL("""
         SELECT
-            degree,
-            COUNT(*) AS total,
-            COUNT(*) FILTER (WHERE status ILIKE 'Accepted%%') AS accepted,
+            {degree},
+            COUNT(*) AS {total},
+            COUNT(*) FILTER (WHERE {status} ILIKE %s) AS {accepted},
             ROUND(
-                100.0 * COUNT(*) FILTER (WHERE status ILIKE 'Accepted%%')
+                100.0 * COUNT(*) FILTER (WHERE {status} ILIKE %s)
                 / COUNT(*), 2
-            ) AS acceptance_rate
-        FROM applicants
-        WHERE degree IN ('Masters', 'PhD', 'PsyD')
-          AND term = 'Fall 2026'
-        GROUP BY degree
-        ORDER BY degree
-    """
-    cur.execute(q_rate_degree)
+            ) AS {rate}
+        FROM {table}
+        WHERE {degree} IN (%s, %s, %s)
+          AND {term} = %s
+        GROUP BY {degree}
+        ORDER BY {degree}
+    """).format(
+        degree=sql.Identifier("degree"),
+        total=sql.Identifier("total"),
+        accepted=sql.Identifier("accepted"),
+        status=sql.Identifier("status"),
+        rate=sql.Identifier("acceptance_rate"),
+        table=sql.Identifier("applicants"),
+        term=sql.Identifier("term"),
+    )
+    cur.execute(q_rate_degree, (
+        accepted_pattern, accepted_pattern,
+        masters, phd, psyd, fall_term,
+    ))
     results["rate_by_degree"] = cur.fetchall()
 
     # 12b. Acceptance rate by nationality for Fall 2026
-    q_rate_nationality = """
+    q_rate_nationality = sql.SQL("""
         SELECT
-            us_or_international,
-            COUNT(*) AS total,
-            COUNT(*) FILTER (WHERE status ILIKE 'Accepted%%') AS accepted,
+            {nationality},
+            COUNT(*) AS {total},
+            COUNT(*) FILTER (WHERE {status} ILIKE %s) AS {accepted},
             ROUND(
-                100.0 * COUNT(*) FILTER (WHERE status ILIKE 'Accepted%%')
+                100.0 * COUNT(*) FILTER (WHERE {status} ILIKE %s)
                 / COUNT(*), 2
-            ) AS acceptance_rate
-        FROM applicants
-        WHERE us_or_international IN ('American', 'International')
-          AND term = 'Fall 2026'
-        GROUP BY us_or_international
-        ORDER BY us_or_international
-    """
-    cur.execute(q_rate_nationality)
+            ) AS {rate}
+        FROM {table}
+        WHERE {nationality} IN (%s, %s)
+          AND {term} = %s
+        GROUP BY {nationality}
+        ORDER BY {nationality}
+    """).format(
+        nationality=sql.Identifier("us_or_international"),
+        total=sql.Identifier("total"),
+        accepted=sql.Identifier("accepted"),
+        status=sql.Identifier("status"),
+        rate=sql.Identifier("acceptance_rate"),
+        table=sql.Identifier("applicants"),
+        term=sql.Identifier("term"),
+    )
+    cur.execute(q_rate_nationality, (
+        accepted_pattern, accepted_pattern,
+        american, international, fall_term,
+    ))
     results["rate_by_nationality"] = cur.fetchall()
 
     return results

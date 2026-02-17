@@ -7,6 +7,7 @@ scrape new data from thegradcafe.com and insert it into the database.
 LLM-based standardization populates llm_generated_program and
 llm_generated_university fields for newly pulled data.
 """
+# pylint: disable=R0801
 from __future__ import annotations
 
 import logging
@@ -18,7 +19,7 @@ from urllib.error import URLError, HTTPError
 
 from flask import Flask, render_template, jsonify, request, Response
 import psycopg
-from psycopg import OperationalError
+from psycopg import OperationalError, sql
 from psycopg.cursor import Cursor
 
 from scrape import fetch_page, parse_survey, get_max_pages
@@ -66,19 +67,24 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
         llm_university = ""
 
     # Insert row; ON CONFLICT (url) DO NOTHING skips duplicates
-    query = """
-        INSERT INTO applicants (
-            program, comments, date_added, url, status, term,
-            us_or_international, gpa, gre, gre_v, gre_aw, degree,
-            llm_generated_program, llm_generated_university
-        ) VALUES (
-            %(program)s, %(comments)s, %(date_added)s, %(url)s,
-            %(status)s, %(term)s, %(us_or_international)s,
-            %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s, %(degree)s,
-            %(llm_program)s, %(llm_university)s
-        )
-        ON CONFLICT (url) DO NOTHING
-    """
+    _columns = [
+        "program", "comments", "date_added", "url", "status", "term",
+        "us_or_international", "gpa", "gre", "gre_v", "gre_aw", "degree",
+        "llm_generated_program", "llm_generated_university",
+    ]
+    _param_keys = [
+        "program", "comments", "date_added", "url", "status", "term",
+        "us_or_international", "gpa", "gre", "gre_v", "gre_aw", "degree",
+        "llm_program", "llm_university",
+    ]
+    query = sql.SQL(
+        "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO NOTHING"
+    ).format(
+        sql.Identifier("applicants"),
+        sql.SQL(", ").join(sql.Identifier(c) for c in _columns),
+        sql.SQL(", ").join(sql.Placeholder(k) for k in _param_keys),
+        sql.Identifier("url"),
+    )
     params = {
         "program": program_text,
         "comments": clean_text(row.get("comments", "")),

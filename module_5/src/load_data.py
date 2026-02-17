@@ -1,4 +1,5 @@
 """Load llm_extended_applicant_data.json into a PostgreSQL applicants table."""
+# pylint: disable=R0801
 from __future__ import annotations
 
 import json
@@ -90,7 +91,7 @@ def create_connection(
         return None
 
 
-def main() -> None:
+def main() -> None:  # pylint: disable=too-many-locals
     """Load JSON data into PostgreSQL database.
 
     Creates the ``applicant_data`` database and ``applicants`` table if they
@@ -107,7 +108,10 @@ def main() -> None:
         return
 
     cursor = conn.cursor()
-    check_db_query = "SELECT 1 FROM pg_database WHERE datname = %s"
+    check_db_query = sql.SQL("SELECT 1 FROM {} WHERE {} = %s").format(
+        sql.Identifier("pg_database"),
+        sql.Identifier("datname"),
+    )
     cursor.execute(check_db_query, (db_name,))
     if not cursor.fetchone():
         create_db_query = sql.SQL("CREATE DATABASE {}").format(
@@ -126,27 +130,30 @@ def main() -> None:
 
     cursor = conn.cursor()
     # Create table
-    drop_query = "DROP TABLE IF EXISTS applicants"
+    drop_query = sql.SQL("DROP TABLE IF EXISTS {}").format(
+        sql.Identifier("applicants"),
+    )
     cursor.execute(drop_query)
-    create_table_query = """
-        CREATE TABLE applicants (
-            p_id SERIAL PRIMARY KEY,
-            program TEXT,
-            comments TEXT,
-            date_added DATE,
-            url TEXT UNIQUE,
-            status TEXT,
-            term TEXT,
-            us_or_international TEXT,
-            gpa REAL,
-            gre REAL,
-            gre_v REAL,
-            gre_aw REAL,
-            degree TEXT,
-            llm_generated_program TEXT,
-            llm_generated_university TEXT
-        )
-    """
+    col_defs = sql.SQL(", ").join([
+        sql.SQL("{} SERIAL PRIMARY KEY").format(sql.Identifier("p_id")),
+        sql.SQL("{} TEXT").format(sql.Identifier("program")),
+        sql.SQL("{} TEXT").format(sql.Identifier("comments")),
+        sql.SQL("{} DATE").format(sql.Identifier("date_added")),
+        sql.SQL("{} TEXT UNIQUE").format(sql.Identifier("url")),
+        sql.SQL("{} TEXT").format(sql.Identifier("status")),
+        sql.SQL("{} TEXT").format(sql.Identifier("term")),
+        sql.SQL("{} TEXT").format(sql.Identifier("us_or_international")),
+        sql.SQL("{} REAL").format(sql.Identifier("gpa")),
+        sql.SQL("{} REAL").format(sql.Identifier("gre")),
+        sql.SQL("{} REAL").format(sql.Identifier("gre_v")),
+        sql.SQL("{} REAL").format(sql.Identifier("gre_aw")),
+        sql.SQL("{} TEXT").format(sql.Identifier("degree")),
+        sql.SQL("{} TEXT").format(sql.Identifier("llm_generated_program")),
+        sql.SQL("{} TEXT").format(sql.Identifier("llm_generated_university")),
+    ])
+    create_table_query = sql.SQL("CREATE TABLE {} ({})").format(
+        sql.Identifier("applicants"), col_defs,
+    )
     cursor.execute(create_table_query)
     logger.info("Table 'applicants' ready")
 
@@ -163,20 +170,19 @@ def main() -> None:
         conn.close()
         return
 
-    insert_query = """
-        INSERT INTO applicants (
-            program, comments, date_added, url, status, term,
-            us_or_international, gpa, gre, gre_v, gre_aw,
-            degree, llm_generated_program, llm_generated_university
-        ) VALUES (
-            %(program)s, %(comments)s, %(date_added)s, %(url)s,
-            %(status)s, %(term)s, %(us_or_international)s,
-            %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s,
-            %(degree)s, %(llm_generated_program)s,
-            %(llm_generated_university)s
-        )
-        ON CONFLICT (url) DO NOTHING
-    """
+    _columns = [
+        "program", "comments", "date_added", "url", "status", "term",
+        "us_or_international", "gpa", "gre", "gre_v", "gre_aw",
+        "degree", "llm_generated_program", "llm_generated_university",
+    ]
+    insert_query = sql.SQL(
+        "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO NOTHING"
+    ).format(
+        sql.Identifier("applicants"),
+        sql.SQL(", ").join(sql.Identifier(c) for c in _columns),
+        sql.SQL(", ").join(sql.Placeholder(c) for c in _columns),
+        sql.Identifier("url"),
+    )
     params_list = [
         {
                 "program": clean_text(row.get("program", "")),
@@ -212,7 +218,9 @@ def main() -> None:
     logger.info("Inserted %d rows", len(rows))
 
     # Verify
-    verify_query = "SELECT COUNT(*) FROM applicants"
+    verify_query = sql.SQL("SELECT COUNT(*) FROM {}").format(
+        sql.Identifier("applicants"),
+    )
     cursor.execute(verify_query)
     logger.info("Total rows in table: %s", cursor.fetchone()[0])
 

@@ -278,7 +278,7 @@ All Python files follow these practices:
 - **Specific exceptions** — Catches specific exception types (e.g., `OperationalError`, `JSONDecodeError`)
 - **Input validation** — Validates user inputs (e.g., `max_pages` clamped to 1-500)
 - **No duplicate code** — Shared constants imported from single source (e.g., `DB_CONFIG`, `UC_CAMPUS_PATTERNS`)
-- **SQL injection protection** — All queries use parameterized statements
+- **SQL injection protection** — All queries use parameterized statements (`%s` placeholders with parameter tuples); dynamic identifiers use `psycopg.sql.Identifier()`; SQL construction is separated from execution
 
 # References
 
