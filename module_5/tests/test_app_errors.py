@@ -31,53 +31,12 @@ def test_index_db_error_renders_error(monkeypatch):
 
 
 # =====================================================================
-# insert_row — LLM exception still inserts with empty LLM fields
-# =====================================================================
-
-@pytest.mark.db
-def test_insert_row_llm_exception_still_inserts(db_conn, monkeypatch):
-    _, cur = db_conn
-
-    monkeypatch.setattr(
-        app_module, "llm_standardize",
-        lambda _x: (_ for _ in ()).throw(RuntimeError("LLM crashed")),
-    )
-
-    from app import insert_row
-    row = {
-        "program": "CS, MIT",
-        "comments": "Test",
-        "date_added": "Added on January 15, 2026",
-        "url": f"https://test.example.com/result/{uuid.uuid4()}",
-        "status": "Accepted",
-        "term": "Fall 2026",
-        "US/International": "American",
-        "GPA": "GPA 3.80",
-        "GRE": "GRE 320",
-        "GRE V": "GRE V 160",
-        "GRE AW": "GRE AW 4.5",
-        "Degree": "PhD",
-    }
-
-    assert insert_row(cur, row) is True
-
-    cur.execute(
-        "SELECT llm_generated_program, llm_generated_university FROM applicants WHERE url = %s",
-        (row["url"],)
-    )
-    result = cur.fetchone()
-    assert result[0] == ""
-    assert result[1] == ""
-
-
-# =====================================================================
 # POST /pull-data — invalid max_pages defaults
 # =====================================================================
 
 @pytest.mark.buttons
 def test_pull_data_invalid_max_pages_defaults(monkeypatch):
     fake_html = "<html><body><table><tbody></tbody></table></body></html>"
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakePullConn())
@@ -193,10 +152,6 @@ def test_pull_data_cleanup_message_with_counts(db_conn, monkeypatch):
 </body></html>"""
 
     wrapper = NoCloseConn(conn)
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {
-        "standardized_program": "Computer Science",
-        "standardized_university": "MIT",
-    })
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
@@ -242,7 +197,6 @@ def test_pull_data_caught_up_breaks(monkeypatch):
         def rollback(self):
             pass
 
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
@@ -308,7 +262,6 @@ def test_pull_data_fetches_multiple_pages(monkeypatch):
         def rollback(self):
             pass
 
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
@@ -378,7 +331,6 @@ def test_pull_data_network_error_page2_rolls_back(monkeypatch):
 
     _TrackConn.rolled_back = False
 
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
@@ -439,7 +391,6 @@ def test_pull_data_cleanup_error_returns_500(monkeypatch):
 
     _CleanConn.rolled_back = False
 
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw",
                         lambda _c: (_ for _ in ()).throw(psycopg.Error("cleanup boom")))
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
@@ -504,7 +455,6 @@ def test_pull_data_insert_error_rolls_back(monkeypatch):
     _BombCursor._call_count = 0
     _BombConn.rolled_back = False
 
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})

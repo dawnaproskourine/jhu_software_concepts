@@ -4,8 +4,6 @@ Flask dashboard for applicant_data analysis.
 Serves a Q&A-style web page displaying analysis results from the
 applicant_data PostgreSQL database. Also provides an endpoint to
 scrape new data from thegradcafe.com and insert it into the database.
-LLM-based standardization populates llm_generated_program and
-llm_generated_university fields for newly pulled data.
 """
 # pylint: disable=R0801
 from __future__ import annotations
@@ -26,7 +24,6 @@ from scrape import fetch_page, parse_survey, get_max_pages
 
 from load_data import clean_text, parse_float
 from query_data import run_queries, DB_CONFIG
-from llm_standardizer import standardize as llm_standardize
 from cleanup_data import fix_gre_aw, fix_uc_universities
 
 # Configure logging
@@ -34,11 +31,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
-    """Insert a single row into the database with LLM standardization.
+    """Insert a single row into the database.
 
-    Parses dates, runs LLM standardization on the program field, and
-    inserts into the ``applicants`` table. Duplicates are skipped via
-    ``ON CONFLICT (url) DO NOTHING``.
+    Parses dates and inserts into the ``applicants`` table.
+    Duplicates are skipped via ``ON CONFLICT (url) DO NOTHING``.
 
     :param cur: An open database cursor.
     :type cur: psycopg.cursor.Cursor
@@ -54,17 +50,9 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
     except ValueError:
         date_val = None
 
-    # Run LLM standardization on the program field
     program_text = clean_text(row.get("program", ""))
-    try:
-        llm_result = llm_standardize(program_text)
-        llm_program = llm_result.get("standardized_program", "")
-        llm_university = llm_result.get("standardized_university", "")
-    except (KeyError, TypeError, RuntimeError) as e:
-        logger.warning("LLM standardization failed for '%s': %s",
-                       program_text, e)
-        llm_program = ""
-        llm_university = ""
+    llm_program = ""
+    llm_university = ""
 
     # Insert row; ON CONFLICT (url) DO NOTHING skips duplicates
     _columns = [

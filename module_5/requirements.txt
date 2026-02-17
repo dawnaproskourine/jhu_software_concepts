@@ -7,10 +7,6 @@ psycopg>=3.0
 # Web scraping
 beautifulsoup4>=4.12
 
-# LLM inference (program/university standardization)
-llama-cpp-python>=0.2
-huggingface-hub>=0.20
-
 # Sphinx documentation
 sphinx>=7.0
 sphinx-rtd-theme>=2.0

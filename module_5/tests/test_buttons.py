@@ -18,7 +18,6 @@ def _patch_pull_data(monkeypatch):
 
     fake_html = "<html><body><table><tbody></tbody></table></body></html>"
 
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakePullConn())
@@ -73,10 +72,6 @@ def test_pull_data_triggers_loader_with_scraped_rows(client, monkeypatch):
         "degree": "PhD",
     }
 
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {
-        "standardized_program": "Computer Science",
-        "standardized_university": "Massachusetts Institute of Technology",
-    })
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _conn: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _conn: 0)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakeInsertConn())

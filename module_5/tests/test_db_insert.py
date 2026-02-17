@@ -100,12 +100,6 @@ class TestParseDate:
 # DB integration tests – require real PostgreSQL (auto-skip if absent)
 # =====================================================================
 
-_LLM_RESULT_FULL = {
-    "standardized_program": "Computer Science",
-    "standardized_university": "Stanford University",
-}
-
-
 def _unique_url():
     """Return a unique URL so tests never collide with real data."""
     return f"https://test.example.com/result/{uuid.uuid4()}"
@@ -132,19 +126,15 @@ def _sample_row(**overrides):
 
 
 @pytest.mark.db
-def test_insert_row_returns_true_for_new_row(db_conn, monkeypatch):
+def test_insert_row_returns_true_for_new_row(db_conn):
     conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT_FULL)
     from app import insert_row
     assert insert_row(cur, _sample_row()) is True
 
 
 @pytest.mark.db
-def test_duplicate_url_returns_false(db_conn, monkeypatch):
+def test_duplicate_url_returns_false(db_conn):
     conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT_FULL)
     from app import insert_row
     row = _sample_row()
     url = row["url"]
@@ -156,10 +146,8 @@ def test_duplicate_url_returns_false(db_conn, monkeypatch):
 
 
 @pytest.mark.db
-def test_all_columns_populated(db_conn, monkeypatch):
+def test_all_columns_populated(db_conn):
     conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT_FULL)
     from app import insert_row
 
     row = _sample_row()
@@ -190,8 +178,8 @@ def test_all_columns_populated(db_conn, monkeypatch):
     assert abs(gre_v - 160) < 0.01
     assert abs(gre_aw - 4.5) < 0.01
     assert degree == "Masters"
-    assert llm_prog == "Computer Science"
-    assert llm_uni == "Stanford University"
+    assert llm_prog == ""
+    assert llm_uni == ""
 
 
 # =====================================================================
@@ -210,10 +198,8 @@ EXPECTED_QUERY_KEYS = [
 
 
 @pytest.mark.db
-def test_run_queries_returns_expected_keys(db_conn, monkeypatch):
+def test_run_queries_returns_expected_keys(db_conn):
     conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT_FULL)
     from app import insert_row
     from query_data import run_queries
 
@@ -227,10 +213,8 @@ def test_run_queries_returns_expected_keys(db_conn, monkeypatch):
 
 
 @pytest.mark.db
-def test_null_date_for_invalid_format(db_conn, monkeypatch):
+def test_null_date_for_invalid_format(db_conn):
     conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     from app import insert_row
 
     row = _sample_row(date_added="bad date string")
@@ -242,10 +226,8 @@ def test_null_date_for_invalid_format(db_conn, monkeypatch):
 
 
 @pytest.mark.db
-def test_null_gpa_for_missing_value(db_conn, monkeypatch):
+def test_null_gpa_for_missing_value(db_conn):
     conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     from app import insert_row
 
     row = _sample_row(**{"GPA": ""})
@@ -257,10 +239,8 @@ def test_null_gpa_for_missing_value(db_conn, monkeypatch):
 
 
 @pytest.mark.db
-def test_nul_bytes_cleaned_from_program(db_conn, monkeypatch):
+def test_nul_bytes_cleaned_from_program(db_conn):
     conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     from app import insert_row
 
     row = _sample_row(program="CS\x00, MIT")
@@ -272,10 +252,8 @@ def test_nul_bytes_cleaned_from_program(db_conn, monkeypatch):
 
 
 @pytest.mark.db
-def test_gre_aw_greater_than_6_set_to_null(db_conn, monkeypatch):
+def test_gre_aw_greater_than_6_set_to_null(db_conn):
     conn, cur = db_conn
-    import app as app_module
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     from app import insert_row
 
     row = _sample_row(**{"GRE AW": "GRE AW 165"})
@@ -330,7 +308,6 @@ def test_pull_data_inserts_into_empty_table(db_conn, monkeypatch):
     html = _build_pull_html(test_href)
 
     wrapper = NoCloseConn(conn)
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT_FULL)
     monkeypatch.setattr(app_module, "run_queries", lambda _conn: {})
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
@@ -356,5 +333,5 @@ def test_pull_data_inserts_into_empty_table(db_conn, monkeypatch):
     assert status is not None
     assert term is not None
     assert degree is not None
-    assert llm_prog == "Computer Science"
-    assert llm_uni == "Stanford University"
+    assert llm_prog == ""
+    assert llm_uni == ""

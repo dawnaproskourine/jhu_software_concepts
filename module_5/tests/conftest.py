@@ -3,7 +3,6 @@
 
 import os
 import sys
-import types
 from decimal import Decimal
 
 import pytest
@@ -15,18 +14,6 @@ SOURCE_DIR = os.path.join(os.path.dirname(__file__), os.pardir, "src")
 SOURCE_DIR = os.path.abspath(SOURCE_DIR)
 if SOURCE_DIR not in sys.path:
     sys.path.insert(0, SOURCE_DIR)
-
-# ---------------------------------------------------------------------------
-# Stub heavy LLM packages for tests in CI
-# ---------------------------------------------------------------------------
-
-_llama = types.ModuleType("llama_cpp")
-_llama.Llama = type("Llama", (), {})
-sys.modules["llama_cpp"] = _llama
-
-_hf = types.ModuleType("huggingface_hub")
-_hf.hf_hub_download = lambda *a, **kw: ""
-sys.modules["huggingface_hub"] = _hf
 
 from query_data import DB_CONFIG  # pylint: disable=C0413
 

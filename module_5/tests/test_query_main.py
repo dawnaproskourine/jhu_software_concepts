@@ -48,7 +48,6 @@ def test_pull_data_with_injected_scrapers(monkeypatch):
     import app as app_module
     from conftest import FakePullConn
 
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: {})
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakePullConn())

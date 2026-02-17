@@ -4,9 +4,9 @@ Exercises the full pipeline: POST /pull-data inserts scraped rows into a
 real PostgreSQL database, then GET / renders the dashboard with live
 query results from that data.  Everything rolls back via SAVEPOINT.
 
-Only ``llm_standardize`` and ``psycopg.connect`` are mocked. The scraper
-functions (``fetch_page``, ``parse_survey``, ``get_max_pages``) run for
-real against crafted HTML fed through a transport-level ``urlopen`` stub.
+Only ``psycopg.connect`` is mocked. The scraper functions
+(``fetch_page``, ``parse_survey``, ``get_max_pages``) run for real
+against crafted HTML fed through a transport-level ``urlopen`` stub.
 The cleanup functions (``fix_gre_aw``, ``fix_uc_universities``) run for
 real against the SAVEPOINT-protected database.
 """
@@ -17,12 +17,6 @@ import uuid
 import pytest
 
 from conftest import FakeResponse, NoCloseConn
-
-
-_LLM_RESULT = {
-    "standardized_program": "Computer Science",
-    "standardized_university": "Stanford University",
-}
 
 
 def _unique_url():
@@ -109,7 +103,6 @@ def test_pull_then_render(db_conn, monkeypatch):
     html = _build_test_html(rows)
 
     wrapper = NoCloseConn(conn)
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
@@ -137,7 +130,6 @@ def test_pull_then_render(db_conn, monkeypatch):
 
         # Data from inserted rows appears in rendered output
         assert "Computer Science" in html_out
-        assert "Stanford University" in html_out
         assert "Fall 2026" in html_out
         assert "Accepted" in html_out
 
@@ -232,7 +224,6 @@ def test_duplicate_pull_preserves_uniqueness(db_conn, monkeypatch):
         return FakeResponse(html_2)
 
     wrapper = NoCloseConn(conn)
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", _urlopen_switch)
 
@@ -299,7 +290,6 @@ def test_update_analysis_reload_reflects_new_data(db_conn, monkeypatch):
     html = _build_test_html(rows)
 
     wrapper = NoCloseConn(conn)
-    monkeypatch.setattr(app_module, "llm_standardize", lambda _x: _LLM_RESULT)
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: wrapper)
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(html))
 
@@ -318,6 +308,5 @@ def test_update_analysis_reload_reflects_new_data(db_conn, monkeypatch):
 
         # Reload reflects the newly inserted data
         assert "Computer Science" in html_out
-        assert "Stanford University" in html_out
         assert "Accepted" in html_out
         assert 'data-testid="update-analysis-btn"' in html_out

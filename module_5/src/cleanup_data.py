@@ -14,7 +14,30 @@ import psycopg
 from psycopg import Connection, OperationalError, sql
 
 from query_data import DB_CONFIG, MAX_QUERY_LIMIT
-from llm_standardizer import UC_CAMPUS_PATTERNS
+
+# UC campus normalization patterns (regex pattern -> canonical name)
+UC_CAMPUS_PATTERNS = [
+    (r"(?i).*\b(ucla|los\s*angeles)\b.*",
+     "University of California, Los Angeles"),
+    (r"(?i).*\b(ucb|uc\s*berkeley|berkeley)\b.*",
+     "University of California, Berkeley"),
+    (r"(?i).*\b(ucsd|san\s*diego)\b.*",
+     "University of California, San Diego"),
+    (r"(?i).*\b(ucsb|santa\s*barbara)\b.*",
+     "University of California, Santa Barbara"),
+    (r"(?i).*\b(uci|irvine?n?e?)\b.*",
+     "University of California, Irvine"),
+    (r"(?i).*\b(ucd|uc\s*davis|davis)\b.*",
+     "University of California, Davis"),
+    (r"(?i).*\b(ucsc|santa\s*cruz)\b.*",
+     "University of California, Santa Cruz"),
+    (r"(?i).*\b(ucr|riverside)\b.*",
+     "University of California, Riverside"),
+    (r"(?i).*\b(ucm|merced)\b.*",
+     "University of California, Merced"),
+    (r"(?i).*\b(ucsf|san\s*francisco)\b.*",
+     "University of California, San Francisco"),
+]
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")

@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 setup(
     name="gradcafe-analysis",
     version="1.0.0",
-    description="GradCafe applicant analysis dashboard with LLM standardization",
+    description="GradCafe applicant analysis dashboard",
     author="Dawna Jones Proskourine",
     python_requires=">=3.9",
     package_dir={"": "src"},
@@ -17,14 +17,11 @@ setup(
         "cleanup_data",
         "scrape",
         "robots_checker",
-        "llm_standardizer",
     ],
     install_requires=[
         "Flask>=3.0",
         "psycopg>=3.0",
         "beautifulsoup4>=4.12",
-        "llama-cpp-python>=0.2",
-        "huggingface-hub>=0.20",
     ],
     extras_require={
         "dev": [

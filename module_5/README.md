@@ -46,9 +46,9 @@ source .venv/bin/activate
 uv pip install -e ".[dev,docs]"
 ```
 
-Both methods install the runtime dependencies (Flask, psycopg, beautifulsoup4,
-llama-cpp-python, huggingface-hub) plus dev tools (pytest, pytest-cov, pylint,
-pydeps) and docs tools (sphinx, sphinx-rtd-theme).
+Both methods install the runtime dependencies (Flask, psycopg, beautifulsoup4)
+plus dev tools (pytest, pytest-cov, pylint, pydeps) and docs tools (sphinx,
+sphinx-rtd-theme).
 
 To install only the runtime dependencies, omit the extras:
 
@@ -85,7 +85,7 @@ Q&A-style dashboard. Queries are defined in `query_data.py` and shared between t
 - Python 3
 - PostgreSQL running locally with the `applicant_data` database populated (via `load_data.py`)
 - Database environment variables set (see Database Configuration below)
-- Required packages: `pip install -r requirements.txt` (Flask, psycopg, beautifulsoup4, llama-cpp-python, huggingface-hub, sphinx, pytest, pylint, pydeps)
+- Required packages: `pip install -r requirements.txt` (Flask, psycopg, beautifulsoup4, sphinx, pytest, pylint, pydeps)
 
 ### Database Configuration
 
@@ -153,10 +153,10 @@ Visit `http://localhost:8080` in a browser.
 
 ### Routes
 
-| Route       | Method | Description                                                                    |
-|-------------|--------|--------------------------------------------------------------------------------|
-| `/`         | GET    | Renders the dashboard with all 13 analysis queries                             |
-| `/pull-data`| POST   | Scrapes new entries from thegradcafe.com, processes with LLM, and runs cleanup |
+| Route        | Method | Description                                              |
+|--------------|--------|----------------------------------------------------------|
+| `/`          | GET    | Renders the dashboard with all 13 analysis queries       |
+| `/pull-data` | POST   | Scrapes new entries from thegradcafe.com and runs cleanup |
 
 ### Analysis Queries
 
@@ -179,8 +179,7 @@ The dashboard displays 13 questions with answers in a Q&A format:
 ### Controls
 
 - **Pull Data** (top left) — Scrapes thegradcafe.com/survey page by page until caught up with existing database
-entries (stops when a page has all duplicates). This ensures no gaps in data. Each new row is processed through the
-TinyLlama LLM to populate `llm_generated_program` and `llm_generated_university` fields. After inserting, data cleanup
+entries (stops when a page has all duplicates). This ensures no gaps in data. After inserting, data cleanup
 automatically runs to fix invalid GRE AW scores and normalize UC campus names.
 
 - **Update Analysis** (top right) — Refreshes the page to re-run all queries against the current database. Disabled
@@ -195,16 +194,29 @@ parameters and `run_queries()` which returns all analysis results as a dictionar
 python3 src/query_data.py  # Run standalone to print results to console
 ```
 
-## llm_standardizer.py
+## LLM Standardization — Removed
 
-LLM-based standardization module using TinyLlama (via llama_cpp) to parse and standardize program/university strings
-from GradCafe data. Features:
+The project previously included an LLM-based standardization module (`llm_standardizer.py`) that
+used TinyLlama (via `llama-cpp-python` and `huggingface-hub`) to parse and normalize
+program/university strings during pull-data. This module was removed for the following reasons:
 
-- Few-shot prompting for consistent JSON output
-- Rule-based fallback parsing if LLM returns invalid JSON
-- Fuzzy matching against canonical program and university lists (290 programs, 1000+ universities)
-- Automatic abbreviation expansion (e.g., "MIT" → "Massachusetts Institute of Technology")
-- UC campus normalization (e.g., "UC Berkeley" → "University of California, Berkeley")
+1. **Security vulnerability (CVE-2025-69872)** — `llama-cpp-python` pulls in `diskcache` as a
+   transitive dependency, which has a high-severity deserialization vulnerability with no patched
+   version available. Removing the dependency eliminates the vulnerability at its source rather
+   than relying on a `.snyk` policy ignore.
+
+2. **Minimal runtime impact** — The `llm_generated_program` and `llm_generated_university` database
+   columns remain intact. All 49,962 existing rows retain their pre-computed LLM values (loaded
+   via `load_data.py` from `llm_extended_applicant_data.json`). Only newly pulled rows receive
+   empty strings in those columns, which is the same behavior the previous code produced when the
+   LLM failed.
+
+3. **Reduced complexity** — Removing the LLM dependency eliminates a ~1 GB model download,
+   simplifies the test harness (no more `llama_cpp`/`huggingface_hub` module stubs in
+   `conftest.py`), and removes the need to mock `llm_standardize` across every test file.
+
+The UC campus normalization patterns formerly defined in `llm_standardizer.py` have been moved
+directly into `cleanup_data.py`, which is the only module that uses them.
 
 ## cleanup_data.py
 
@@ -252,7 +264,6 @@ module_5/
 │   ├── test_cleanup.py                     # Cleanup function tests
 │   ├── test_cleanup_main.py                # cleanup_data.main() tests
 │   ├── test_robots_checker.py              # robots_checker tests
-│   ├── test_llm_standardizer.py            # LLM standardizer tests
 │   ├── test_query_main.py                  # query_data.main() tests
 │   ├── test_load_main.py                   # load_data.main() tests
 │   └── test_app_errors.py                  # App error handling tests
@@ -261,14 +272,12 @@ module_5/
 │   ├── query_data.py                       # Analysis queries (shared by app.py and CLI)
 │   ├── load_data.py                        # Initial database loader (JSON → PostgreSQL)
 │   ├── cleanup_data.py                     # Data quality cleanup (GRE AW, UC campuses)
-│   ├── llm_standardizer.py                 # LLM-based program/university standardization
 │   ├── canon_programs.txt                  # Canonical program names (290 entries)
 │   ├── canon_universities.txt              # Canonical university names (1000+ entries)
 │   ├── scrape.py                           # GradCafe web scraper
 │   ├── robots_checker.py                   # robots.txt compliance checker
 │   ├── create_app_user.sql                 # Least-privilege DB user setup script
 │   ├── llm_extended_applicant_data.json    # Initial dataset from module_2
-│   ├── models/                             # LLM model files (TinyLlama)
 │   └── website/
 │       ├── _templates/
 │       │   └── index.html                  # Jinja2 Q&A dashboard template
@@ -279,7 +288,7 @@ module_5/
 
 ## Testing
 
-The `tests/` directory contains 176 pytest tests across thirteen files with markers for selective execution.
+The `tests/` directory contains 150 pytest tests across twelve files with markers for selective execution.
 
 | File | Tests | Marker | What it covers |
 |------|-------|--------|----------------|
@@ -292,10 +301,9 @@ The `tests/` directory contains 176 pytest tests across thirteen files with mark
 | `test_cleanup.py` | 9 | `db` | `normalize_uc` (pure), `fix_gre_aw` and `fix_uc_universities` (DB integration) |
 | `test_cleanup_main.py` | 2 | `db` | `cleanup_data.main()` happy path and DB connection error |
 | `test_robots_checker.py` | 5 | `web` | `RobotsChecker` init, exception handling, `can_fetch`, `get_crawl_delay` |
-| `test_llm_standardizer.py` | 25 | `web` | `_read_lines`, `_split_fallback`, `_best_match`, `_post_normalize_program`, `_post_normalize_university`, `_load_llm` singleton, `standardize` with mocked LLM |
 | `test_query_main.py` | 6 | `db` | `query_data.main()` output, DB error, `DATABASE_URL` config parsing, individual env var config, missing env vars, dependency-injected scraper test |
 | `test_load_main.py` | 10 | `db` | `create_connection` success/failure, `main()` DB creation, JSON loading, error paths (missing file, bad JSON, executemany failure) |
-| `test_app_errors.py` | 12 | `buttons` | Index DB error, `insert_row` LLM exception, invalid `max_pages`, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page, network error page 2 rollback, cleanup error, insert error rollback |
+| `test_app_errors.py` | 11 | `buttons` | Index DB error, invalid `max_pages`, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page, network error page 2 rollback, cleanup error, insert error rollback |
 
 ### Running Tests
 
@@ -321,16 +329,14 @@ Coverage is configured in `pytest.ini` and `setup.cfg`. The suite enforces **100
 | `app.py` | 100% |
 | `cleanup_data.py` | 100% |
 | `robots_checker.py` | 100% |
-| `llm_standardizer.py` | 100% |
 | `load_data.py` | 100% |
 | `query_data.py` | 100% |
 | `scrape.py` | 100% |
 | **TOTAL** | **100%** |
 
-Only `llm_standardize` (the LLM call) is mocked across all test suites. Scraper functions
-(`fetch_page`, `parse_survey`, `get_max_pages`) and cleanup functions (`fix_gre_aw`,
-`fix_uc_universities`) run for real — network I/O is intercepted at the transport level by
-patching `scrape.urlopen` with a `_FakeResponse` stub.
+Scraper functions (`fetch_page`, `parse_survey`, `get_max_pages`) and cleanup functions
+(`fix_gre_aw`, `fix_uc_universities`) run for real — network I/O is intercepted at the
+transport level by patching `scrape.urlopen` with a `FakeResponse` stub.
 
 ## Code Quality
 
@@ -351,16 +357,9 @@ Your code has been rated at 10.00/10
 
 ### Snyk Vulnerability Scan
 
-`snyk test` reports one known vulnerability:
-
-| Vulnerability | Severity | Package | Introduced by | CVE |
-|---------------|----------|---------|---------------|-----|
-| Deserialization of Untrusted Data | High | `diskcache@5.6.3` | `llama-cpp-python` → `diskcache` | CVE-2025-69872 |
-
-**Status: Not exploitable in this project.** The `diskcache` package is a transitive dependency
-of `llama-cpp-python`, but this project only imports `llama_cpp.Llama` for LLM inference
-(`llm_standardizer.py`). The vulnerable code path (`llama_cpp.llama_cache.LlamaDiskCache`)
-is never imported or invoked. No patched version of `diskcache` is available as of 2026-02-10.
+`snyk test` passes clean with no known vulnerabilities. The previous high-severity
+`diskcache` vulnerability (CVE-2025-69872) was eliminated by removing the `llama-cpp-python`
+dependency entirely (see [LLM Standardization — Removed](#llm-standardization--removed)).
 
 ### Practices
 
@@ -370,7 +369,7 @@ All Python files follow these practices:
 - **Logging** — Uses Python `logging` module with lazy `%` formatting (not f-strings)
 - **Specific exceptions** — Catches specific exception types (e.g., `OperationalError`, `JSONDecodeError`)
 - **Input validation** — Validates user inputs (e.g., `max_pages` clamped to 1-500)
-- **No duplicate code** — Shared constants imported from single source (e.g., `DB_CONFIG`, `UC_CAMPUS_PATTERNS`)
+- **No duplicate code** — Shared constants imported from single source (e.g., `DB_CONFIG`)
 - **SQL injection protection** — All queries use parameterized statements (`%s` placeholders with parameter tuples); dynamic identifiers use `psycopg.sql.Identifier()`; SQL construction is separated from execution
 
 # References
@@ -379,8 +378,6 @@ All Python files follow these practices:
 * https://medium.com/dataexplorations/sqlalchemy-orm-a-more-pythonic-way-of-interacting-with-your-database-935b57fd2d4d
 * https://flask.palletsprojects.com/
 * https://www.psycopg.org/psycopg3/docs/
-* https://llama-cpp-python.readthedocs.io/
-* https://huggingface.co/docs/huggingface_hub/
 * https://realpython.com/pytest-python-testing/
 * https://www.docslikecode.com/learn/01-sphinx-python-rtd/
 * https://www.sphinx-doc.org/en/master/
