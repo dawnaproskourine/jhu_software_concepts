@@ -552,14 +552,28 @@ def test_main_stdout_json(monkeypatch, capsys):
 @pytest.mark.web
 def test_main_file_output(monkeypatch, tmp_path):
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
-    outfile = str(tmp_path / "out.json")
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
-        sys, "argv", ["scrape.py", "--pages", "1", "--ignore_robots", "-o", outfile]
+        sys, "argv", ["scrape.py", "--pages", "1", "--ignore_robots", "-o", "out.json"]
     )
 
     main()
 
+    outfile = str(tmp_path / "out.json")
     with open(outfile, encoding="utf-8") as f:
         data = json.loads(f.read())
     assert isinstance(data, list)
     assert len(data) == 1
+
+
+@pytest.mark.web
+def test_main_invalid_output_filename(monkeypatch, capsys):
+    monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
+    monkeypatch.setattr(
+        sys, "argv", ["scrape.py", "--pages", "1", "--ignore_robots", "-o", "/"]
+    )
+
+    main()
+
+    err = capsys.readouterr().err
+    assert "invalid output filename" in err
