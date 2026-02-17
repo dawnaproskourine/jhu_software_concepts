@@ -54,7 +54,7 @@ Q&A-style dashboard. Queries are defined in `query_data.py` and shared between t
 - Python 3
 - PostgreSQL running locally with the `applicant_data` database populated (via `load_data.py`)
 - Database environment variables set (see Database Configuration below)
-- Required packages: `flask`, `psycopg`, `beautifulsoup4`
+- Required packages: `pip install -r requirements.txt` (Flask, psycopg, beautifulsoup4, llama-cpp-python, huggingface-hub, sphinx, pytest, pylint, pydeps)
 
 ### Database Configuration
 
