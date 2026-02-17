@@ -1,0 +1,49 @@
+
+Testing /Users/dawnaproskourine/Desktop/jhu/jhu-python concepts/jhu_software_concepts/module_5 ...
+
+Open Issues
+
+ ✗ [MEDIUM] Path Traversal
+   Path: src/scrape.py, line 393
+   Info: Unsanitized input from a command line argument flows into open, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to write arbitrary files.
+
+ ✗ [MEDIUM] Debug Mode Enabled
+   Path: src/app.py, line 285
+   Info: Running the application in debug mode (debug flag is set to True in run) is a security risk if the application is accessible by untrusted parties.
+
+ ✗ [MEDIUM] Server Information Exposure
+   Path: src/app.py, line 224
+   Info: The stack trace from an exception flows into the return value of pull_data and is leaked to the user. This may disclose sensitive server information to the attackers.
+
+ ✗ [MEDIUM] Server Information Exposure
+   Path: src/app.py, line 229
+   Info: The stack trace from an exception flows into the return value of pull_data and is leaked to the user. This may disclose sensitive server information to the attackers.
+
+ ✗ [MEDIUM] Server Information Exposure
+   Path: src/app.py, line 243
+   Info: The stack trace from an exception flows into the return value of pull_data and is leaked to the user. This may disclose sensitive server information to the attackers.
+
+
+
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Test Summary                                                                                                   │
+│                                                                                                                │
+│   Organization:      dawnaproskourine                                                                          │
+│   Test type:         Static code analysis                                                                      │
+│   Project path:      /Users/dawnaproskourine/Desktop/jhu/jhu-python concepts/jhu_software_concepts/module_5    │
+│                                                                                                                │
+│   Total issues:   5                                                                                            │
+│   Ignored issues: 0 [ 0 HIGH  0 MEDIUM  0 LOW ]                                                                │
+│   Open issues:    5 [ 0 HIGH  5 MEDIUM  0 LOW ]                                                                │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+    
+💡 Tip
+
+   To view ignored issues, use the --include-ignores option.
+                                                            
+
+
+💡 Tip
+
+   Some capabilities, including the ability to apply ignores, are unavailable. Retest the project with the --remote-repo-url parameter or from within a repository to enable full functionality.
+                                                                                                                                                                                                

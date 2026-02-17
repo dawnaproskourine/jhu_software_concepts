@@ -349,6 +349,19 @@ Output:
 Your code has been rated at 10.00/10
 ```
 
+### Snyk Vulnerability Scan
+
+`snyk test` reports one known vulnerability:
+
+| Vulnerability | Severity | Package | Introduced by | CVE |
+|---------------|----------|---------|---------------|-----|
+| Deserialization of Untrusted Data | High | `diskcache@5.6.3` | `llama-cpp-python` → `diskcache` | CVE-2025-69872 |
+
+**Status: Not exploitable in this project.** The `diskcache` package is a transitive dependency
+of `llama-cpp-python`, but this project only imports `llama_cpp.Llama` for LLM inference
+(`llm_standardizer.py`). The vulnerable code path (`llama_cpp.llama_cache.LlamaDiskCache`)
+is never imported or invoked. No patched version of `diskcache` is available as of 2026-02-10.
+
 ### Practices
 
 All Python files follow these practices:

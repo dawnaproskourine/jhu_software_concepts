@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -390,9 +391,15 @@ def main():
     # Output as formatted JSON
     json_output = json.dumps(results, indent=2, ensure_ascii=False)
     if args.output:
-        with open(args.output, "w", encoding="utf-8") as f:
+        filename = os.path.basename(args.output)
+        if not filename:
+            print("Error: invalid output filename",
+                  file=sys.stderr)
+            return results
+        safe_path = os.path.join(os.getcwd(), filename)
+        with open(safe_path, "w", encoding="utf-8") as f:
             f.write(json_output)
-        print(f"Results saved to {args.output}", file=sys.stderr)
+        print(f"Results saved to {safe_path}", file=sys.stderr)
     else:
         print(json_output)
 

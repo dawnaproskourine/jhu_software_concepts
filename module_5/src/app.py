@@ -221,12 +221,12 @@ def create_app(testing=False, fetch_page_fn=None,  # pylint: disable=too-many-st
             logger.error("Network error during scrape: %s", e)
             conn.rollback()
             conn.close()
-            return jsonify({"error": f"Network error: {e}"}), 500
+            return jsonify({"error": "Network error during scrape"}), 500
         except psycopg.Error as e:
             logger.error("Database error during scrape: %s", e)
             conn.rollback()
             conn.close()
-            return jsonify({"error": f"Database error: {e}"}), 500
+            return jsonify({"error": "Database error during scrape"}), 500
 
         # Run data cleanup if new entries were inserted
         cleaned_gre = 0
@@ -240,7 +240,7 @@ def create_app(testing=False, fetch_page_fn=None,  # pylint: disable=too-many-st
                 logger.error("Cleanup error: %s", e)
                 conn.rollback()
                 conn.close()
-                return jsonify({"error": f"Cleanup error: {e}"}), 500
+                return jsonify({"error": "Cleanup error"}), 500
 
         conn.commit()
         conn.close()
@@ -282,4 +282,4 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=False)
