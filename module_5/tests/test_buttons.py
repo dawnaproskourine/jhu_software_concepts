@@ -3,6 +3,7 @@
 Verifies JSON response from /pull-data, onclick wiring, JS inclusion,
 and the isPulling guard in dashboard.js.
 """
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,C0103
 
 import os
 
@@ -119,7 +120,7 @@ def _read_js():
         os.path.dirname(__file__), os.pardir,
         "src", "website", "_static", "dashboard.js",
     )
-    with open(js_path) as f:
+    with open(js_path, encoding="utf-8") as f:
         return f.read()
 
 

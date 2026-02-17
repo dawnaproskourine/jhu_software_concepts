@@ -1,14 +1,19 @@
+"""GradCafe web scraper for applicant survey data."""
 
+import argparse
+import json
+import re
 import sys
 import time
-from bs4 import BeautifulSoup
-from urllib.request import urlopen, Request
-import robots_checker
-import argparse
-import re
-import json
 
-def fetch_page(url, user_agent = robots_checker.DEFAULT_USER_AGENT):
+from urllib.request import urlopen, Request
+
+from bs4 import BeautifulSoup
+
+import robots_checker
+
+
+def fetch_page(url, user_agent=robots_checker.DEFAULT_USER_AGENT):
     """Fetch a web page and return its HTML content.
 
     :param url: The URL to fetch.
@@ -20,7 +25,7 @@ def fetch_page(url, user_agent = robots_checker.DEFAULT_USER_AGENT):
     """
     headers = {'User-Agent': user_agent}
     request = Request(url, headers=headers)
-    page = urlopen(request)
+    page = urlopen(request)  # pylint: disable=consider-using-with
     html = page.read().decode("utf-8")
     return html
 
@@ -93,7 +98,8 @@ def parse_main_row(cells):
         degree = program_parts[1].strip()
         if "phd" in degree.lower():
             result["Degree"] = "PhD"
-        elif "master" in degree.lower() or degree in ["MS", "MA", "MFA", "MBA", "MEng"]:
+        elif ("master" in degree.lower()
+              or degree in ["MS", "MA", "MFA", "MBA", "MEng"]):
             result["Degree"] = "Masters"
         else:
             result["Degree"] = degree
@@ -114,7 +120,7 @@ def parse_main_row(cells):
         else:
             result["url"] = href
 
-    # Default GPA/GRE fields so every row has them even when not on the page
+    # Default GPA/GRE fields
     result["GPA"] = ""
     result["GRE V"] = ""
     result["GRE AW"] = ""
@@ -125,7 +131,7 @@ def parse_main_row(cells):
     result["comments"] = []
     return result
 
-def parse_detail_row(cell, result):
+def parse_detail_row(cell, result):  # pylint: disable=too-many-branches
     """Parse a detail or comment row and update the result dict in place.
 
     Handles two types of rows:
@@ -139,24 +145,26 @@ def parse_detail_row(cell, result):
     :type result: dict
     """
     text = cell.get_text(separator=" | ", strip=True)
-    
+
     # Skip empty cells
     if not text:
         return
-    
+
     parts = [p.strip() for p in text.split(" | ")]
-    
+
     # Track if we found any structured data
     found_structured_data = False
-    
-    # Collect any parts that don't match structured patterns - these are comments
+
+    # Collect any parts that don't match structured patterns
     comment_parts = []
 
     for part in parts:
         part_lower = part.lower()
-        
+
         # Check for term (eg "Fall 2024")
-        if re.match(r'^(fall|spring|summer|winter)\s+\d{4}$', part_lower):
+        if re.match(
+            r'^(fall|spring|summer|winter)\s+\d{4}$', part_lower
+        ):
             result['term'] = part
             found_structured_data = True
 
@@ -190,25 +198,25 @@ def parse_detail_row(cell, result):
             result["GRE"] = part
             found_structured_data = True
 
-        # Check for status if not already set or if this is more detailed
-        elif any(x in part_lower for x in ["accepted", "rejected", "interview", "wait"]) and len(part) < 50:
-            # only update if this looks like a status (short text) and we don't have one
+        # Check for status if not already set
+        elif (any(x in part_lower for x in
+                  ["accepted", "rejected", "interview", "wait"])
+              and len(part) < 50):
             if "status" not in result or not result["status"]:
                 result["status"] = part
                 found_structured_data = True
 
-        # This part doesn't match any structured pattern - it's likely a comment
+        # Unmatched part - likely a comment
         else:
             comment_parts.append(part)
-    
+
     # If we have comment parts, add them to the comments list
     if comment_parts:
         comment_text = " ".join(comment_parts)
         result["comments"].append(comment_text)
-    
-    # If this entire row had no structured data, it's probably a pure comment row
+
+    # If this entire row had no structured data, it's a pure comment row
     if not found_structured_data and text:
-        # Add the entire text as a comment if we haven't already
         if text not in result["comments"]:
             result["comments"].append(text)
 
@@ -217,7 +225,7 @@ def get_max_pages(html):
 
     :param html: The raw HTML content of a survey page.
     :type html: str
-    :returns: The highest page number found, or 1 if no pagination exists.
+    :returns: The highest page number found, or 1 if no pagination.
     :rtype: int
     """
     soup = BeautifulSoup(html, "html.parser")
@@ -234,22 +242,22 @@ def get_max_pages(html):
 
     return max_page
 
-def scrape_data(
+def scrape_data(  # pylint: disable=too-many-locals
         base_url="https://www.thegradcafe.com/survey/",
         max_pages=None, delay=0.5,
-        user_agent = robots_checker.DEFAULT_USER_AGENT,
+        user_agent=robots_checker.DEFAULT_USER_AGENT,
         ignore_robots=False):
     """Scrape the GradCafe survey across multiple pages.
 
     :param base_url: Base URL for GradCafe survey pages.
     :type base_url: str
-    :param max_pages: Maximum number of pages to scrape, or ``None`` for all.
+    :param max_pages: Maximum number of pages to scrape, or ``None``.
     :type max_pages: int or None
     :param delay: Delay between page fetches in seconds.
     :type delay: float
     :param user_agent: User-Agent header string for requests.
     :type user_agent: str
-    :param ignore_robots: If ``True``, skip the robots.txt check (not recommended).
+    :param ignore_robots: If ``True``, skip the robots.txt check.
     :type ignore_robots: bool
     :returns: A list of dictionaries containing applicant survey data.
     :rtype: list[dict]
@@ -258,61 +266,74 @@ def scrape_data(
 
     # Check robots.txt
     if not ignore_robots:
-        print(f"Checking robots.txt for user-agent: {user_agent}", file=sys.stderr)
+        print(f"Checking robots.txt for user-agent: {user_agent}",
+              file=sys.stderr)
         robots = robots_checker.RobotsChecker(base_url, user_agent)
 
         if not robots.can_fetch(base_url):
-            print(f"Error: robots.txt disallows access to {base_url} for {user_agent}", file=sys.stderr)
-            print("Use --ignore_robots option to ignore robots.txt check (not recommended)", file=sys.stderr)
+            print(f"Error: robots.txt disallows access to "
+                  f"{base_url} for {user_agent}",
+                  file=sys.stderr)
+            print("Use --ignore_robots option to ignore robots.txt "
+                  "check (not recommended)", file=sys.stderr)
             return all_results
 
-         # Use crawl-delay from robots.txt if specified, otherwise use provided delay
+         # Use crawl-delay from robots.txt if specified
         robots_delay = robots.get_crawl_delay(delay)
         if robots_delay != delay:
-            print(f"Using crawl delay from robots.txt: {robots_delay}s", file=sys.stderr)
+            print(f"Using crawl delay from robots.txt: "
+                  f"{robots_delay}s", file=sys.stderr)
             delay = robots_delay
 
     # Fetch first page to determine total pages
     html = fetch_page(base_url, user_agent)
     results = parse_survey(html)
-    
+
     # Convert comment lists to strings before adding to results
     for result in results:
         if isinstance(result.get("comments"), list):
             result["comments"] = " ".join(result["comments"]).strip()
-    
+
     all_results.extend(results)
 
     total_pages = get_max_pages(html)
-    pages_to_fetch = min(total_pages, max_pages) if max_pages else total_pages
+    pages_to_fetch = (min(total_pages, max_pages)
+                      if max_pages else total_pages)
 
-    print(f"Found {total_pages} total pages. Fetching {pages_to_fetch} pages...", file=sys.stderr)
-    print(f"Page 1/{pages_to_fetch} - {len(results)} results", file=sys.stderr)
+    print(f"Found {total_pages} total pages. "
+          f"Fetching {pages_to_fetch} pages...", file=sys.stderr)
+    print(f"Page 1/{pages_to_fetch} - {len(results)} results",
+          file=sys.stderr)
 
     # Fetch remaining pages
     for page_num in range(2, pages_to_fetch + 1):
-        time.sleep(delay) # being respectful to the server
+        time.sleep(delay)  # being respectful to the server
 
         page_url = f"{base_url}?page={page_num}"
 
         # Check robots.txt for each page URL
         if not ignore_robots and not robots.can_fetch(page_url):
-            print(f"Skipping page {page_num}: disallowed by robots.txt", file=sys.stderr)
+            print(f"Skipping page {page_num}: disallowed by robots.txt",
+                  file=sys.stderr)
             continue
 
         try:
             html = fetch_page(page_url, user_agent)
             results = parse_survey(html)
-            
+
             # Convert comment lists to strings
             for result in results:
                 if isinstance(result.get("comments"), list):
-                    result["comments"] = " ".join(result["comments"]).strip()
-            
+                    result["comments"] = " ".join(
+                        result["comments"]
+                    ).strip()
+
             all_results.extend(results)
-            print(f"Page {page_num}/{pages_to_fetch} - {len(results)} results", file=sys.stderr)
-        except Exception as e:
-            print(f"Error fetching page {page_num}: {e}", file=sys.stderr)
+            print(f"Page {page_num}/{pages_to_fetch} - "
+                  f"{len(results)} results", file=sys.stderr)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            print(f"Error fetching page {page_num}: {e}",
+                  file=sys.stderr)
             continue
 
     print(f"Total results: {len(all_results)}", file=sys.stderr)
@@ -325,14 +346,14 @@ def main():
     and robots.txt handling. Writes results to a file or stdout.
     """
     parser = argparse.ArgumentParser(
-        description="Scrape the survey page and parse its content. Return output as JSON"
+        description="Scrape the survey page and parse its content. "
+                    "Return output as JSON"
     )
     parser.add_argument(
-        "--pages",
-        "-p",
+        "--pages", "-p",
         type=int,
         default=5,
-        help="number of pages to scrape (default: 5, use 0 for all pages)"
+        help="number of pages to scrape (default: 5, use 0 for all)"
     )
     parser.add_argument(
         "--delay", "-d",
@@ -349,7 +370,8 @@ def main():
         "--user_agent", "-u",
         type=str,
         default=robots_checker.DEFAULT_USER_AGENT,
-        help=f"User agent string to use for requests (default: {robots_checker.DEFAULT_USER_AGENT})"
+        help=("User agent string to use for requests "
+              f"(default: {robots_checker.DEFAULT_USER_AGENT})")
     )
     parser.add_argument(
         "--ignore_robots",

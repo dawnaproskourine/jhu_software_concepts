@@ -1,4 +1,5 @@
 """Shared fixtures and mock data for module_4 tests."""
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import os
 import sys
@@ -20,7 +21,7 @@ if SOURCE_DIR not in sys.path:
 # ---------------------------------------------------------------------------
 if "llama_cpp" not in sys.modules:
     try:
-        import llama_cpp  # noqa: F401
+        import llama_cpp  # pylint: disable=W0611  # noqa: F401
     except ModuleNotFoundError:
         _llama = types.ModuleType("llama_cpp")
         _llama.Llama = type("Llama", (), {})
@@ -28,13 +29,13 @@ if "llama_cpp" not in sys.modules:
 
 if "huggingface_hub" not in sys.modules:
     try:
-        import huggingface_hub  # noqa: F401
+        import huggingface_hub  # pylint: disable=W0611  # noqa: F401
     except ModuleNotFoundError:
         _hf = types.ModuleType("huggingface_hub")
         _hf.hf_hub_download = lambda *a, **kw: ""
         sys.modules["huggingface_hub"] = _hf
 
-from query_data import DB_CONFIG  # noqa: E402
+from query_data import DB_CONFIG  # pylint: disable=C0413  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Mock query data (Decimal values match what psycopg returns from ROUND)

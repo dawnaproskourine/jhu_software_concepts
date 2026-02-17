@@ -1,3 +1,9 @@
+"""Sphinx configuration for Module 5 documentation."""
+# pylint: disable=invalid-name,redefined-builtin
+
+import os
+import sys
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -6,13 +12,11 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Module 4: Testing and Documentation'
+project = 'Module 5: Software Assurance + Secure SQL'
 copyright = '2026, Dawna Jones Proskourine'
 author = 'Dawna Jones Proskourine'
 release = '1.0'
 
-import os
-import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 # Set a dummy DATABASE_URL so query_data import doesn't warn during doc builds
@@ -31,8 +35,6 @@ autodoc_mock_imports = [
 
 templates_path = ['../src/website/_templates']
 exclude_patterns = ['build']
-
-
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

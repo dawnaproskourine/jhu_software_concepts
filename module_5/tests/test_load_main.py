@@ -1,4 +1,5 @@
 """Tests for load_data.create_connection() and main()."""
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,W0212,W0612
 
 import json
 
@@ -89,7 +90,11 @@ def test_main_creates_db_when_missing(monkeypatch):
     load_data.main()  # Will hit FileNotFoundError for JSON
 
     # Verify CREATE DATABASE was called
-    has_create = any("CREATE DATABASE" in c[1] for c in first_conn._cursor.calls if c[0] == "execute")
+    has_create = any(
+        "CREATE DATABASE" in c[1]
+        for c in first_conn._cursor.calls
+        if c[0] == "execute"
+    )
 
 
 def test_main_db_already_exists(monkeypatch):

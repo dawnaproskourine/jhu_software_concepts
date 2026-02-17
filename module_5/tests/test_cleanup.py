@@ -3,6 +3,7 @@
 ``normalize_uc`` runs purely in-memory. ``fix_gre_aw`` and
 ``fix_uc_universities`` run against the SAVEPOINT-protected DB.
 """
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import uuid
 

@@ -4,13 +4,15 @@ Unit tests for clean_text / parse_float (no DB required).
 Integration tests for insert_row, duplicate handling, column values,
 and cleanup routines (real PostgreSQL with SAVEPOINT rollback).
 """
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,C0115,W0612,R0914
 
 import uuid
 from datetime import date
 
 import pytest
-from load_data import clean_text, parse_float, parse_date
+
 from conftest import FakeResponse, NoCloseConn
+from load_data import clean_text, parse_float, parse_date
 
 
 # =====================================================================

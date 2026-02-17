@@ -30,7 +30,7 @@ def _build_db_config():
             '"postgresql://user:pass@localhost:5432/applicant_data"'
         )
         return {}
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse  # pylint: disable=import-outside-toplevel
     parsed = urlparse(url)
     return {
         "dbname": parsed.path.lstrip("/") or "applicant_data",
@@ -120,7 +120,6 @@ def run_queries(conn: Connection) -> dict[str, Any]:
     results["accepted_gpa_fall2026"] = cur.fetchone()[0]
 
     # 7. JHU Masters in Computer Science count
-    # Uses '%Hopkins%' to catch misspellings: John Hopkins, John'S Hopkins, Johnson Hopkins, etc.
     cur.execute("""
         SELECT COUNT(*)
         FROM applicants
@@ -166,7 +165,8 @@ def run_queries(conn: Connection) -> dict[str, Any]:
     cur.execute("""
         SELECT llm_generated_program, COUNT(*) AS num_applicants
         FROM applicants
-        WHERE llm_generated_program IS NOT NULL AND llm_generated_program != ''
+        WHERE llm_generated_program IS NOT NULL
+          AND llm_generated_program != ''
           AND term = 'Fall 2026'
         GROUP BY llm_generated_program
         ORDER BY num_applicants DESC
@@ -178,7 +178,8 @@ def run_queries(conn: Connection) -> dict[str, Any]:
     cur.execute("""
         SELECT llm_generated_university, COUNT(*) AS num_applicants
         FROM applicants
-        WHERE llm_generated_university IS NOT NULL AND llm_generated_university != ''
+        WHERE llm_generated_university IS NOT NULL
+          AND llm_generated_university != ''
           AND term = 'Fall 2026'
         GROUP BY llm_generated_university
         ORDER BY num_applicants DESC
@@ -186,7 +187,7 @@ def run_queries(conn: Connection) -> dict[str, Any]:
     """)
     results["top_universities"] = cur.fetchall()
 
-    # 12a. Acceptance rate by degree type (Masters, PhD, PsyD) for Fall 2026
+    # 12a. Acceptance rate by degree type for Fall 2026
     cur.execute("""
         SELECT
             degree,
@@ -234,25 +235,32 @@ def main() -> None:
     try:
         conn = psycopg.connect(**DB_CONFIG)
     except OperationalError as e:
-        logger.error(f"Database connection failed: {e}")
+        logger.error("Database connection failed: %s", e)
         return
 
     results = run_queries(conn)
-    conn.close()
+    conn.close()  # pylint: disable=no-member
 
     print(f"Total applicants: {results['total_count']}")
     print(f"Fall 2026 applicants: {results['fall_2026_count']}")
-    print(f"International student percentage: {results['international_pct']}%")
+    print(f"International student percentage: "
+          f"{results['international_pct']}%")
     print(f"Average GPA: {results['avg_gpa']}")
     print(f"Average GRE: {results['avg_gre']}")
     print(f"Average GRE V: {results['avg_gre_v']}")
     print(f"Average GRE AW: {results['avg_gre_aw']}")
-    print(f"Average GPA of American students (Fall 2026): {results['american_gpa_fall2026']}")
-    print(f"Fall 2026 acceptance percentage: {results['acceptance_pct_fall2026']}%")
-    print(f"Average GPA of accepted applicants (Fall 2026): {results['accepted_gpa_fall2026']}")
-    print(f"JHU Masters in Computer Science applicants: {results['jhu_cs_masters']}")
-    print(f"2026 PhD CS acceptances (Georgetown, MIT, Stanford, CMU) [program]: {results['phd_cs_program']}")
-    print(f"2026 PhD CS acceptances (Georgetown, MIT, Stanford, CMU) [llm]: {results['phd_cs_llm']}")
+    print(f"Average GPA of American students (Fall 2026): "
+          f"{results['american_gpa_fall2026']}")
+    print(f"Fall 2026 acceptance percentage: "
+          f"{results['acceptance_pct_fall2026']}%")
+    print(f"Average GPA of accepted applicants (Fall 2026): "
+          f"{results['accepted_gpa_fall2026']}")
+    print(f"JHU Masters in Computer Science applicants: "
+          f"{results['jhu_cs_masters']}")
+    print("2026 PhD CS acceptances (Georgetown, MIT, Stanford, CMU) "
+          f"[program]: {results['phd_cs_program']}")
+    print("2026 PhD CS acceptances (Georgetown, MIT, Stanford, CMU) "
+          f"[llm]: {results['phd_cs_llm']}")
 
     print("\nTop 10 most popular programs:")
     for i, (program, count) in enumerate(results["top_programs"], 1):

@@ -50,11 +50,11 @@ def fix_gre_aw(conn: Connection) -> int:
 
     cur.execute("SELECT COUNT(*) FROM applicants WHERE gre_aw > 6")
     count = cur.fetchone()[0]
-    logger.info(f"Found {count} rows with invalid GRE AW scores (> 6)")
+    logger.info("Found %d rows with invalid GRE AW scores (> 6)", count)
 
     if count > 0:
         cur.execute("UPDATE applicants SET gre_aw = NULL WHERE gre_aw > 6")
-        logger.info(f"Set {count} invalid GRE AW values to NULL")
+        logger.info("Set %d invalid GRE AW values to NULL", count)
 
     return count
 
@@ -80,7 +80,7 @@ def fix_uc_universities(conn: Connection) -> int:
            OR llm_generated_university ILIKE 'Uc %'
     """)
     rows = cur.fetchall()
-    logger.info(f"Found {len(rows)} UC-related rows to check")
+    logger.info("Found %d UC-related rows to check", len(rows))
 
     updated = 0
     for p_id, program, current_uni in rows:
@@ -97,7 +97,8 @@ def fix_uc_universities(conn: Connection) -> int:
             """, (new_uni, p_id))
             updated += 1
 
-    logger.info(f"Updated {updated} UC university names to specific campuses")
+    logger.info("Updated %d UC university names to specific campuses",
+                updated)
     return updated
 
 
@@ -110,7 +111,7 @@ def main() -> None:
         conn = psycopg.connect(**DB_CONFIG)
         conn.autocommit = True
     except OperationalError as e:
-        logger.error(f"Database connection failed: {e}")
+        logger.error("Database connection failed: %s", e)
         return
 
     logger.info("=== Fixing GRE AW scores ===")
@@ -119,7 +120,7 @@ def main() -> None:
     logger.info("\n=== Fixing UC university names ===")
     fix_uc_universities(conn)
 
-    conn.close()
+    conn.close()  # pylint: disable=no-member
     logger.info("\nCleanup complete!")
 
 

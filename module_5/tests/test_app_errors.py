@@ -1,4 +1,5 @@
 """Tests for app.py error handling paths."""
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,W0212
 
 import uuid
 from urllib.error import URLError
@@ -7,9 +8,9 @@ import pytest
 import psycopg
 from psycopg import OperationalError
 
+from conftest import FakeResponse, FakePullConn, NoCloseConn
 import app as app_module
 import scrape
-from conftest import FakeResponse, FakePullConn, NoCloseConn
 
 
 # =====================================================================
@@ -35,7 +36,7 @@ def test_index_db_error_renders_error(monkeypatch):
 
 @pytest.mark.db
 def test_insert_row_llm_exception_still_inserts(db_conn, monkeypatch):
-    conn, cur = db_conn
+    _, cur = db_conn
 
     monkeypatch.setattr(
         app_module, "llm_standardize",
@@ -157,7 +158,10 @@ def test_pull_data_db_error_during_scrape_500(monkeypatch):
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _ErrorConn())
     monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "x", "program": "y", "comments": "z"}])
+    monkeypatch.setattr(
+        scrape, "parse_survey",
+        lambda html: [{"url": "x", "program": "y", "comments": "z"}],
+    )
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
 
     test_app = app_module.create_app(testing=True)
@@ -245,8 +249,14 @@ def test_pull_data_caught_up_breaks(monkeypatch):
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _DupConn())
     monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 2)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
-    monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
+    monkeypatch.setattr(
+        scrape, "parse_survey",
+        lambda html: [{"url": "u", "program": "p", "comments": "c"}],
+    )
+    monkeypatch.setattr(
+        app_module, "time",
+        type("T", (), {"sleep": staticmethod(lambda d: None)})(),
+    )
 
     test_app = app_module.create_app(testing=True)
     with test_app.test_client() as c:
@@ -302,11 +312,22 @@ def test_pull_data_fetches_multiple_pages(monkeypatch):
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
-    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _InsertConn())
+    monkeypatch.setattr(
+        app_module.psycopg, "connect",
+        lambda **kw: _InsertConn(),
+    )
     monkeypatch.setattr(scrape, "fetch_page", _fake_fetch)
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 2)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": f"u{call_n['n']}", "program": "p", "comments": "c"}])
-    monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
+    monkeypatch.setattr(
+        scrape, "parse_survey",
+        lambda html: [
+            {"url": f"u{call_n['n']}", "program": "p", "comments": "c"}
+        ],
+    )
+    monkeypatch.setattr(
+        app_module, "time",
+        type("T", (), {"sleep": staticmethod(lambda d: None)})(),
+    )
 
     test_app = app_module.create_app(testing=True)
     with test_app.test_client() as c:
@@ -361,11 +382,20 @@ def test_pull_data_network_error_page2_rolls_back(monkeypatch):
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
-    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _TrackConn())
+    monkeypatch.setattr(
+        app_module.psycopg, "connect",
+        lambda **kw: _TrackConn(),
+    )
     monkeypatch.setattr(scrape, "fetch_page", _fake_fetch)
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 2)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
-    monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
+    monkeypatch.setattr(
+        scrape, "parse_survey",
+        lambda html: [{"url": "u", "program": "p", "comments": "c"}],
+    )
+    monkeypatch.setattr(
+        app_module, "time",
+        type("T", (), {"sleep": staticmethod(lambda d: None)})(),
+    )
 
     test_app = app_module.create_app(testing=True)
     with test_app.test_client() as c:
@@ -414,9 +444,18 @@ def test_pull_data_cleanup_error_returns_500(monkeypatch):
                         lambda _c: (_ for _ in ()).throw(psycopg.Error("cleanup boom")))
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
-    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _CleanConn())
-    monkeypatch.setattr(scrape, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(scrape, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
+    monkeypatch.setattr(
+        app_module.psycopg, "connect",
+        lambda **kw: _CleanConn(),
+    )
+    monkeypatch.setattr(
+        scrape, "fetch_page",
+        lambda url, *a, **kw: fake_html,
+    )
+    monkeypatch.setattr(
+        scrape, "parse_survey",
+        lambda html: [{"url": "u", "program": "p", "comments": "c"}],
+    )
     monkeypatch.setattr(scrape, "get_max_pages", lambda html: 1)
 
     test_app = app_module.create_app(testing=True)

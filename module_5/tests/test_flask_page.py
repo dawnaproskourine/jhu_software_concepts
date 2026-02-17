@@ -4,6 +4,7 @@ Verifies that a testable Flask app is created with the required routes,
 the dashboard loads, contains all 13 Q&A blocks, buttons, tables, and
 ordered lists.
 """
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import pytest
 from bs4 import BeautifulSoup

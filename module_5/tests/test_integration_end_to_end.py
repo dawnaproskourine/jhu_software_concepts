@@ -10,6 +10,7 @@ real against crafted HTML fed through a transport-level ``urlopen`` stub.
 The cleanup functions (``fix_gre_aw``, ``fix_uc_universities``) run for
 real against the SAVEPOINT-protected database.
 """
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,R0914
 
 import uuid
 

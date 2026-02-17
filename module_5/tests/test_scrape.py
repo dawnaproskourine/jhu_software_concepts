@@ -4,20 +4,20 @@ Only network I/O (``urlopen``) is stubbed; ``fetch_page``, ``parse_survey``,
 ``parse_main_row``, ``parse_detail_row``, and ``get_max_pages`` all run for
 real against crafted HTML.
 """
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import json
 import sys
 
 import pytest
+from bs4 import BeautifulSoup
 
 from conftest import FakeResponse
-
+import scrape
 from scrape import (
     fetch_page, parse_survey, parse_main_row, parse_detail_row,
     get_max_pages, scrape_data, main,
 )
-from bs4 import BeautifulSoup
-import scrape
 
 
 # ---------------------------------------------------------------------------
@@ -195,13 +195,13 @@ def test_parse_survey_returns_list_of_dicts():
 @pytest.mark.web
 def test_parse_survey_empty_table():
     html = "<html><body><table><tbody></tbody></table></body></html>"
-    assert parse_survey(html) == []
+    assert not parse_survey(html)
 
 
 @pytest.mark.web
 def test_parse_survey_no_table():
     html = "<html><body></body></html>"
-    assert parse_survey(html) == []
+    assert not parse_survey(html)
 
 
 # =====================================================================
@@ -238,7 +238,7 @@ def test_fetch_page_calls_urlopen_and_decodes(monkeypatch):
 @pytest.mark.web
 def test_parse_survey_table_no_tbody():
     html = "<html><body><table><tr><td>no tbody</td></tr></table></body></html>"
-    assert parse_survey(html) == []
+    assert not parse_survey(html)
 
 
 @pytest.mark.web
@@ -429,7 +429,7 @@ def test_scrape_data_robots_disallows(monkeypatch):
         base_url="https://example.com/survey/",
         max_pages=1, delay=0, ignore_robots=False,
     )
-    assert results == []
+    assert not results
 
 
 @pytest.mark.web
@@ -450,7 +450,7 @@ def test_scrape_data_crawl_delay_override(monkeypatch):
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
 
     delays = []
-    monkeypatch.setattr(scrape.time, "sleep", lambda d: delays.append(d))
+    monkeypatch.setattr(scrape.time, "sleep", delays.append)
 
     results = scrape_data(
         base_url="https://example.com/survey/",
@@ -487,7 +487,7 @@ def test_scrape_data_page_error_continues(monkeypatch):
         pages["n"] += 1
         if pages["n"] == 1:
             return FakeResponse(_TWO_PAGE_HTML_P1)
-        raise Exception("Network error on page 2")
+        raise RuntimeError("Network error on page 2")
 
     monkeypatch.setattr(scrape, "urlopen", _urlopen)
     monkeypatch.setattr(scrape.time, "sleep", lambda d: None)
@@ -559,7 +559,7 @@ def test_main_file_output(monkeypatch, tmp_path):
 
     main()
 
-    with open(outfile) as f:
+    with open(outfile, encoding="utf-8") as f:
         data = json.loads(f.read())
     assert isinstance(data, list)
     assert len(data) == 1

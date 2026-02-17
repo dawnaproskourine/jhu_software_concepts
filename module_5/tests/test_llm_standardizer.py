@@ -1,12 +1,11 @@
 """Tests for llm_standardizer — pure functions and mocked LLM calls."""
+# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,C0115,W0612
 
 import json
 
 import pytest
 
 import llm_standardizer as llm
-
-pytestmark = pytest.mark.web
 from llm_standardizer import (
     _read_lines,
     _split_fallback,
@@ -16,6 +15,8 @@ from llm_standardizer import (
     CANON_UNIS,
     CANON_PROGS,
 )
+
+pytestmark = pytest.mark.web
 
 
 # =====================================================================
@@ -194,7 +195,7 @@ def test_standardize_valid_json(monkeypatch):
         def create_chat_completion(self, **kw):
             return fake_response
 
-    monkeypatch.setattr(llm, "_load_llm", lambda: FakeLLM())
+    monkeypatch.setattr(llm, "_load_llm", FakeLLM)
 
     from llm_standardizer import standardize
     result = standardize("Physics, MIT")
@@ -213,7 +214,7 @@ def test_standardize_invalid_json_fallback(monkeypatch):
                 }]
             }
 
-    monkeypatch.setattr(llm, "_load_llm", lambda: FakeLLM())
+    monkeypatch.setattr(llm, "_load_llm", FakeLLM)
 
     from llm_standardizer import standardize
     result = standardize("Physics, MIT")

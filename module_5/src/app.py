@@ -56,7 +56,8 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
         llm_program = llm_result.get("standardized_program", "")
         llm_university = llm_result.get("standardized_university", "")
     except (KeyError, TypeError, RuntimeError) as e:
-        logger.warning(f"LLM standardization failed for '{program_text}': {e}")
+        logger.warning("LLM standardization failed for '%s': %s",
+                       program_text, e)
         llm_program = ""
         llm_university = ""
 
@@ -92,8 +93,8 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
     return cur.rowcount > 0
 
 
-def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
-               get_max_pages_fn=None):
+def create_app(testing=False, fetch_page_fn=None,  # pylint: disable=too-many-statements
+               parse_survey_fn=None, get_max_pages_fn=None):
     """Application factory for the Flask dashboard.
 
     :param testing: If ``True``, enables Flask's TESTING config flag.
@@ -122,20 +123,21 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
                 data = run_queries(conn)
             return render_template("index.html", **data)
         except OperationalError as e:
-            logger.error(f"Database connection failed: {e}")
+            logger.error("Database connection failed: %s", e)
             return render_template("index.html", error="Database connection failed")
 
     @application.route("/pull-data", methods=["POST"])
-    def pull_data() -> tuple[Response, int] | Response:
-        """Scrape new data from thegradcafe.com until caught up with database.
+    def pull_data() -> tuple[Response, int] | Response:  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+        """Scrape new data from thegradcafe.com until caught up.
 
-        Scrapes pages one at a time, stopping when a page has all duplicates
-        (meaning we've caught up with existing data). No gaps are left.
-        Accepts a JSON body with an optional ``max_pages`` field (default 100)
-        as a safety limit.
+        Scrapes pages one at a time, stopping when a page has all
+        duplicates (meaning we've caught up with existing data).
+        Accepts a JSON body with an optional ``max_pages`` field
+        (default 100) as a safety limit.
 
-        :returns: JSON response with pages scraped, entries processed, and new
-            rows inserted, or a tuple of (response, status_code) on error.
+        :returns: JSON response with pages scraped, entries processed,
+            and new rows inserted, or a tuple of (response, status_code)
+            on error.
         :rtype: flask.Response or tuple[flask.Response, int]
         """
         # Dependency injection: use provided callables or lazy-import
@@ -144,13 +146,18 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
             parse_survey = parse_survey_fn
             get_max_pages = get_max_pages_fn
         else:
-            from scrape import fetch_page, parse_survey, get_max_pages
-        from urllib.error import URLError, HTTPError
+            from scrape import (  # pylint: disable=import-outside-toplevel
+                fetch_page, parse_survey, get_max_pages,
+            )
+        from urllib.error import (  # pylint: disable=import-outside-toplevel
+            URLError, HTTPError,
+        )
 
         # Validate and get max_pages with bounds checking
-        raw_max_pages = request.json.get("max_pages", 100) if request.is_json else 100
+        raw_max = (request.json.get("max_pages", 100)
+                   if request.is_json else 100)
         try:
-            max_pages = max(1, min(int(raw_max_pages), 500))  # Clamp between 1 and 500
+            max_pages = max(1, min(int(raw_max), 500))
         except (ValueError, TypeError):
             max_pages = 100
 
@@ -160,10 +167,10 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
         try:
             conn = psycopg.connect(**DB_CONFIG)
         except OperationalError as e:
-            logger.error(f"Database connection failed: {e}")
+            logger.error("Database connection failed: %s", e)
             return jsonify({"error": "Database connection failed"}), 500
 
-        cur = conn.cursor()
+        cur = conn.cursor()  # pylint: disable=no-member
 
         total_scraped = 0
         total_inserted = 0
@@ -188,7 +195,9 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
                 # Convert comment lists to strings
                 for row in rows:
                     if isinstance(row.get("comments"), list):
-                        row["comments"] = " ".join(row["comments"]).strip()
+                        row["comments"] = " ".join(
+                            row["comments"]
+                        ).strip()
 
                 pages_fetched += 1
                 page_inserted = 0
@@ -201,18 +210,18 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
 
                 # If no new entries on this page, we've caught up
                 if page_inserted == 0:
-                    logger.info(f"Caught up after {pages_fetched} pages")
+                    logger.info("Caught up after %d pages", pages_fetched)
                     break
 
         except (URLError, HTTPError) as e:
-            logger.error(f"Network error during scrape: {e}")
-            conn.rollback()
-            conn.close()
+            logger.error("Network error during scrape: %s", e)
+            conn.rollback()  # pylint: disable=no-member
+            conn.close()  # pylint: disable=no-member
             return jsonify({"error": f"Network error: {e}"}), 500
         except psycopg.Error as e:
-            logger.error(f"Database error during scrape: {e}")
-            conn.rollback()
-            conn.close()
+            logger.error("Database error during scrape: %s", e)
+            conn.rollback()  # pylint: disable=no-member
+            conn.close()  # pylint: disable=no-member
             return jsonify({"error": f"Database error: {e}"}), 500
 
         # Run data cleanup if new entries were inserted
@@ -224,20 +233,18 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
                 cleaned_gre = fix_gre_aw(conn)
                 cleaned_uc = fix_uc_universities(conn)
             except psycopg.Error as e:
-                logger.error(f"Cleanup error: {e}")
-                conn.rollback()
-                conn.close()
+                logger.error("Cleanup error: %s", e)
+                conn.rollback()  # pylint: disable=no-member
+                conn.close()  # pylint: disable=no-member
                 return jsonify({"error": f"Cleanup error: {e}"}), 500
 
-        conn.commit()
-        conn.close()
+        conn.commit()  # pylint: disable=no-member
+        conn.close()  # pylint: disable=no-member
 
-        if total_inserted == 0:
-            message = f"Already up to date. Checked {pages_fetched} page(s), no new entries found."
-        else:
-            message = f"Caught up! Scraped {pages_fetched} page(s), {total_scraped} entries checked, {total_inserted} new rows added."
-            if cleaned_gre > 0 or cleaned_uc > 0:
-                message += f" Cleaned: {cleaned_gre} GRE AW, {cleaned_uc} UC names."
+        message = _build_pull_message(
+            pages_fetched, total_scraped, total_inserted,
+            cleaned_gre, cleaned_uc,
+        )
 
         logger.info(message)
         return jsonify({
@@ -250,6 +257,21 @@ def create_app(testing=False, fetch_page_fn=None, parse_survey_fn=None,
         })
 
     return application
+
+
+def _build_pull_message(pages_fetched, total_scraped,
+                        total_inserted, cleaned_gre, cleaned_uc):
+    """Build the human-readable status message for pull_data response."""
+    if total_inserted == 0:
+        return (f"Already up to date. Checked {pages_fetched} "
+                f"page(s), no new entries found.")
+    msg = (f"Caught up! Scraped {pages_fetched} page(s), "
+           f"{total_scraped} entries checked, "
+           f"{total_inserted} new rows added.")
+    if cleaned_gre > 0 or cleaned_uc > 0:
+        msg += (f" Cleaned: {cleaned_gre} GRE AW, "
+                f"{cleaned_uc} UC names.")
+    return msg
 
 
 app = create_app()

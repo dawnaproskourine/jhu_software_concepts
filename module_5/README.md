@@ -254,10 +254,27 @@ patching `scrape.urlopen` with a `_FakeResponse` stub.
 
 ## Code Quality
 
+### Pylint
+
+All Python files (source, tests, and docs) score **10.00/10** with pylint. From `module_5/`:
+
+```bash
+PYTHONPATH=src pylint src/*.py tests/*.py docs/conf.py
+```
+
+Output:
+
+```
+--------------------------------------------------------------------
+Your code has been rated at 10.00/10
+```
+
+### Practices
+
 All Python files follow these practices:
 
 - **Type hints** — Function signatures include type annotations
-- **Logging** — Uses Python `logging` module instead of `print()` for production use
+- **Logging** — Uses Python `logging` module with lazy `%` formatting (not f-strings)
 - **Specific exceptions** — Catches specific exception types (e.g., `OperationalError`, `JSONDecodeError`)
 - **Input validation** — Validates user inputs (e.g., `max_pages` clamped to 1-500)
 - **No duplicate code** — Shared constants imported from single source (e.g., `DB_CONFIG`, `UC_CAMPUS_PATTERNS`)

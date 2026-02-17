@@ -72,22 +72,34 @@ COMMON_UNI_FIXES: Dict[str, str] = {
     "McGiill University": "McGill University",
     "Mcgill University": "McGill University",
     "University Of British Columbia": "University of British Columbia",
-    "Massachusetts Institute of Technology (MIT)": "Massachusetts Institute of Technology",
-    "University of Alabama At Birmingham": "University of Alabama at Birmingham",
+    "Massachusetts Institute of Technology (MIT)":
+        "Massachusetts Institute of Technology",
+    "University of Alabama At Birmingham":
+        "University of Alabama at Birmingham",
 }
 
 # UC campus normalization patterns (regex pattern -> canonical name)
 UC_CAMPUS_PATTERNS: List[Tuple[str, str]] = [
-    (r"(?i).*\b(ucla|los\s*angeles)\b.*", "University of California, Los Angeles"),
-    (r"(?i).*\b(ucb|uc\s*berkeley|berkeley)\b.*", "University of California, Berkeley"),
-    (r"(?i).*\b(ucsd|san\s*diego)\b.*", "University of California, San Diego"),
-    (r"(?i).*\b(ucsb|santa\s*barbara)\b.*", "University of California, Santa Barbara"),
-    (r"(?i).*\b(uci|irvine?n?e?)\b.*", "University of California, Irvine"),
-    (r"(?i).*\b(ucd|uc\s*davis|davis)\b.*", "University of California, Davis"),
-    (r"(?i).*\b(ucsc|santa\s*cruz)\b.*", "University of California, Santa Cruz"),
-    (r"(?i).*\b(ucr|riverside)\b.*", "University of California, Riverside"),
-    (r"(?i).*\b(ucm|merced)\b.*", "University of California, Merced"),
-    (r"(?i).*\b(ucsf|san\s*francisco)\b.*", "University of California, San Francisco"),
+    (r"(?i).*\b(ucla|los\s*angeles)\b.*",
+     "University of California, Los Angeles"),
+    (r"(?i).*\b(ucb|uc\s*berkeley|berkeley)\b.*",
+     "University of California, Berkeley"),
+    (r"(?i).*\b(ucsd|san\s*diego)\b.*",
+     "University of California, San Diego"),
+    (r"(?i).*\b(ucsb|santa\s*barbara)\b.*",
+     "University of California, Santa Barbara"),
+    (r"(?i).*\b(uci|irvine?n?e?)\b.*",
+     "University of California, Irvine"),
+    (r"(?i).*\b(ucd|uc\s*davis|davis)\b.*",
+     "University of California, Davis"),
+    (r"(?i).*\b(ucsc|santa\s*cruz)\b.*",
+     "University of California, Santa Cruz"),
+    (r"(?i).*\b(ucr|riverside)\b.*",
+     "University of California, Riverside"),
+    (r"(?i).*\b(ucm|merced)\b.*",
+     "University of California, Merced"),
+    (r"(?i).*\b(ucsf|san\s*francisco)\b.*",
+     "University of California, San Francisco"),
 ]
 
 COMMON_PROG_FIXES: Dict[str, str] = {
@@ -99,17 +111,18 @@ COMMON_PROG_FIXES: Dict[str, str] = {
 
 # Few-shot prompt for the LLM
 SYSTEM_PROMPT = (
-    "You are a data cleaning assistant. Standardize degree program and university "
-    "names.\n\n"
+    "You are a data cleaning assistant. Standardize degree program "
+    "and university names.\n\n"
     "Rules:\n"
-    "- Input provides a single string under key `program` that may contain both "
-    "program and university.\n"
+    "- Input provides a single string under key `program` that may "
+    "contain both program and university.\n"
     "- Split into (program name, university name).\n"
     "- Trim extra spaces and commas.\n"
-    '- Expand obvious abbreviations (e.g., "McG" -> "McGill University", '
-    '"UBC" -> "University of British Columbia").\n'
-    "- Use Title Case for program; use official capitalization for university "
-    "names (e.g., \"University of X\").\n"
+    '- Expand obvious abbreviations (e.g., "McG" -> '
+    '"McGill University", "UBC" -> '
+    '"University of British Columbia").\n'
+    "- Use Title Case for program; use official capitalization for "
+    'university names (e.g., "University of X").\n'
     '- Ensure correct spelling (e.g., "McGill", not "McGiill").\n'
     '- If university cannot be inferred, return "Unknown".\n\n'
     "Return JSON ONLY with keys:\n"
@@ -150,7 +163,7 @@ def _load_llm() -> Llama:
     :returns: The initialized Llama model instance.
     :rtype: llama_cpp.Llama
     """
-    global _LLM
+    global _LLM  # pylint: disable=global-statement
     if _LLM is not None:
         return _LLM
 
@@ -186,7 +199,10 @@ def _split_fallback(text: str) -> Tuple[str, str]:
     # Expand common abbreviations
     if re.fullmatch(r"(?i)mcg(ill)?(\.)?", uni or ""):
         uni = "McGill University"
-    if re.fullmatch(r"(?i)(ubc|u\.?b\.?c\.?|university of british columbia)", uni or ""):
+    if re.fullmatch(
+        r"(?i)(ubc|u\.?b\.?c\.?|university of british columbia)",
+        uni or "",
+    ):
         uni = "University of British Columbia"
 
     # Title-case program; normalize 'Of' -> 'of' for universities
@@ -198,7 +214,9 @@ def _split_fallback(text: str) -> Tuple[str, str]:
     return prog, uni
 
 
-def _best_match(name: str, candidates: List[str], cutoff: float = 0.86) -> str | None:
+def _best_match(
+    name: str, candidates: List[str], cutoff: float = 0.86
+) -> str | None:
     """Fuzzy match a name against a list of candidates using difflib.
 
     :param name: The name to match.
@@ -207,7 +225,7 @@ def _best_match(name: str, candidates: List[str], cutoff: float = 0.86) -> str |
     :type candidates: list[str]
     :param cutoff: Minimum similarity ratio to accept a match.
     :type cutoff: float
-    :returns: The best matching candidate, or ``None`` if no match meets the cutoff.
+    :returns: The best matching candidate, or ``None`` if no match.
     :rtype: str or None
     """
     if not name or not candidates:
@@ -217,7 +235,7 @@ def _best_match(name: str, candidates: List[str], cutoff: float = 0.86) -> str |
 
 
 def _post_normalize_program(prog: str) -> str:
-    """Apply fixes, title case, and canonical/fuzzy mapping to a program name.
+    """Apply fixes, title case, and canonical/fuzzy mapping to a program.
 
     :param prog: The raw program name string.
     :type prog: str
@@ -234,7 +252,7 @@ def _post_normalize_program(prog: str) -> str:
 
 
 def _post_normalize_university(uni: str) -> str:
-    """Expand abbreviations, apply fixes, and canonical mapping to a university name.
+    """Expand abbreviations, apply fixes, and canonical mapping.
 
     :param uni: The raw university name string.
     :type uni: str
@@ -279,9 +297,11 @@ def standardize(program_text: str) -> Dict[str, str]:
     post-processes with canonical mappings and fuzzy matching. Falls
     back to rule-based parsing if LLM output is invalid.
 
-    :param program_text: Raw program string (e.g., ``"Computer Science, MIT"``).
+    :param program_text: Raw program string
+        (e.g., ``"Computer Science, MIT"``).
     :type program_text: str
-    :returns: A dict with ``standardized_program`` and ``standardized_university`` keys.
+    :returns: A dict with ``standardized_program`` and
+        ``standardized_university`` keys.
     :rtype: dict[str, str]
     """
     llm = _load_llm()
@@ -289,9 +309,20 @@ def standardize(program_text: str) -> Dict[str, str]:
     # Build chat messages with few-shot examples
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for x_in, x_out in FEW_SHOTS:
-        messages.append({"role": "user", "content": json.dumps(x_in, ensure_ascii=False)})
-        messages.append({"role": "assistant", "content": json.dumps(x_out, ensure_ascii=False)})
-    messages.append({"role": "user", "content": json.dumps({"program": program_text}, ensure_ascii=False)})
+        messages.append({
+            "role": "user",
+            "content": json.dumps(x_in, ensure_ascii=False),
+        })
+        messages.append({
+            "role": "assistant",
+            "content": json.dumps(x_out, ensure_ascii=False),
+        })
+    messages.append({
+        "role": "user",
+        "content": json.dumps(
+            {"program": program_text}, ensure_ascii=False
+        ),
+    })
 
     # Call LLM
     out = llm.create_chat_completion(
@@ -311,7 +342,7 @@ def standardize(program_text: str) -> Dict[str, str]:
         std_uni = str(obj.get("standardized_university", "")).strip()
     except (json.JSONDecodeError, AttributeError, TypeError) as e:
         # Fall back to rule-based parsing
-        logger.debug(f"LLM output parsing failed, using fallback: {e}")
+        logger.debug("LLM output parsing failed, using fallback: %s", e)
         std_prog, std_uni = _split_fallback(program_text)
 
     # Post-process with canonical mappings

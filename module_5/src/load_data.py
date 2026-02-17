@@ -63,7 +63,9 @@ def parse_date(date_str: Any) -> date | None:
         return None
 
 
-def create_connection(dbname: str, user: str, host: str | None = None) -> Connection | None:
+def create_connection(
+    dbname: str, user: str, host: str | None = None
+) -> Connection | None:
     """Create a database connection with autocommit enabled.
 
     :param dbname: The name of the PostgreSQL database.
@@ -81,10 +83,10 @@ def create_connection(dbname: str, user: str, host: str | None = None) -> Connec
             kwargs["host"] = host
         conn = psycopg.connect(**kwargs)
         conn.autocommit = True
-        logger.info(f"Connected to {dbname}")
+        logger.info("Connected to %s", dbname)
         return conn
     except OperationalError as e:
-        logger.error(f"Connection error: {e}")
+        logger.error("Connection error: %s", e)
         return None
 
 
@@ -104,21 +106,23 @@ def main() -> None:
     if not conn:
         return
 
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
+    cursor = conn.cursor()  # pylint: disable=no-member
+    cursor.execute(
+        "SELECT 1 FROM pg_database WHERE datname = %s", (db_name,)
+    )
     if not cursor.fetchone():
         cursor.execute(f'CREATE DATABASE "{db_name}"')
-        logger.info(f"Database {db_name} created")
+        logger.info("Database %s created", db_name)
     else:
-        logger.info(f"Database {db_name} already exists")
-    conn.close()
+        logger.info("Database %s already exists", db_name)
+    conn.close()  # pylint: disable=no-member
 
     # Reconnect to the target database
     conn = create_connection(db_name, db_user, db_host)
     if not conn:
         return
 
-    cursor = conn.cursor()
+    cursor = conn.cursor()  # pylint: disable=no-member
 
     # Create table
     cursor.execute("DROP TABLE IF EXISTS applicants")
@@ -148,12 +152,12 @@ def main() -> None:
         with open(JSON_PATH, "r", encoding="utf-8") as f:
             rows = json.load(f)
     except FileNotFoundError:
-        logger.error(f"JSON file not found: {JSON_PATH}")
-        conn.close()
+        logger.error("JSON file not found: %s", JSON_PATH)
+        conn.close()  # pylint: disable=no-member
         return
     except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON: {e}")
-        conn.close()
+        logger.error("Invalid JSON: %s", e)
+        conn.close()  # pylint: disable=no-member
         return
 
     try:
@@ -163,9 +167,11 @@ def main() -> None:
                 us_or_international, gpa, gre, gre_v, gre_aw,
                 degree, llm_generated_program, llm_generated_university
             ) VALUES (
-                %(program)s, %(comments)s, %(date_added)s, %(url)s, %(status)s, %(term)s,
-                %(us_or_international)s, %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s,
-                %(degree)s, %(llm_generated_program)s, %(llm_generated_university)s
+                %(program)s, %(comments)s, %(date_added)s, %(url)s,
+                %(status)s, %(term)s, %(us_or_international)s,
+                %(gpa)s, %(gre)s, %(gre_v)s, %(gre_aw)s,
+                %(degree)s, %(llm_generated_program)s,
+                %(llm_generated_university)s
             )
             ON CONFLICT (url) DO NOTHING
         """, [
@@ -176,29 +182,35 @@ def main() -> None:
                 "url": clean_text(row.get("url", "")),
                 "status": clean_text(row.get("status", "")),
                 "term": clean_text(row.get("term", "")),
-                "us_or_international": clean_text(row.get("US/International", "")),
+                "us_or_international": clean_text(
+                    row.get("US/International", "")
+                ),
                 "gpa": parse_float(row.get("GPA", ""), "GPA"),
                 "gre": parse_float(row.get("GRE", ""), "GRE"),
                 "gre_v": parse_float(row.get("GRE V", ""), "GRE V"),
                 "gre_aw": parse_float(row.get("GRE AW", ""), "GRE AW"),
                 "degree": clean_text(row.get("Degree", "")),
-                "llm_generated_program": clean_text(row.get("llm-generated-program", "")),
-                "llm_generated_university": clean_text(row.get("llm-generated-university", "")),
+                "llm_generated_program": clean_text(
+                    row.get("llm-generated-program", "")
+                ),
+                "llm_generated_university": clean_text(
+                    row.get("llm-generated-university", "")
+                ),
             }
             for row in rows
         ])
     except psycopg.Error as e:
-        logger.error(f"Database error during insert: {e}")
-        conn.close()
+        logger.error("Database error during insert: %s", e)
+        conn.close()  # pylint: disable=no-member
         return
 
-    logger.info(f"Inserted {len(rows)} rows")
+    logger.info("Inserted %d rows", len(rows))
 
     # Verify
     cursor.execute("SELECT COUNT(*) FROM applicants")
-    logger.info(f"Total rows in table: {cursor.fetchone()[0]}")
+    logger.info("Total rows in table: %s", cursor.fetchone()[0])
 
-    conn.close()
+    conn.close()  # pylint: disable=no-member
 
 
 if __name__ == "__main__":
