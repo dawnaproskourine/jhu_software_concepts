@@ -53,17 +53,64 @@ Q&A-style dashboard. Queries are defined in `query_data.py` and shared between t
 
 - Python 3
 - PostgreSQL running locally with the `applicant_data` database populated (via `load_data.py`)
-- `DATABASE_URL` environment variable set (all modules read this via `query_data.DB_CONFIG`)
+- Database environment variables set (see Database Configuration below)
 - Required packages: `flask`, `psycopg`, `beautifulsoup4`
 
 ### Database Configuration
 
+All modules connect via `DB_CONFIG` from `query_data.py`, which reads connection parameters
+exclusively from environment variables. Two configuration methods are supported:
+
+**Option 1: `DATABASE_URL` (12-factor standard)**
+
 ```bash
-export DATABASE_URL="postgresql://myuser@localhost:5432/applicant_data"
+export DATABASE_URL="postgresql://app_user:change_me@localhost:5432/applicant_data"
 ```
 
-All modules connect via `DB_CONFIG` from `query_data.py`, which parses `DATABASE_URL`. A warning is logged
-if the variable is not set, and database connections will fail at runtime.
+**Option 2: Individual environment variables**
+
+```bash
+export DB_NAME="applicant_data"
+export DB_USER="app_user"
+export DB_HOST="localhost"
+export DB_PORT="5432"
+export DB_PASSWORD="change_me"
+```
+
+`DATABASE_URL` takes precedence when both are set. A warning is logged if no database
+environment variables are configured, and database connections will fail at runtime.
+No connection parameters are hardcoded in the source code. See `.env.example` for a
+template with all supported variables.
+
+### Least-Privilege Database User
+
+The app connects as `app_user`, a restricted database user with only the permissions
+the application needs at runtime:
+
+| Permission | Table / Object | Used by |
+|------------|---------------|---------|
+| `SELECT` | `applicants` | `query_data.run_queries()`, `cleanup_data.fix_uc_universities()` |
+| `INSERT` | `applicants` | `app.insert_row()` |
+| `UPDATE` | `applicants` | `cleanup_data.fix_gre_aw()`, `cleanup_data.fix_uc_universities()` |
+| `USAGE, SELECT` | `applicants_p_id_seq` | SERIAL auto-increment on INSERT |
+
+Permissions **not** granted: `DELETE`, `TRUNCATE`, `DROP`, `ALTER`, `CREATE`.
+
+To create `app_user`, run the setup script as a superuser **after** `load_data.py` has
+created the database and table:
+
+```bash
+# 1. Initial setup (run once as superuser)
+export DATABASE_URL="postgresql://postgres@localhost:5432/applicant_data"
+python3 src/load_data.py
+
+# 2. Create the least-privilege user
+psql -U postgres -d applicant_data -f src/create_app_user.sql
+
+# 3. Switch to app_user for runtime
+export DATABASE_URL="postgresql://app_user:change_me@localhost:5432/applicant_data"
+python3 src/app.py
+```
 
 ### Running
 
@@ -152,6 +199,7 @@ GradCafe web scraper that extracts applicant data from thegradcafe.com/survey. R
 
 ```
 module_5/
+├── .env.example                            # Environment variable template (not committed)
 ├── Makefile                                # Sphinx build commands
 ├── README.md
 ├── requirements.txt
@@ -187,6 +235,7 @@ module_5/
 │   ├── canon_universities.txt              # Canonical university names (1000+ entries)
 │   ├── scrape.py                           # GradCafe web scraper
 │   ├── robots_checker.py                   # robots.txt compliance checker
+│   ├── create_app_user.sql                 # Least-privilege DB user setup script
 │   ├── llm_extended_applicant_data.json    # Initial dataset from module_2
 │   ├── models/                             # LLM model files (TinyLlama)
 │   └── website/
@@ -199,7 +248,7 @@ module_5/
 
 ## Testing
 
-The `tests/` directory contains 175 pytest tests across thirteen files with markers for selective execution.
+The `tests/` directory contains 176 pytest tests across thirteen files with markers for selective execution.
 
 | File | Tests | Marker | What it covers |
 |------|-------|--------|----------------|
@@ -213,7 +262,7 @@ The `tests/` directory contains 175 pytest tests across thirteen files with mark
 | `test_cleanup_main.py` | 2 | `db` | `cleanup_data.main()` happy path and DB connection error |
 | `test_robots_checker.py` | 5 | `web` | `RobotsChecker` init, exception handling, `can_fetch`, `get_crawl_delay` |
 | `test_llm_standardizer.py` | 25 | `web` | `_read_lines`, `_split_fallback`, `_best_match`, `_post_normalize_program`, `_post_normalize_university`, `_load_llm` singleton, `standardize` with mocked LLM |
-| `test_query_main.py` | 5 | `db` | `query_data.main()` output, DB error, `DATABASE_URL` config parsing, missing `DATABASE_URL`, dependency-injected scraper test |
+| `test_query_main.py` | 6 | `db` | `query_data.main()` output, DB error, `DATABASE_URL` config parsing, individual env var config, missing env vars, dependency-injected scraper test |
 | `test_load_main.py` | 10 | `db` | `create_connection` success/failure, `main()` DB creation, JSON loading, error paths (missing file, bad JSON, executemany failure) |
 | `test_app_errors.py` | 12 | `buttons` | Index DB error, `insert_row` LLM exception, invalid `max_pages`, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page, network error page 2 rollback, cleanup error, insert error rollback |
 

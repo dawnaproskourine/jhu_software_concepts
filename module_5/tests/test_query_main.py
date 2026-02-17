@@ -81,4 +81,23 @@ def test_build_db_config_uses_database_url(monkeypatch):
 
 def test_build_db_config_missing_url_returns_empty(monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("DB_NAME", raising=False)
+    monkeypatch.delenv("DB_USER", raising=False)
     assert not query_data._build_db_config()
+
+
+def test_build_db_config_individual_env_vars(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("DB_NAME", "testdb")
+    monkeypatch.setenv("DB_USER", "testuser")
+    monkeypatch.setenv("DB_HOST", "dbhost")
+    monkeypatch.setenv("DB_PORT", "5433")
+    monkeypatch.setenv("DB_PASSWORD", "secret")
+    config = query_data._build_db_config()
+    assert config == {
+        "dbname": "testdb",
+        "user": "testuser",
+        "host": "dbhost",
+        "port": 5433,
+        "password": "secret",
+    }

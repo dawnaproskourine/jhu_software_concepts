@@ -102,8 +102,9 @@ def main() -> None:  # pylint: disable=too-many-locals
     db_user = DB_CONFIG["user"]
     db_host = DB_CONFIG.get("host")
 
-    # Connect to default db and create applicant_data if it doesn't exist
-    conn = create_connection("postgres", db_user, db_host)
+    # Connect to admin db and create target database if it doesn't exist
+    admin_db = os.environ.get("DB_ADMIN_NAME", "postgres")
+    conn = create_connection(admin_db, db_user, db_host)
     if not conn:
         return
 

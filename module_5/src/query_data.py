@@ -13,31 +13,47 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 def _build_db_config():
-    """Build database connection config from ``DATABASE_URL``.
+    """Build database connection config from environment variables.
 
     Reads the standard 12-factor ``DATABASE_URL`` environment variable
     (e.g. ``postgresql://user:pass@host:5432/dbname``) and parses it
     into the keyword dictionary that ``psycopg.connect()`` expects.
 
-    Returns an empty dict when ``DATABASE_URL`` is not set; the
-    resulting ``psycopg.connect(**{})`` call will fail with
-    ``OperationalError`` at connection time.
+    Falls back to individual environment variables (``DB_NAME``,
+    ``DB_USER``, ``DB_HOST``, ``DB_PORT``, ``DB_PASSWORD``) when
+    ``DATABASE_URL`` is not set.
+
+    Returns an empty dict when no database environment variables are
+    configured; the resulting ``psycopg.connect(**{})`` call will fail
+    with ``OperationalError`` at connection time.
     """
     url = os.environ.get("DATABASE_URL")
-    if not url:
+    if url:
+        parsed = urlparse(url)
+        return {
+            "dbname": parsed.path.lstrip("/"),
+            "user": parsed.username or "",
+            "host": parsed.hostname or "",
+            "port": parsed.port or 5432,
+            "password": parsed.password or "",
+        }
+
+    dbname = os.environ.get("DB_NAME", "")
+    user = os.environ.get("DB_USER", "")
+    if not dbname or not user:
         logger.warning(
-            "DATABASE_URL environment variable is not set. "
-            "Example: export DATABASE_URL="
-            '"postgresql://user:pass@localhost:5432/applicant_data"'
+            "Database environment variables not set. "
+            "Set DATABASE_URL or individual variables: "
+            "DB_NAME, DB_USER, DB_HOST, DB_PORT, DB_PASSWORD"
         )
         return {}
-    parsed = urlparse(url)
+
     return {
-        "dbname": parsed.path.lstrip("/") or "applicant_data",
-        "user": parsed.username or "",
-        "host": parsed.hostname or "127.0.0.1",
-        "port": parsed.port or 5432,
-        "password": parsed.password or "",
+        "dbname": dbname,
+        "user": user,
+        "host": os.environ.get("DB_HOST", ""),
+        "port": int(os.environ.get("DB_PORT", "5432")),
+        "password": os.environ.get("DB_PASSWORD", ""),
     }
 
 
