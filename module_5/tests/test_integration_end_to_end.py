@@ -10,7 +10,6 @@ against crafted HTML fed through a transport-level ``urlopen`` stub.
 The cleanup functions (``fix_gre_aw``, ``fix_uc_universities``) run for
 real against the SAVEPOINT-protected database.
 """
-# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,R0914
 
 import uuid
 
@@ -130,6 +129,7 @@ def test_pull_then_render(db_conn, monkeypatch):
 
         # Data from inserted rows appears in rendered output
         assert "Computer Science" in html_out
+        assert "Stanford University" in html_out
         assert "Fall 2026" in html_out
         assert "Accepted" in html_out
 
@@ -308,5 +308,6 @@ def test_update_analysis_reload_reflects_new_data(db_conn, monkeypatch):
 
         # Reload reflects the newly inserted data
         assert "Computer Science" in html_out
+        assert "Stanford University" in html_out
         assert "Accepted" in html_out
         assert 'data-testid="update-analysis-btn"' in html_out

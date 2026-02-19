@@ -93,6 +93,8 @@ def parse_main_row(cells):
 
     # Combine school and program
     result["program"] = f"{program_name}, {school}"
+    result["school"] = school
+    result["program_name"] = program_name
 
     # Extract degree from program cell
     if len(program_parts) > 1:

@@ -7,7 +7,6 @@
 # DESCRIPTION
 
 ## Fresh Install
-
 All commands are run from the `module_5/` directory.
 
 ### Option A: pip
@@ -226,6 +225,10 @@ module_5/
 ├── requirements.txt
 ├── pytest.ini                              # pytest configuration (markers, coverage)
 ├── setup.cfg                               # Coverage exclusions (__main__ guards)
+├── docs/
+│   ├── conf.py                             # Sphinx configuration
+│   ├── index.rst                           # Sphinx documentation entry point
+│   └── operations.rst                      # Operational notes page
 ├── tests/
 │   ├── conftest.py                         # Shared fixtures (client, db_conn)
 │   ├── test_flask_page.py                  # Page rendering tests
@@ -261,7 +264,7 @@ module_5/
 
 ## Testing
 
-The `tests/` directory contains 150 pytest tests across twelve files with markers for selective execution.
+The `tests/` directory contains 151 pytest tests across twelve files with markers for selective execution.
 
 | File | Tests | Marker | What it covers |
 |------|-------|--------|----------------|
@@ -270,7 +273,7 @@ The `tests/` directory contains 150 pytest tests across twelve files with marker
 | `test_analysis_format.py` | 9 | `analysis` | Question labels, answer rendering, percentage formats, all scalar values rendered |
 | `test_db_insert.py` | 29 | `db` | `clean_text`, `parse_float`, `parse_date`, `insert_row`, duplicate handling, column values, GRE AW cleanup, `run_queries` keys |
 | `test_integration_end_to_end.py` | 3 | `integration` | Full pipeline: pull data, insert, render dashboard; duplicate pull uniqueness; update analysis reload |
-| `test_scrape.py` | 34 | `web` | `parse_main_row`, `parse_detail_row`, `parse_survey`, `get_max_pages`, `fetch_page`, `scrape_data`, `main`; edge cases for absolute URLs, empty cells, pipe-separated comments, multi-page fetching |
+| `test_scrape.py` | 35 | `web` | `parse_main_row`, `parse_detail_row`, `parse_survey`, `get_max_pages`, `fetch_page`, `scrape_data`, `main`; edge cases for absolute URLs, empty cells, pipe-separated comments, multi-page fetching, invalid output filename |
 | `test_cleanup.py` | 9 | `db` | `normalize_uc` (pure), `fix_gre_aw` and `fix_uc_universities` (DB integration) |
 | `test_cleanup_main.py` | 2 | `db` | `cleanup_data.main()` happy path and DB connection error |
 | `test_robots_checker.py` | 5 | `web` | `RobotsChecker` init, exception handling, `can_fetch`, `get_crawl_delay` |
@@ -315,10 +318,10 @@ transport level by patching `scrape.urlopen` with a `FakeResponse` stub.
 
 ### Pylint
 
-All Python files (source and tests) score **10.00/10** with pylint. From `module_5/`:
+All source files score **10.00/10** with pylint. From `module_5/`:
 
 ```bash
-PYTHONPATH=src pylint src/*.py tests/*.py
+PYTHONPATH=src pylint src/*.py
 ```
 
 Output:

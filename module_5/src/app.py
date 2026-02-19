@@ -51,8 +51,8 @@ def insert_row(cur: Cursor, row: dict[str, Any]) -> bool:
         date_val = None
 
     program_text = clean_text(row.get("program", ""))
-    llm_program = ""
-    llm_university = ""
+    llm_program = clean_text(row.get("program_name", ""))
+    llm_university = clean_text(row.get("school", ""))
 
     # Insert row; ON CONFLICT (url) DO NOTHING skips duplicates
     _columns = [

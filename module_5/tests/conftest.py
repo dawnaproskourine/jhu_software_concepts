@@ -1,5 +1,4 @@
 """Shared fixtures and mock data for module_5 tests."""
-# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import os
 import sys
@@ -15,7 +14,7 @@ SOURCE_DIR = os.path.abspath(SOURCE_DIR)
 if SOURCE_DIR not in sys.path:
     sys.path.insert(0, SOURCE_DIR)
 
-from query_data import DB_CONFIG  # pylint: disable=C0413
+from query_data import DB_CONFIG  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Mock query data (Decimal values match what psycopg returns from ROUND)

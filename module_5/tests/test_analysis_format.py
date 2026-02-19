@@ -3,13 +3,11 @@
 Verifies question labels, percentage formatting (X.XX%),
 and that all mock scalar values appear in the rendered HTML.
 """
-# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import re
 from decimal import Decimal
 
 import pytest
-
 from conftest import MOCK_QUERY_DATA
 
 

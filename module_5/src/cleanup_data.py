@@ -115,16 +115,13 @@ def fix_uc_universities(conn: Connection) -> int:
         WHERE {llm_uni} ILIKE %s
            OR {llm_uni} ILIKE %s
            OR {llm_uni} ILIKE %s
-        LIMIT %s
     """).format(
         p_id=sql.Identifier("p_id"),
         program=sql.Identifier("program"),
         llm_uni=sql.Identifier("llm_generated_university"),
         table=sql.Identifier("applicants"),
     )
-    row_limit = MAX_QUERY_LIMIT
-    cur.execute(select_query, (uc_pattern1, uc_pattern2, uc_pattern3,
-                               row_limit))
+    cur.execute(select_query, (uc_pattern1, uc_pattern2, uc_pattern3))
     rows = cur.fetchall()
     logger.info("Found %d UC-related rows to check", len(rows))
 

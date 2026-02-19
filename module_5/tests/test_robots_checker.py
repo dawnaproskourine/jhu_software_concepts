@@ -1,5 +1,4 @@
 """Tests for RobotsChecker — robots.txt compliance checker."""
-# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801
 
 import pytest
 

@@ -1,5 +1,4 @@
 """Tests for app.py error handling paths."""
-# pylint: disable=C0116,R0903,W0613,C0415,E1101,R0801,W0212
 
 import uuid
 from urllib.error import URLError
@@ -8,9 +7,9 @@ import pytest
 import psycopg
 from psycopg import OperationalError
 
-from conftest import FakeResponse, FakePullConn, NoCloseConn
 import app as app_module
 import scrape
+from conftest import FakeResponse, FakePullConn, FakeInsertConn, NoCloseConn
 
 
 # =====================================================================
@@ -117,10 +116,7 @@ def test_pull_data_db_error_during_scrape_500(monkeypatch):
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _ErrorConn())
     monkeypatch.setattr(app_module, "fetch_page", lambda url, *a, **kw: fake_html)
-    monkeypatch.setattr(
-        app_module, "parse_survey",
-        lambda html: [{"url": "x", "program": "y", "comments": "z"}],
-    )
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [{"url": "x", "program": "y", "comments": "z"}])
     monkeypatch.setattr(app_module, "get_max_pages", lambda html: 1)
 
     test_app = app_module.create_app(testing=True)
@@ -133,6 +129,78 @@ def test_pull_data_db_error_during_scrape_500(monkeypatch):
 # =====================================================================
 # POST /pull-data — cleanup message with counts
 # =====================================================================
+
+@pytest.mark.buttons
+def test_pull_data_comments_list_joined(monkeypatch):
+    """When comments is a list, it gets joined into a string (line 190)."""
+    fake_html = "<html><body><table><tbody></tbody></table></body></html>"
+    fake_row = {
+        "program": "Computer Science, MIT",
+        "comments": ["Great", "school"],
+        "date_added": "Added on January 15, 2026",
+        "url": "https://www.thegradcafe.com/result/99999",
+        "status": "Accepted",
+        "term": "Fall 2026",
+        "us_or_international": "American",
+        "gpa": "3.80",
+        "gre": "320",
+        "gre_v": "160",
+        "gre_aw": "4.5",
+        "degree": "PhD",
+    }
+
+    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
+    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakeInsertConn())
+    monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
+    monkeypatch.setattr(app_module, "fetch_page", lambda url, *a, **kw: fake_html)
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [fake_row])
+    monkeypatch.setattr(app_module, "get_max_pages", lambda html: 1)
+
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
+        resp = c.post("/pull-data", json={"max_pages": 1})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["inserted"] >= 1
+
+
+@pytest.mark.buttons
+def test_pull_data_cleanup_message_unit(monkeypatch):
+    """Non-integration test: cleanup counts appear in message (line 264)."""
+    fake_html = "<html><body><table><tbody></tbody></table></body></html>"
+    fake_row = {
+        "program": "CS, Stanford",
+        "comments": "Accepted!",
+        "date_added": "Added on January 15, 2026",
+        "url": "https://www.thegradcafe.com/result/77777",
+        "status": "Accepted",
+        "term": "Fall 2026",
+        "us_or_international": "American",
+        "gpa": "3.90",
+        "gre": "325",
+        "gre_v": "165",
+        "gre_aw": "4.5",
+        "degree": "PhD",
+    }
+
+    monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 3)
+    monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 2)
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: FakeInsertConn())
+    monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
+    monkeypatch.setattr(app_module, "fetch_page", lambda url, *a, **kw: fake_html)
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [fake_row])
+    monkeypatch.setattr(app_module, "get_max_pages", lambda html: 1)
+
+    test_app = app_module.create_app(testing=True)
+    with test_app.test_client() as c:
+        resp = c.post("/pull-data", json={"max_pages": 1})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["cleaned_gre_aw"] == 3
+    assert data["cleaned_uc"] == 2
+    assert "Cleaned:" in data["message"]
+
 
 @pytest.mark.integration
 def test_pull_data_cleanup_message_with_counts(db_conn, monkeypatch):
@@ -203,14 +271,8 @@ def test_pull_data_caught_up_breaks(monkeypatch):
     monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _DupConn())
     monkeypatch.setattr(app_module, "fetch_page", lambda url, *a, **kw: fake_html)
     monkeypatch.setattr(app_module, "get_max_pages", lambda html: 2)
-    monkeypatch.setattr(
-        app_module, "parse_survey",
-        lambda html: [{"url": "u", "program": "p", "comments": "c"}],
-    )
-    monkeypatch.setattr(
-        app_module, "time",
-        type("T", (), {"sleep": staticmethod(lambda d: None)})(),
-    )
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
+    monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
 
     test_app = app_module.create_app(testing=True)
     with test_app.test_client() as c:
@@ -265,22 +327,11 @@ def test_pull_data_fetches_multiple_pages(monkeypatch):
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
-    monkeypatch.setattr(
-        app_module.psycopg, "connect",
-        lambda **kw: _InsertConn(),
-    )
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _InsertConn())
     monkeypatch.setattr(app_module, "fetch_page", _fake_fetch)
     monkeypatch.setattr(app_module, "get_max_pages", lambda html: 2)
-    monkeypatch.setattr(
-        app_module, "parse_survey",
-        lambda html: [
-            {"url": f"u{call_n['n']}", "program": "p", "comments": "c"}
-        ],
-    )
-    monkeypatch.setattr(
-        app_module, "time",
-        type("T", (), {"sleep": staticmethod(lambda d: None)})(),
-    )
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [{"url": f"u{call_n['n']}", "program": "p", "comments": "c"}])
+    monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
 
     test_app = app_module.create_app(testing=True)
     with test_app.test_client() as c:
@@ -334,20 +385,11 @@ def test_pull_data_network_error_page2_rolls_back(monkeypatch):
     monkeypatch.setattr(app_module, "fix_gre_aw", lambda _c: 0)
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
-    monkeypatch.setattr(
-        app_module.psycopg, "connect",
-        lambda **kw: _TrackConn(),
-    )
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _TrackConn())
     monkeypatch.setattr(app_module, "fetch_page", _fake_fetch)
     monkeypatch.setattr(app_module, "get_max_pages", lambda html: 2)
-    monkeypatch.setattr(
-        app_module, "parse_survey",
-        lambda html: [{"url": "u", "program": "p", "comments": "c"}],
-    )
-    monkeypatch.setattr(
-        app_module, "time",
-        type("T", (), {"sleep": staticmethod(lambda d: None)})(),
-    )
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
+    monkeypatch.setattr(app_module, "time", type("T", (), {"sleep": staticmethod(lambda d: None)})())
 
     test_app = app_module.create_app(testing=True)
     with test_app.test_client() as c:
@@ -395,18 +437,9 @@ def test_pull_data_cleanup_error_returns_500(monkeypatch):
                         lambda _c: (_ for _ in ()).throw(psycopg.Error("cleanup boom")))
     monkeypatch.setattr(app_module, "fix_uc_universities", lambda _c: 0)
     monkeypatch.setattr(app_module, "run_queries", lambda _c: {})
-    monkeypatch.setattr(
-        app_module.psycopg, "connect",
-        lambda **kw: _CleanConn(),
-    )
-    monkeypatch.setattr(
-        app_module, "fetch_page",
-        lambda url, *a, **kw: fake_html,
-    )
-    monkeypatch.setattr(
-        app_module, "parse_survey",
-        lambda html: [{"url": "u", "program": "p", "comments": "c"}],
-    )
+    monkeypatch.setattr(app_module.psycopg, "connect", lambda **kw: _CleanConn())
+    monkeypatch.setattr(app_module, "fetch_page", lambda url, *a, **kw: fake_html)
+    monkeypatch.setattr(app_module, "parse_survey", lambda html: [{"url": "u", "program": "p", "comments": "c"}])
     monkeypatch.setattr(app_module, "get_max_pages", lambda html: 1)
 
     test_app = app_module.create_app(testing=True)
