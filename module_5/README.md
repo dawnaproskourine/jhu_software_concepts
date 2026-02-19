@@ -321,7 +321,8 @@ transport level by patching `scrape.urlopen` with a `FakeResponse` stub.
 All source files score **10.00/10** with pylint. From `module_5/`:
 
 ```bash
-PYTHONPATH=src pylint src/*.py
+PYTHONPATH=src 
+
 ```
 
 Output:
@@ -330,6 +331,10 @@ Output:
 --------------------------------------------------------------------
 Your code has been rated at 10.00/10
 ```
+
+### Dependency Graph
+
+The `dependency.svg` file was generated with `pydeps` and visualizes the import relationships between all modules in the project. `app_py` is the central hub of the application — nearly every other module feeds into it, making it the top-level entry point that orchestrates all other components. `flask` and its internal submodules (`flask_app`, `flask_ctx`, `flask_globals`, `flask_templating`, `flask_wrappers`, etc.) provide the web framework layer, handling HTTP routing, request/response lifecycle, and rendering HTML templates for the user-facing interface. `scrape` is responsible for fetching data from the web, and it depends on `bs4` (BeautifulSoup) to parse HTML and extract applicant information from scraped pages. `robots_checker` sits upstream of `scrape`, indicating it enforces `robots.txt` compliance before any scraping takes place. `load_data` handles inserting scraped records into the database and depends on both `psycopg` and `psycopg_sql` to execute parameterized SQL safely against PostgreSQL. `cleanup_data` normalizes and corrects data already in the database (such as standardizing UC university names), and also depends on `psycopg`, `psycopg_sql`, and `psycopg_Connection`. `query_data` reads and aggregates data from the database for reporting purposes, and it feeds results back into both `app_py` and `cleanup_data`, making it a shared utility across the pipeline. `psycopg` and its many internal submodules (`psycopg_pq`, `psycopg_errors`, `psycopg_transaction`, `psycopg_rows`, etc.) form the deepest and most interconnected layer of the graph, providing the low-level PostgreSQL driver infrastructure that all database-touching modules rely on.
 
 ### Snyk Vulnerability Scan
 
@@ -347,6 +352,110 @@ All Python files follow these practices:
 - **Input validation** — Validates user inputs (e.g., `max_pages` clamped to 1-500)
 - **No duplicate code** — Shared constants imported from single source (e.g., `DB_CONFIG`)
 - **SQL injection protection** — All queries use parameterized statements (`%s` placeholders with parameter tuples); dynamic identifiers use `psycopg.sql.Identifier()`; SQL construction is separated from execution
+
+### SQL Injection Defenses
+
+#### What module_4 did (the problem)
+
+Module_4 used two levels of SQL construction:
+
+- **`%s` parameterization for values** — correctly used for data values:
+  ```python
+  cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
+  ```
+
+- **f-string interpolation for DDL** — *unsafe* for identifiers (`load_data.py`):
+  ```python
+  cursor.execute(f'CREATE DATABASE "{db_name}"')
+  ```
+  If `db_name` were ever influenced by a crafted `DATABASE_URL`, this could be exploited. Double-quoting alone is not safe — a malicious name like `foo"; DROP TABLE applicants; --` would break out of the quoted identifier.
+
+- **Hardcoded identifier strings** — all table names and column names were bare string literals inside SQL strings with no structural separation from the SQL they appeared in:
+  ```python
+  cur.execute("SELECT COUNT(*) FROM applicants WHERE term = 'Fall 2026'")
+  ```
+
+#### What module_5 changed (the fix)
+
+**1. `psycopg.sql.Identifier()` for every identifier**
+
+Every table name and column name is now constructed with `sql.Identifier()` from `psycopg.sql`, which double-quotes and escapes the identifier according to PostgreSQL rules:
+
+```python
+# module_4 — unsafe f-string
+cursor.execute(f'CREATE DATABASE "{db_name}"')
+
+# module_5 — safe
+cursor.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(db_name)))
+```
+
+```python
+# module_4 — bare string identifiers
+cur.execute("UPDATE applicants SET gre_aw = NULL WHERE gre_aw > 6")
+
+# module_5 — all identifiers wrapped
+fix_query = sql.SQL("UPDATE {} SET {} = NULL WHERE {} > %s").format(
+    sql.Identifier("applicants"),
+    sql.Identifier("gre_aw"),
+    sql.Identifier("gre_aw"),
+)
+cur.execute(fix_query, (gre_aw_max,))
+```
+
+**2. DDL queries also use `sql.Identifier()`**
+
+Module_4 built `CREATE TABLE` using a plain multi-line string with hardcoded column names. Module_5 builds every column definition through `sql.Identifier()`:
+
+```python
+col_defs = sql.SQL(", ").join([
+    sql.SQL("{} SERIAL PRIMARY KEY").format(sql.Identifier("p_id")),
+    sql.SQL("{} TEXT").format(sql.Identifier("program")),
+    ...
+])
+cursor.execute(sql.SQL("CREATE TABLE {} ({})").format(
+    sql.Identifier("applicants"), col_defs,
+))
+```
+
+**3. `build_insert_query()` centralizes safe INSERT construction**
+
+Module_4 had the INSERT query as a hardcoded string. Module_5 introduces `build_insert_query()` in `load_data.py` which uses `sql.Identifier()` for the table, every column, and the `ON CONFLICT` target, and `sql.Placeholder()` for each bind variable:
+
+```python
+sql.SQL("INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO NOTHING").format(
+    sql.Identifier("applicants"),
+    sql.SQL(", ").join(sql.Identifier(c) for c in APPLICANT_COLUMNS),
+    sql.SQL(", ").join(sql.Placeholder(k) for k in keys),
+    sql.Identifier("url"),
+)
+```
+
+**4. SQL construction is separated from execution**
+
+The `sql.SQL(...).format(...)` call only composes the query object — it never touches the database. The composed query is then passed to `cur.execute(query, params)` separately, where the driver binds the parameter values. This means Python string operations are never used to inject values into SQL text, and the database driver is solely responsible for safe substitution:
+
+```python
+# Construction — builds the query object, no DB contact
+query = sql.SQL("SELECT COUNT(*) FROM {} WHERE {} = %s LIMIT %s").format(
+    sql.Identifier("applicants"),
+    sql.Identifier("term"),
+)
+
+# Execution — driver binds params safely, sends to DB
+cur.execute(query, (_FALL_TERM, agg_limit))
+```
+
+**5. Least-privilege database user (`app_user`)**
+
+Module_5 introduces a dedicated `app_user` granted only the permissions the runtime application needs — `SELECT`, `INSERT`, `UPDATE` on `applicants` and `USAGE, SELECT` on the sequence. `DELETE`, `TRUNCATE`, `DROP`, `ALTER`, and `CREATE` are explicitly withheld. Even if an attacker achieved arbitrary SQL execution through another vector, the database user itself cannot drop tables or delete data.
+
+**5. `MAX_QUERY_LIMIT` bounds all result sets**
+
+All SELECT queries carry a `LIMIT %s` bound by `MAX_QUERY_LIMIT = 1000`, capping how much data any single query can return and providing a defense-in-depth layer against data exfiltration via unbounded queries.
+
+#### Why it is safe
+
+`sql.Identifier()` always wraps the name in double quotes and escapes any internal double quotes by doubling them (`"` → `""`). This is the correct PostgreSQL identifier quoting mechanism — there is no escape sequence that breaks out of a double-quoted identifier. A payload like `applicants"; DROP TABLE applicants; --` becomes the literal quoted identifier `"applicants""; DROP TABLE applicants; --"`, which PostgreSQL treats as a nonexistent table name and does nothing harmful. Combined with `%s` parameterization for all values and the least-privilege `app_user`, there is no pathway for SQL injection regardless of how environment variables or scraped data are constructed.
 
 # References
 
