@@ -1,5 +1,4 @@
 """Load llm_extended_applicant_data.json into a PostgreSQL applicants table."""
-# pylint: disable=R0801
 from __future__ import annotations
 
 import json
@@ -19,6 +18,32 @@ JSON_PATH = os.path.join(_DIR, "llm_extended_applicant_data.json")
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
+
+APPLICANT_COLUMNS = [
+    "program", "comments", "date_added", "url", "status", "term",
+    "us_or_international", "gpa", "gre", "gre_v", "gre_aw",
+    "degree", "llm_generated_program", "llm_generated_university",
+]
+
+
+def build_insert_query(param_keys=None):
+    """Build an INSERT … ON CONFLICT (url) DO NOTHING query.
+
+    :param param_keys: Placeholder names for the VALUES clause.
+        Defaults to :data:`APPLICANT_COLUMNS` when ``None``.
+    :type param_keys: list[str] or None
+    :returns: A composed SQL query ready for ``cursor.execute``.
+    :rtype: psycopg.sql.Composed
+    """
+    keys = param_keys or APPLICANT_COLUMNS
+    return sql.SQL(
+        "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO NOTHING"
+    ).format(
+        sql.Identifier("applicants"),
+        sql.SQL(", ").join(sql.Identifier(c) for c in APPLICANT_COLUMNS),
+        sql.SQL(", ").join(sql.Placeholder(k) for k in keys),
+        sql.Identifier("url"),
+    )
 
 
 def clean_text(value: Any) -> str:
@@ -47,6 +72,23 @@ def parse_float(value: Any, prefix: str = "") -> float | None:
         return float(s) if s else None
     except ValueError:
         return None
+
+
+def build_score_params(row: dict[str, Any]) -> dict[str, Any]:
+    """Build the GPA/GRE/degree portion of insert parameters.
+
+    :param row: A dictionary of scraped applicant data.
+    :type row: dict[str, Any]
+    :returns: A dict with ``gpa``, ``gre``, ``gre_v``, ``gre_aw``, and ``degree``.
+    :rtype: dict[str, Any]
+    """
+    return {
+        "gpa": parse_float(row.get("GPA", ""), "GPA"),
+        "gre": parse_float(row.get("GRE", ""), "GRE"),
+        "gre_v": parse_float(row.get("GRE V", ""), "GRE V"),
+        "gre_aw": parse_float(row.get("GRE AW", ""), "GRE AW"),
+        "degree": clean_text(row.get("Degree", "")),
+    }
 
 
 def parse_date(date_str: Any) -> date | None:
@@ -91,22 +133,16 @@ def create_connection(
         return None
 
 
-def main() -> None:  # pylint: disable=too-many-locals
-    """Load JSON data into PostgreSQL database.
+def _ensure_database(db_name, db_user, db_host):
+    """Create the target database if it does not exist.
 
-    Creates the ``applicant_data`` database and ``applicants`` table if they
-    do not exist, then inserts all rows from the JSON file. Duplicates are
-    skipped via ``ON CONFLICT (url) DO NOTHING``.
+    :returns: ``True`` if the database is ready, ``False`` on failure.
+    :rtype: bool
     """
-    db_name = DB_CONFIG["dbname"]
-    db_user = DB_CONFIG["user"]
-    db_host = DB_CONFIG.get("host")
-
-    # Connect to admin db and create target database if it doesn't exist
     admin_db = os.environ.get("DB_ADMIN_NAME", "postgres")
     conn = create_connection(admin_db, db_user, db_host)
     if not conn:
-        return
+        return False
 
     cursor = conn.cursor()
     agg_limit = min(1, MAX_QUERY_LIMIT)
@@ -116,26 +152,22 @@ def main() -> None:  # pylint: disable=too-many-locals
     )
     cursor.execute(check_db_query, (db_name, agg_limit))
     if not cursor.fetchone():
-        create_db_query = sql.SQL("CREATE DATABASE {}").format(
-            sql.Identifier(db_name)
+        cursor.execute(
+            sql.SQL("CREATE DATABASE {}").format(sql.Identifier(db_name))
         )
-        cursor.execute(create_db_query)
         logger.info("Database %s created", db_name)
     else:
         logger.info("Database %s already exists", db_name)
     conn.close()
+    return True
 
-    # Reconnect to the target database
-    conn = create_connection(db_name, db_user, db_host)
-    if not conn:
-        return
 
+def _create_table(conn):
+    """Drop and recreate the ``applicants`` table."""
     cursor = conn.cursor()
-    # Create table
-    drop_query = sql.SQL("DROP TABLE IF EXISTS {}").format(
-        sql.Identifier("applicants"),
+    cursor.execute(
+        sql.SQL("DROP TABLE IF EXISTS {}").format(sql.Identifier("applicants"))
     )
-    cursor.execute(drop_query)
     col_defs = sql.SQL(", ").join([
         sql.SQL("{} SERIAL PRIMARY KEY").format(sql.Identifier("p_id")),
         sql.SQL("{} TEXT").format(sql.Identifier("program")),
@@ -153,65 +185,80 @@ def main() -> None:  # pylint: disable=too-many-locals
         sql.SQL("{} TEXT").format(sql.Identifier("llm_generated_program")),
         sql.SQL("{} TEXT").format(sql.Identifier("llm_generated_university")),
     ])
-    create_table_query = sql.SQL("CREATE TABLE {} ({})").format(
-        sql.Identifier("applicants"), col_defs,
+    cursor.execute(
+        sql.SQL("CREATE TABLE {} ({})").format(
+            sql.Identifier("applicants"), col_defs,
+        )
     )
-    cursor.execute(create_table_query)
     logger.info("Table 'applicants' ready")
 
-    # Load JSON
+
+def _load_json(path):
+    """Open and parse a JSON file.
+
+    :returns: Parsed rows, or ``None`` on error.
+    :rtype: list or None
+    """
     try:
-        with open(JSON_PATH, "r", encoding="utf-8") as f:
-            rows = json.load(f)
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
     except FileNotFoundError:
-        logger.error("JSON file not found: %s", JSON_PATH)
-        conn.close()
-        return
+        logger.error("JSON file not found: %s", path)
+        return None
     except json.JSONDecodeError as e:
         logger.error("Invalid JSON: %s", e)
+        return None
+
+
+def main() -> None:
+    """Load JSON data into PostgreSQL database.
+
+    Creates the ``applicant_data`` database and ``applicants`` table if they
+    do not exist, then inserts all rows from the JSON file. Duplicates are
+    skipped via ``ON CONFLICT (url) DO NOTHING``.
+    """
+    db_name = DB_CONFIG.get("dbname", "")
+    db_user = DB_CONFIG.get("user", "")
+    db_host = DB_CONFIG.get("host")
+
+    if not _ensure_database(db_name, db_user, db_host):
+        return
+
+    conn = create_connection(db_name, db_user, db_host)
+    if not conn:
+        return
+
+    _create_table(conn)
+
+    rows = _load_json(JSON_PATH)
+    if rows is None:
         conn.close()
         return
 
-    _columns = [
-        "program", "comments", "date_added", "url", "status", "term",
-        "us_or_international", "gpa", "gre", "gre_v", "gre_aw",
-        "degree", "llm_generated_program", "llm_generated_university",
-    ]
-    insert_query = sql.SQL(
-        "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO NOTHING"
-    ).format(
-        sql.Identifier("applicants"),
-        sql.SQL(", ").join(sql.Identifier(c) for c in _columns),
-        sql.SQL(", ").join(sql.Placeholder(c) for c in _columns),
-        sql.Identifier("url"),
-    )
+    insert_query = build_insert_query()
     params_list = [
         {
-                "program": clean_text(row.get("program", "")),
-                "comments": clean_text(row.get("comments", "")),
-                "date_added": parse_date(row.get("date_added", "")),
-                "url": clean_text(row.get("url", "")),
-                "status": clean_text(row.get("status", "")),
-                "term": clean_text(row.get("term", "")),
-                "us_or_international": clean_text(
-                    row.get("US/International", "")
-                ),
-                "gpa": parse_float(row.get("GPA", ""), "GPA"),
-                "gre": parse_float(row.get("GRE", ""), "GRE"),
-                "gre_v": parse_float(row.get("GRE V", ""), "GRE V"),
-                "gre_aw": parse_float(row.get("GRE AW", ""), "GRE AW"),
-                "degree": clean_text(row.get("Degree", "")),
-                "llm_generated_program": clean_text(
-                    row.get("llm-generated-program", "")
-                ),
-                "llm_generated_university": clean_text(
-                    row.get("llm-generated-university", "")
-                ),
-            }
-            for row in rows
+            "program": clean_text(row.get("program", "")),
+            "comments": clean_text(row.get("comments", "")),
+            "date_added": parse_date(row.get("date_added", "")),
+            "url": clean_text(row.get("url", "")),
+            "status": clean_text(row.get("status", "")),
+            "term": clean_text(row.get("term", "")),
+            "us_or_international": clean_text(
+                row.get("US/International", "")
+            ),
+            **build_score_params(row),
+            "llm_generated_program": clean_text(
+                row.get("llm-generated-program", "")
+            ),
+            "llm_generated_university": clean_text(
+                row.get("llm-generated-university", "")
+            ),
+        }
+        for row in rows
     ]
     try:
-        cursor.executemany(insert_query, params_list)
+        conn.cursor().executemany(insert_query, params_list)
     except psycopg.Error as e:
         logger.error("Database error during insert: %s", e)
         conn.close()
@@ -219,10 +266,11 @@ def main() -> None:  # pylint: disable=too-many-locals
 
     logger.info("Inserted %d rows", len(rows))
 
-    # Verify
+    agg_limit = min(1, MAX_QUERY_LIMIT)
     verify_query = sql.SQL("SELECT COUNT(*) FROM {} LIMIT %s").format(
         sql.Identifier("applicants"),
     )
+    cursor = conn.cursor()
     cursor.execute(verify_query, (agg_limit,))
     logger.info("Total rows in table: %s", cursor.fetchone()[0])
 

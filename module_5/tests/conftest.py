@@ -81,6 +81,12 @@ class FakeResponse:
     def read(self):
         return self._data
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
 
 class NoCloseConn:
     """Wraps a real connection for both context-manager and direct usage.

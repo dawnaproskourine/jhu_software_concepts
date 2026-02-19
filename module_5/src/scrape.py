@@ -26,8 +26,8 @@ def fetch_page(url, user_agent=robots_checker.DEFAULT_USER_AGENT):
     """
     headers = {'User-Agent': user_agent}
     request = Request(url, headers=headers)
-    page = urlopen(request)  # pylint: disable=consider-using-with
-    html = page.read().decode("utf-8")
+    with urlopen(request) as page:
+        html = page.read().decode("utf-8")
     return html
 
 def parse_survey(html):
@@ -134,7 +134,51 @@ def parse_main_row(cells):
     result["comments"] = []
     return result
 
-def parse_detail_row(cell, result):  # pylint: disable=too-many-branches
+_NATIONALITY_MAP = {
+    "international": ("US/International", "International"),
+    "american": ("US/International", "American"),
+}
+
+_GRE_PREFIXES = [
+    ("gre v", "GRE V"),
+    ("gre aw", "GRE AW"),
+    ("gre q", "GRE Q"),
+    ("gre", "GRE"),
+]
+
+
+def _classify_part(part):
+    """Classify a single pipe-separated part from a detail row.
+
+    :param part: A trimmed text fragment from the detail row.
+    :type part: str
+    :returns: ``(field_name, value)`` for structured data, or ``None``
+        if the part is unstructured (i.e. a comment fragment).
+    :rtype: tuple[str, str] or None
+    """
+    part_lower = part.lower()
+
+    if re.match(r'^(fall|spring|summer|winter)\s+\d{4}$', part_lower):
+        return ("term", part)
+
+    if part_lower in _NATIONALITY_MAP:
+        return _NATIONALITY_MAP[part_lower]
+
+    if re.match(r'^gpa\s+\d+(\.\d+)?$', part_lower):
+        return ("GPA", part)
+
+    for prefix, field in _GRE_PREFIXES:
+        if part_lower.startswith(prefix):
+            return (field, part)
+
+    if (any(x in part_lower for x in
+            ["accepted", "rejected", "interview", "wait"])
+            and len(part) < 50):
+        return ("_status", part)
+    return None
+
+
+def parse_detail_row(cell, result):
     """Parse a detail or comment row and update the result dict in place.
 
     Handles two types of rows:
@@ -155,63 +199,23 @@ def parse_detail_row(cell, result):  # pylint: disable=too-many-branches
 
     parts = [p.strip() for p in text.split(" | ")]
 
-    # Track if we found any structured data
     found_structured_data = False
-
-    # Collect any parts that don't match structured patterns
     comment_parts = []
 
     for part in parts:
-        part_lower = part.lower()
-
-        # Check for term (eg "Fall 2024")
-        if re.match(
-            r'^(fall|spring|summer|winter)\s+\d{4}$', part_lower
-        ):
-            result['term'] = part
-            found_structured_data = True
-
-        # Check for US/International
-        elif part_lower == "international":
-            result["US/International"] = "International"
-            found_structured_data = True
-        elif part_lower == "american":
-            result["US/International"] = "American"
-            found_structured_data = True
-
-        # Check for GPA (must match "GPA X.XX" pattern)
-        elif re.match(r'^gpa\s+\d+(\.\d+)?$', part_lower):
-            result["GPA"] = part
-            found_structured_data = True
-
-        # Check for GRE
-        elif part_lower.startswith("gre v"):
-            result["GRE V"] = part
-            found_structured_data = True
-
-        elif part_lower.startswith("gre aw"):
-            result["GRE AW"] = part
-            found_structured_data = True
-
-        elif part_lower.startswith("gre q"):
-            result["GRE Q"] = part
-            found_structured_data = True
-
-        elif part_lower.startswith("gre"):
-            result["GRE"] = part
-            found_structured_data = True
-
-        # Check for status if not already set
-        elif (any(x in part_lower for x in
-                  ["accepted", "rejected", "interview", "wait"])
-              and len(part) < 50):
-            if "status" not in result or not result["status"]:
-                result["status"] = part
-                found_structured_data = True
-
-        # Unmatched part - likely a comment
-        else:
+        classified = _classify_part(part)
+        if classified is None:
             comment_parts.append(part)
+            continue
+
+        field, value = classified
+        if field == "_status":
+            if "status" not in result or not result["status"]:
+                result["status"] = value
+                found_structured_data = True
+        else:
+            result[field] = value
+            found_structured_data = True
 
     # If we have comment parts, add them to the comments list
     if comment_parts:
@@ -245,7 +249,45 @@ def get_max_pages(html):
 
     return max_page
 
-def scrape_data(  # pylint: disable=too-many-locals
+def _check_robots(base_url, user_agent, delay):
+    """Check robots.txt and return ``(robots, delay)`` or ``None`` to abort.
+
+    :param base_url: The base URL to check.
+    :param user_agent: The User-Agent string.
+    :param delay: Default crawl delay in seconds.
+    :returns: ``(robots_checker_instance, effective_delay)`` or ``None``.
+    """
+    print(f"Checking robots.txt for user-agent: {user_agent}",
+          file=sys.stderr)
+    robots = robots_checker.RobotsChecker(base_url, user_agent)
+
+    if not robots.can_fetch(base_url):
+        print(f"Error: robots.txt disallows access to "
+              f"{base_url} for {user_agent}",
+              file=sys.stderr)
+        print("Use --ignore_robots option to ignore robots.txt "
+              "check (not recommended)", file=sys.stderr)
+        return None
+
+    robots_delay = robots.get_crawl_delay(delay)
+    if robots_delay != delay:
+        print(f"Using crawl delay from robots.txt: "
+              f"{robots_delay}s", file=sys.stderr)
+    return robots, robots_delay
+
+
+def _finalize_comments(results):
+    """Convert comment lists to joined strings in place.
+
+    :param results: List of applicant data dicts.
+    :type results: list[dict]
+    """
+    for result in results:
+        if isinstance(result.get("comments"), list):
+            result["comments"] = " ".join(result["comments"]).strip()
+
+
+def scrape_data(
         base_url="https://www.thegradcafe.com/survey/",
         max_pages=None, delay=0.5,
         user_agent=robots_checker.DEFAULT_USER_AGENT,
@@ -266,37 +308,19 @@ def scrape_data(  # pylint: disable=too-many-locals
     :rtype: list[dict]
     """
     all_results = []
+    robots = None
 
     # Check robots.txt
     if not ignore_robots:
-        print(f"Checking robots.txt for user-agent: {user_agent}",
-              file=sys.stderr)
-        robots = robots_checker.RobotsChecker(base_url, user_agent)
-
-        if not robots.can_fetch(base_url):
-            print(f"Error: robots.txt disallows access to "
-                  f"{base_url} for {user_agent}",
-                  file=sys.stderr)
-            print("Use --ignore_robots option to ignore robots.txt "
-                  "check (not recommended)", file=sys.stderr)
+        check = _check_robots(base_url, user_agent, delay)
+        if check is None:
             return all_results
-
-         # Use crawl-delay from robots.txt if specified
-        robots_delay = robots.get_crawl_delay(delay)
-        if robots_delay != delay:
-            print(f"Using crawl delay from robots.txt: "
-                  f"{robots_delay}s", file=sys.stderr)
-            delay = robots_delay
+        robots, delay = check
 
     # Fetch first page to determine total pages
     html = fetch_page(base_url, user_agent)
     results = parse_survey(html)
-
-    # Convert comment lists to strings before adding to results
-    for result in results:
-        if isinstance(result.get("comments"), list):
-            result["comments"] = " ".join(result["comments"]).strip()
-
+    _finalize_comments(results)
     all_results.extend(results)
 
     total_pages = get_max_pages(html)
@@ -323,14 +347,7 @@ def scrape_data(  # pylint: disable=too-many-locals
         try:
             html = fetch_page(page_url, user_agent)
             results = parse_survey(html)
-
-            # Convert comment lists to strings
-            for result in results:
-                if isinstance(result.get("comments"), list):
-                    result["comments"] = " ".join(
-                        result["comments"]
-                    ).strip()
-
+            _finalize_comments(results)
             all_results.extend(results)
             print(f"Page {page_num}/{pages_to_fetch} - "
                   f"{len(results)} results", file=sys.stderr)

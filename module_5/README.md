@@ -264,7 +264,7 @@ module_5/
 
 ## Testing
 
-The `tests/` directory contains 151 pytest tests across twelve files with markers for selective execution.
+The `tests/` directory contains 153 pytest tests across twelve files with markers for selective execution.
 
 | File | Tests | Marker | What it covers |
 |------|-------|--------|----------------|
@@ -279,7 +279,7 @@ The `tests/` directory contains 151 pytest tests across twelve files with marker
 | `test_robots_checker.py` | 5 | `web` | `RobotsChecker` init, exception handling, `can_fetch`, `get_crawl_delay` |
 | `test_query_main.py` | 6 | `db` | `query_data.main()` output, DB error, `DATABASE_URL` config parsing, individual env var config, missing env vars, dependency-injected scraper test |
 | `test_load_main.py` | 10 | `db` | `create_connection` success/failure, `main()` DB creation, JSON loading, error paths (missing file, bad JSON, executemany failure) |
-| `test_app_errors.py` | 11 | `buttons` | Index DB error, invalid `max_pages`, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page, network error page 2 rollback, cleanup error, insert error rollback |
+| `test_app_errors.py` | 13 | `buttons` | Index DB error, invalid `max_pages`, DB connect failure, network error, DB error during scrape, caught-up break, cleanup message, multi-page, network error page 2 rollback, cleanup error, insert error rollback |
 
 ### Running Tests
 
