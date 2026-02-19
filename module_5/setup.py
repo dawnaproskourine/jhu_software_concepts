@@ -29,6 +29,8 @@ setup(
             "pytest-cov>=4.0",
             "pylint>=3.0",
             "pydeps>=2.0",
+            "sphinx>=7.0",
+            "sphinx-rtd-theme>=2.0",
         ],
     },
     package_data={
