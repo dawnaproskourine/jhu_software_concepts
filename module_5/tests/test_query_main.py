@@ -8,7 +8,7 @@ import query_data
 pytestmark = pytest.mark.db
 
 
-def test_main_prints_results(monkeypatch, capsys):
+def test_main_prints_results(monkeypatch, caplog):
     class _FakeConn:
         autocommit = True
         def close(self):
@@ -19,9 +19,10 @@ def test_main_prints_results(monkeypatch, capsys):
     )
     monkeypatch.setattr(query_data, "run_queries", lambda conn: MOCK_QUERY_DATA)
 
-    query_data.main()
-    out = capsys.readouterr().out
+    with caplog.at_level("INFO", logger="query_data"):
+        query_data.main()
 
+    out = caplog.text
     assert "Total applicants:" in out
     assert "Fall 2026 applicants:" in out
     assert "International student percentage:" in out

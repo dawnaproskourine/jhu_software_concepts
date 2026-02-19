@@ -567,13 +567,13 @@ def test_main_file_output(monkeypatch, tmp_path):
 
 
 @pytest.mark.web
-def test_main_invalid_output_filename(monkeypatch, capsys):
+def test_main_invalid_output_filename(monkeypatch, caplog):
     monkeypatch.setattr(scrape, "urlopen", lambda req: FakeResponse(_SIMPLE_HTML))
     monkeypatch.setattr(
         sys, "argv", ["scrape.py", "--pages", "1", "--ignore_robots", "-o", "/"]
     )
 
-    main()
+    with caplog.at_level("ERROR", logger="scrape"):
+        main()
 
-    err = capsys.readouterr().err
-    assert "invalid output filename" in err
+    assert "Invalid output filename" in caplog.text

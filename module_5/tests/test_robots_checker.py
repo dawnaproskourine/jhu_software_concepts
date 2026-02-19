@@ -21,14 +21,15 @@ def test_init_sets_attributes(monkeypatch):
 
 
 @pytest.mark.web
-def test_init_read_exception_warns(monkeypatch, capsys):
+def test_init_read_exception_warns(monkeypatch, caplog):
     def _raise(self):
         raise OSError("connection refused")
 
     monkeypatch.setattr("urllib.robotparser.RobotFileParser.read", _raise)
-    checker = RobotsChecker("https://example.com/")
+    with caplog.at_level("WARNING", logger="robots_checker"):
+        checker = RobotsChecker("https://example.com/")
     assert checker.crawl_delay is None
-    assert "Could not fetch robots.txt" in capsys.readouterr().err
+    assert "Could not fetch robots.txt" in caplog.text
 
 
 @pytest.mark.web

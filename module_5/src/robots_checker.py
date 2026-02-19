@@ -5,9 +5,11 @@ Fetches and parses a site's robots.txt to determine whether a given
 URL may be crawled and what crawl delay to respect.
 """
 
-import sys
+import logging
 from urllib import robotparser
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 # Default user agent for the scraper
 DEFAULT_USER_AGENT = "DawnaGradCafeScraper/1.0"
@@ -44,8 +46,7 @@ class RobotsChecker:
             # check for crawl delay directive
             self.crawl_delay = self.parser.crawl_delay(user_agent)
         except (OSError, UnicodeDecodeError) as e:
-            print(f"Warning: Could not fetch robots.txt: {e}",
-                  file=sys.stderr)
+            logger.warning("Could not fetch robots.txt: %s", e)
 
     def can_fetch(self, url):
         """Check if the given URL can be crawled according to robots.txt.

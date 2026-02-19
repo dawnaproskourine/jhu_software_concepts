@@ -441,42 +441,42 @@ def main() -> None:
 
     results = run_queries(conn)
     conn.close()
-    print(f"Total applicants: {results['total_count']}")
-    print(f"Fall 2026 applicants: {results['fall_2026_count']}")
-    print(f"International student percentage: "
-          f"{results['international_pct']}%")
-    print(f"Average GPA: {results['avg_gpa']}")
-    print(f"Average GRE: {results['avg_gre']}")
-    print(f"Average GRE V: {results['avg_gre_v']}")
-    print(f"Average GRE AW: {results['avg_gre_aw']}")
-    print(f"Average GPA of American students (Fall 2026): "
-          f"{results['american_gpa_fall2026']}")
-    print(f"Fall 2026 acceptance percentage: "
-          f"{results['acceptance_pct_fall2026']}%")
-    print(f"Average GPA of accepted applicants (Fall 2026): "
-          f"{results['accepted_gpa_fall2026']}")
-    print(f"JHU Masters in Computer Science applicants: "
-          f"{results['jhu_cs_masters']}")
-    print("2026 PhD CS acceptances (Georgetown, MIT, Stanford, CMU) "
-          f"[program]: {results['phd_cs_program']}")
-    print("2026 PhD CS acceptances (Georgetown, MIT, Stanford, CMU) "
-          f"[llm]: {results['phd_cs_llm']}")
+    logger.info("Total applicants: %s", results['total_count'])
+    logger.info("Fall 2026 applicants: %s", results['fall_2026_count'])
+    logger.info("International student percentage: %s%%",
+                results['international_pct'])
+    logger.info("Average GPA: %s", results['avg_gpa'])
+    logger.info("Average GRE: %s", results['avg_gre'])
+    logger.info("Average GRE V: %s", results['avg_gre_v'])
+    logger.info("Average GRE AW: %s", results['avg_gre_aw'])
+    logger.info("Average GPA of American students (Fall 2026): %s",
+                results['american_gpa_fall2026'])
+    logger.info("Fall 2026 acceptance percentage: %s%%",
+                results['acceptance_pct_fall2026'])
+    logger.info("Average GPA of accepted applicants (Fall 2026): %s",
+                results['accepted_gpa_fall2026'])
+    logger.info("JHU Masters in Computer Science applicants: %s",
+                results['jhu_cs_masters'])
+    logger.info("2026 PhD CS acceptances (Georgetown, MIT, Stanford, CMU) "
+                "[program]: %s", results['phd_cs_program'])
+    logger.info("2026 PhD CS acceptances (Georgetown, MIT, Stanford, CMU) "
+                "[llm]: %s", results['phd_cs_llm'])
 
-    print("\nTop 10 most popular programs:")
+    logger.info("Top 10 most popular programs:")
     for i, (program, count) in enumerate(results["top_programs"], 1):
-        print(f"  {i}. {program}: {count}")
+        logger.info("  %d. %s: %s", i, program, count)
 
-    print("\nTop 10 most popular universities:")
+    logger.info("Top 10 most popular universities:")
     for i, (university, count) in enumerate(results["top_universities"], 1):
-        print(f"  {i}. {university}: {count}")
+        logger.info("  %d. %s: %s", i, university, count)
 
-    print("\nAcceptance rate by degree type:")
+    logger.info("Acceptance rate by degree type:")
     for degree, total, accepted, rate in results["rate_by_degree"]:
-        print(f"  {degree}: {accepted}/{total} ({rate}%)")
+        logger.info("  %s: %s/%s (%s%%)", degree, accepted, total, rate)
 
-    print("\nAcceptance rate by nationality:")
+    logger.info("Acceptance rate by nationality:")
     for nationality, total, accepted, rate in results["rate_by_nationality"]:
-        print(f"  {nationality}: {accepted}/{total} ({rate}%)")
+        logger.info("  %s: %s/%s (%s%%)", nationality, accepted, total, rate)
 
 
 if __name__ == "__main__":

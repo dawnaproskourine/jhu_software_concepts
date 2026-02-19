@@ -2,9 +2,9 @@
 
 import argparse
 import json
+import logging
 import os
 import re
-import sys
 import time
 
 from urllib.request import urlopen, Request
@@ -12,6 +12,8 @@ from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
 
 import robots_checker
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_page(url, user_agent=robots_checker.DEFAULT_USER_AGENT):
@@ -257,22 +259,20 @@ def _check_robots(base_url, user_agent, delay):
     :param delay: Default crawl delay in seconds.
     :returns: ``(robots_checker_instance, effective_delay)`` or ``None``.
     """
-    print(f"Checking robots.txt for user-agent: {user_agent}",
-          file=sys.stderr)
+    logger.info("Checking robots.txt for user-agent: %s", user_agent)
     robots = robots_checker.RobotsChecker(base_url, user_agent)
 
     if not robots.can_fetch(base_url):
-        print(f"Error: robots.txt disallows access to "
-              f"{base_url} for {user_agent}",
-              file=sys.stderr)
-        print("Use --ignore_robots option to ignore robots.txt "
-              "check (not recommended)", file=sys.stderr)
+        logger.error("robots.txt disallows access to %s for %s",
+                      base_url, user_agent)
+        logger.error("Use --ignore_robots option to ignore robots.txt "
+                      "check (not recommended)")
         return None
 
     robots_delay = robots.get_crawl_delay(delay)
     if robots_delay != delay:
-        print(f"Using crawl delay from robots.txt: "
-              f"{robots_delay}s", file=sys.stderr)
+        logger.info("Using crawl delay from robots.txt: %ss",
+                     robots_delay)
     return robots, robots_delay
 
 
@@ -327,10 +327,9 @@ def scrape_data(
     pages_to_fetch = (min(total_pages, max_pages)
                       if max_pages else total_pages)
 
-    print(f"Found {total_pages} total pages. "
-          f"Fetching {pages_to_fetch} pages...", file=sys.stderr)
-    print(f"Page 1/{pages_to_fetch} - {len(results)} results",
-          file=sys.stderr)
+    logger.info("Found %d total pages. Fetching %d pages...",
+                 total_pages, pages_to_fetch)
+    logger.info("Page 1/%d - %d results", pages_to_fetch, len(results))
 
     # Fetch remaining pages
     for page_num in range(2, pages_to_fetch + 1):
@@ -340,8 +339,8 @@ def scrape_data(
 
         # Check robots.txt for each page URL
         if not ignore_robots and not robots.can_fetch(page_url):
-            print(f"Skipping page {page_num}: disallowed by robots.txt",
-                  file=sys.stderr)
+            logger.warning("Skipping page %d: disallowed by robots.txt",
+                           page_num)
             continue
 
         try:
@@ -349,14 +348,13 @@ def scrape_data(
             results = parse_survey(html)
             _finalize_comments(results)
             all_results.extend(results)
-            print(f"Page {page_num}/{pages_to_fetch} - "
-                  f"{len(results)} results", file=sys.stderr)
+            logger.info("Page %d/%d - %d results",
+                        page_num, pages_to_fetch, len(results))
         except (OSError, ValueError, UnicodeDecodeError) as e:
-            print(f"Error fetching page {page_num}: {e}",
-                  file=sys.stderr)
+            logger.error("Error fetching page %d: %s", page_num, e)
             continue
 
-    print(f"Total results: {len(all_results)}", file=sys.stderr)
+    logger.info("Total results: %d", len(all_results))
     return all_results
 
 def main():
@@ -412,13 +410,12 @@ def main():
     if args.output:
         filename = os.path.basename(args.output)
         if not filename:
-            print("Error: invalid output filename",
-                  file=sys.stderr)
+            logger.error("Invalid output filename")
             return results
         safe_path = os.path.join(os.getcwd(), filename)
         with open(safe_path, "w", encoding="utf-8") as f:
             f.write(json_output)
-        print(f"Results saved to {safe_path}", file=sys.stderr)
+        logger.info("Results saved to %s", safe_path)
     else:
         print(json_output)
 
